@@ -2,12 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ChevronDown, User, LogOut, Shield, Users } from "lucide-react";
+import { ChevronDown, User, LogOut, Shield } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
-import { cn } from "@/lib/utils";
 
 export function AccountMenu() {
-  const { session, logout, switchAccount } = useSession();
+  const { session, logout } = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -50,35 +49,6 @@ export function AccountMenu() {
           >
             <Shield size={15} /> {session.accountType === "host" ? "Host Dashboard" : "Dashboard"}
           </Link>
-
-          <div className="my-2 border-t border-border-subtle" />
-          <p className="px-3 pt-1 pb-1.5 text-[11px] uppercase tracking-wide text-muted flex items-center gap-1.5">
-            <Users size={12} /> Dev: Preview as
-          </p>
-          <button
-            onClick={() => {
-              switchAccount("member");
-              setOpen(false);
-            }}
-            className={cn(
-              "w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-white/5 flex items-center justify-between",
-              session.accountType === "member" && "text-accent-blue-light"
-            )}
-          >
-            Kingdom Member {session.accountType === "member" && <span>●</span>}
-          </button>
-          <button
-            onClick={() => {
-              switchAccount("host");
-              setOpen(false);
-            }}
-            className={cn(
-              "w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-white/5 flex items-center justify-between",
-              session.accountType === "host" && "text-accent-blue-light"
-            )}
-          >
-            Church Host {session.accountType === "host" && <span>●</span>}
-          </button>
 
           <div className="my-2 border-t border-border-subtle" />
           <button

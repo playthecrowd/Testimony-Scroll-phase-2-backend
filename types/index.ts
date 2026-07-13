@@ -284,3 +284,82 @@ export interface AppNotification {
   ctaLabel?: string;
   ctaHref?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Backend Milestone One: Supabase-backed types, additive only. These describe data coming
+// from the real database (Capture, Lessons Library, Lesson Detail, Church Archive) and are
+// kept separate from the mock types above so every mock-powered page keeps compiling as-is.
+// ---------------------------------------------------------------------------
+
+export type LessonMediaType = "notes" | "video" | "audio" | "slides" | "document" | "transcript";
+
+export interface LessonMedia {
+  id: string;
+  mediaType: LessonMediaType;
+  url: string | null;
+  content: string | null;
+  title: string | null;
+}
+
+export interface Ministry {
+  id: string;
+  name: string;
+}
+
+export interface PublishedChurch {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  memberCount: number;
+  description: string | null;
+  verified: boolean;
+}
+
+export interface PublishedSpeaker {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  bio: string | null;
+}
+
+export interface PublishedLessonHost {
+  id: string;
+  status: "live" | "scheduled";
+  participantCount: number;
+  scheduleLabel: string | null;
+  questUrl: string | null;
+  church: PublishedChurch | null;
+}
+
+export interface PublishedLesson {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  aboutText: string | null;
+  topic: string | null;
+  subject: string | null;
+  ministryCategory: string | null;
+  date: string | null;
+  durationLabel: string | null;
+  lessonType: string | null;
+  primaryScripture: string | null;
+  supportingScriptures: string[];
+  tags: string[];
+  featuredImageUrl: string | null;
+  questUrl: string | null;
+  questLevel: number | null;
+  xpReward: number | null;
+  status: "draft" | "published";
+  contributorsCount: number;
+  createdAt: string;
+  church: PublishedChurch;
+  speaker: PublishedSpeaker | null;
+  media: LessonMedia[];
+  hosts: PublishedLessonHost[];
+  ministries: Ministry[];
+}

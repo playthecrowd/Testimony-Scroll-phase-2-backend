@@ -1,11 +1,33 @@
 import Link from "next/link";
 import { Church, Users2, CheckCircle2 } from "lucide-react";
-import { churches } from "@/data/churches";
-import { getChurchLessons } from "@/services/churchService";
+import { createClient } from "@/lib/supabase/server";
+import { getPublishedChurches } from "@/services/supabase/churches";
+import { getPublishedLessonsByChurch } from "@/services/supabase/lessons";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
+import { ErrorState, EmptyState } from "@/components/ui/AsyncState";
+import { SupabaseConfigError } from "@/lib/supabase/env";
 
-export default function ChurchesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ChurchesPage() {
+  let churches;
+  let lessonCounts: Awaited<ReturnType<typeof getPublishedLessonsByChurch>>[];
+  try {
+    const supabase = await createClient();
+    churches = await getPublishedChurches(supabase);
+    lessonCounts = await Promise.all(churches.map((c) => getPublishedLessonsByChurch(supabase, c.id)));
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      return (
+        <div className="max-w-lg mx-auto px-4 py-24">
+          <ErrorState message={err.message} />
+        </div>
+      );
+    }
+    throw err;
+  }
+
   return (
     <div className="relative max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
       <PageBackground src={backgrounds.ticketedExperiences} opacity={0.35} />
@@ -14,33 +36,32 @@ export default function ChurchesPage() {
       </h1>
       <p className="text-muted text-sm mt-1 mb-6">Explore churches participating in Quest for the Kingdom.</p>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {churches.map((c) => {
-          const lessonCount = getChurchLessons(c.id).length;
-          return (
+      {churches.length === 0 ? (
+        <EmptyState message="No churches have published yet." />
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {churches.map((c, i) => (
             <Link key={c.id} href={`/churches/${c.slug}`} className="qk-card p-4 hover:border-accent-blue-light/50 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <img src={c.logoUrl} className="w-12 h-12 rounded-xl" alt="" />
+                {c.logoUrl && <img src={c.logoUrl} className="w-12 h-12 rounded-xl" alt="" />}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
                     {c.name} {c.verified && <CheckCircle2 size={13} className="text-accent-blue-light shrink-0" />}
                   </p>
-                  <p className="text-xs text-muted">
-                    {c.city}, {c.state}
-                  </p>
+                  <p className="text-xs text-muted">{[c.city, c.region].filter(Boolean).join(", ")}</p>
                 </div>
               </div>
-              <p className="text-xs text-muted line-clamp-2 mb-3">{c.description}</p>
+              {c.description && <p className="text-xs text-muted line-clamp-2 mb-3">{c.description}</p>}
               <div className="flex items-center justify-between text-xs text-muted pt-2 border-t border-border-subtle">
                 <span className="flex items-center gap-1">
                   <Users2 size={12} /> {c.memberCount.toLocaleString()} members
                 </span>
-                <span>{lessonCount} lessons</span>
+                <span>{lessonCounts[i].length} lessons</span>
               </div>
             </Link>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
