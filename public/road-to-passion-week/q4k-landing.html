@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Q4K: Quest for the Kingdom</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy: #0a0e27;
+    --navy-2: #10163a;
+    --purple: #4c1d95;
+    --purple-2: #6d28d9;
+    --gold: #e3b34f;
+    --gold-soft: #f2d38a;
+    --white: #f6f4ef;
+    --electric: #45c2ff;
+    --green: #7cb342;
+    --green-soft: #a8d65c;
+    --green-deep: #2e5c1a;
+    --line: rgba(246,244,239,0.14);
+    --card: linear-gradient(150deg, rgba(8,13,34,0.86) 0%, rgba(13,34,28,0.82) 55%, rgba(9,22,40,0.86) 100%);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  section, .stop, .card{scroll-margin-top:90px;}
+  body{
+    background: var(--navy);
+    color: var(--white);
+    font-family:'Manrope', sans-serif;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,h4{font-family:'Cinzel', serif; letter-spacing:0.01em;}
+  .eyebrow{
+    font-family:'Chakra Petch', sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.28em;
+    font-size:0.72rem;
+    color: var(--gold);
+    display:flex; align-items:center; gap:0.6em;
+  }
+  .eyebrow::before{content:""; width:22px; height:2px; background:var(--gold); display:inline-block;}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+  section{position:relative; padding:110px 0;}
+  img{max-width:100%; display:block;}
+  a{color:inherit;}
+
+  /* background texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0; z-index:-2;
+    background:
+      radial-gradient(ellipse 900px 600px at 15% 0%, rgba(76,29,149,0.28), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 20%, rgba(69,194,255,0.12), transparent 60%),
+      radial-gradient(ellipse 800px 500px at 50% 100%, rgba(124,179,66,0.16), transparent 60%),
+      var(--navy);
+  }
+  body::after{
+    content:"";
+    position:fixed; inset:0; z-index:-1; opacity:0.5;
+    background-image: radial-gradient(rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  /* ---------- NAV ---------- */
+  header{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(10,14,39,0.72);
+    backdrop-filter: blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  nav{
+    max-width:1180px; margin:0 auto; padding:16px 28px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .logo{
+    font-family:'Cinzel', serif; font-weight:700; font-size:1.15rem;
+    letter-spacing:0.06em; display:flex; align-items:center; gap:10px;
+  }
+  .logo-img{height:40px; width:auto; display:block;}
+  .nav-links{display:flex; gap:30px; font-size:0.86rem; font-weight:600;}
+  .nav-links a{opacity:0.82; transition:opacity .2s;}
+  .nav-links a:hover{opacity:1; color:var(--gold);}
+  .nav-cta{
+    font-family:'Chakra Petch'; font-weight:600; font-size:0.82rem;
+    background:var(--gold); color:var(--navy); padding:10px 20px;
+    border-radius:100px; letter-spacing:0.02em; white-space:nowrap;
+  }
+  .nav-toggle{display:none; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none;}
+  .nav-toggle span{width:24px; height:2px; background:var(--white);}
+
+  /* ---------- BUTTONS ---------- */
+  .btn{
+    font-family:'Chakra Petch'; font-weight:600; letter-spacing:0.02em;
+    padding:15px 30px; border-radius:100px; border:none; cursor:pointer;
+    font-size:0.92rem; display:inline-flex; align-items:center; gap:8px;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-gold{background:linear-gradient(135deg, var(--gold-soft), var(--gold)); color:var(--navy); box-shadow:0 8px 30px rgba(227,179,79,0.25);}
+  .btn-gold:hover{box-shadow:0 12px 34px rgba(227,179,79,0.4);}
+  .btn-ghost{background:transparent; color:var(--white); border:1px solid rgba(246,244,239,0.35);}
+  .btn-ghost:hover{border-color:var(--electric); color:var(--electric);}
+  .btn-purple{background:linear-gradient(135deg, var(--green-soft), var(--green)); color:var(--navy); box-shadow:0 8px 30px rgba(124,179,66,0.35);}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:190px 0 100px; position:relative;}
+  .hero-grid{display:grid; grid-template-columns:1.05fr 0.95fr; gap:60px; align-items:center;}
+  .hero h1{font-size:clamp(2.5rem, 4.6vw, 4rem); line-height:1.08; margin:18px 0 22px;}
+  .hero h1 .accent{color:var(--gold);}
+  .hero p.sub{font-size:1.08rem; opacity:0.82; max-width:520px; margin-bottom:34px;}
+  .hero-btns{display:flex; flex-wrap:wrap; gap:14px; margin-bottom:40px;}
+  .quick-actions{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; max-width:560px;}
+  .qa{
+    border:1px solid var(--line); border-radius:12px; padding:12px 10px;
+    text-align:center; font-family:'Chakra Petch'; font-size:0.76rem; font-weight:600;
+    background:var(--card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); transition:.2s; text-decoration:none; color:inherit; display:block;
+  }
+  .qa strong{display:block; color:var(--gold); font-size:0.9rem; margin-bottom:2px;}
+  .qa:hover{border-color:var(--gold); transform:translateY(-2px);}
+
+  .hero-visual{
+    position:relative; border-radius:24px; overflow:hidden;
+    aspect-ratio:4/5; border:1px solid var(--line);
+    background:
+      radial-gradient(circle at 30% 20%, rgba(69,194,255,0.35), transparent 55%),
+      radial-gradient(circle at 75% 70%, rgba(227,179,79,0.3), transparent 50%),
+      linear-gradient(160deg, #171b45, #0a0e27 70%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .hero-visual .portal{
+    width:64%; aspect-ratio:1; border-radius:50%;
+    border:3px solid var(--gold); position:relative;
+    box-shadow: 0 0 60px rgba(227,179,79,0.45), inset 0 0 40px rgba(227,179,79,0.25);
+    display:flex; align-items:center; justify-content:center;
+    animation: pulse 4s ease-in-out infinite;
+  }
+  .hero-visual .portal-inner{
+    width:70%; aspect-ratio:1; border-radius:50%;
+    background: conic-gradient(from 0deg, var(--green), var(--electric), var(--gold), var(--green));
+    opacity:0.55; filter:blur(2px);
+    animation: spin 14s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 60px rgba(227,179,79,0.45), inset 0 0 40px rgba(227,179,79,0.25);} 50%{ box-shadow:0 0 90px rgba(227,179,79,0.65), inset 0 0 55px rgba(227,179,79,0.4);} }
+  .portal-seal{
+    position:absolute; width:34%; height:auto; z-index:1;
+    filter: drop-shadow(0 0 18px rgba(227,179,79,0.55));
+  }
+  .hero-visual .tag{
+    position:absolute; bottom:22px; left:22px; right:22px;
+    font-family:'Chakra Petch'; font-size:0.72rem; letter-spacing:0.1em;
+    text-transform:uppercase; opacity:0.75; text-align:center;
+  }
+
+  /* ---------- SECTION HEADS ---------- */
+  .sec-head{max-width:640px; margin-bottom:56px;}
+  .sec-head h2{font-size:clamp(1.8rem, 3vw, 2.5rem); margin-top:14px;}
+  .sec-head p{opacity:0.78; margin-top:16px; font-size:1rem;}
+  .sec-head.center{margin-left:auto; margin-right:auto; text-align:center;}
+
+  /* ---------- TRAILER ---------- */
+  .trailer-box{
+    border-radius:22px; border:1px solid var(--line); position:relative; overflow:hidden;
+    aspect-ratio:16/7; background:linear-gradient(135deg,#161a42,#0a0e27);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    background-image: radial-gradient(circle at 20% 30%, rgba(124,179,66,0.35), transparent 55%), radial-gradient(circle at 80% 75%, rgba(69,194,255,0.25), transparent 50%);
+  }
+  .play-btn{
+    width:82px; height:82px; border-radius:50%; background:var(--gold);
+    display:flex; align-items:center; justify-content:center; box-shadow:0 0 50px rgba(227,179,79,0.5);
+    transition: transform .2s;
+  }
+  .trailer-box:hover .play-btn{transform:scale(1.08);}
+  .play-btn::after{content:""; border-left:20px solid var(--navy); border-top:12px solid transparent; border-bottom:12px solid transparent; margin-left:6px;}
+
+  /* ---------- HOST PLOT / TOWER MAP ---------- */
+  .plot-grid{display:grid; grid-template-columns:0.95fr 1.05fr; gap:56px; align-items:start;}
+  .plot-img{border-radius:20px; border:1px solid var(--line); overflow:hidden;}
+  .feature-list{display:grid; gap:14px;}
+  .feature-item{
+    display:grid; grid-template-columns:44px 1fr; gap:16px;
+    padding:16px; border-radius:14px; border:1px solid var(--line); background:var(--card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+  .feature-num{
+    font-family:'Chakra Petch'; font-weight:700; color:var(--gold); font-size:1.1rem;
+    display:flex; align-items:flex-start; justify-content:center; padding-top:2px;
+  }
+  .feature-item h4{font-family:'Manrope'; font-weight:700; font-size:1rem; margin-bottom:4px;}
+  .feature-item p{font-size:0.9rem; opacity:0.75;}
+
+  /* ---------- ROAD TO EASTER (signature timeline) ---------- */
+  .road{position:relative; padding-left:26px;}
+  .road::before{
+    content:""; position:absolute; left:26px; top:6px; bottom:6px; width:2px;
+    background:linear-gradient(var(--green), var(--gold));
+  }
+  .stop{
+    position:relative; padding:0 0 46px 46px; display:grid; grid-template-columns:130px 1fr; gap:26px;
+  }
+  .stop:last-child{padding-bottom:0;}
+  .stop::before{
+    content:""; position:absolute; left:-2px; top:4px; width:16px; height:16px; border-radius:50%;
+    background:var(--navy); border:3px solid var(--gold); box-shadow:0 0 14px rgba(227,179,79,0.6);
+  }
+  .stop .month{font-family:'Chakra Petch'; font-weight:600; color:var(--electric); letter-spacing:0.06em; font-size:0.85rem; padding-top:2px;}
+  .stop .stop-body h4{font-family:'Cinzel'; font-size:1.15rem; color:var(--gold); margin-bottom:6px;}
+  .stop .stop-body p{opacity:0.78; font-size:0.94rem; max-width:560px;}
+
+  /* ---------- CARDS GRID GENERIC ---------- */
+  .grid-4{display:grid; grid-template-columns:repeat(4,1fr); gap:22px;}
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:22px;}
+  .grid-2{display:grid; grid-template-columns:repeat(2,1fr); gap:26px;}
+  .card{
+    border:1px solid var(--line); border-radius:18px; padding:26px; background:var(--card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    display:flex; flex-direction:column; transition:.2s;
+  }
+  .card:hover{border-color:rgba(227,179,79,0.5); transform:translateY(-4px);}
+  .card h3, .card h4{margin-bottom:10px;}
+  .card p{opacity:0.76; font-size:0.92rem; flex:1;}
+  .card .badge{
+    font-family:'Chakra Petch'; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--gold); border:1px solid rgba(227,179,79,0.4); border-radius:100px;
+    padding:4px 12px; display:inline-block; margin-bottom:14px; width:fit-content;
+  }
+  .card ul{list-style:none; margin:14px 0; font-size:0.88rem; opacity:0.82; display:grid; gap:8px;}
+  .card ul li::before{content:"◆ "; color:var(--gold); font-size:0.7em;}
+  .card .cta-link{
+    margin-top:18px; font-family:'Chakra Petch'; font-weight:600; font-size:0.85rem; color:var(--gold);
+    display:inline-flex; align-items:center; gap:6px;
+  }
+
+  /* asset card image swatch */
+  .asset-swatch{
+    aspect-ratio:1; border-radius:14px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Cinzel'; font-size:0.75rem; text-align:center; color:rgba(246,244,239,0.5);
+  }
+
+  /* asset art (real item renders) */
+  .asset-art{
+    aspect-ratio:1; border-radius:14px; margin-bottom:16px; overflow:hidden;
+    background: radial-gradient(circle at 50% 38%, rgba(227,179,79,0.22), rgba(10,14,39,0.5) 72%);
+    display:flex; align-items:center; justify-content:center; padding:16px;
+    border:1px solid var(--line);
+  }
+  .asset-art img{ width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 10px 22px rgba(0,0,0,0.5)); }
+
+  /* asset month tag */
+  .asset-tag{
+    font-family:'Chakra Petch'; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--green-soft); opacity:0.85; margin-bottom:8px;
+  }
+
+  /* speaker card */
+  .speaker-card{gap:0;}
+  .speaker-top{display:flex; align-items:center; gap:14px; margin-bottom:16px;}
+  .speaker-avatar{
+    width:58px; height:58px; min-width:58px; border-radius:50%;
+    background:linear-gradient(150deg, var(--green), var(--navy-2) 75%);
+    border:2px solid rgba(227,179,79,0.5);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.35);
+  }
+  .speaker-avatar svg{width:26px; height:26px; opacity:0.85;}
+  .speaker-name{font-family:'Manrope'; font-weight:700; font-size:0.98rem;}
+  .speaker-slot{font-family:'Chakra Petch'; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--electric); opacity:0.85; margin-top:2px;}
+  .speaker-topic{font-family:'Cinzel'; font-size:1.02rem; color:var(--gold); margin:4px 0 10px;}
+  .speaker-meta{font-size:0.86rem; opacity:0.72; display:grid; gap:5px; margin-bottom:16px;}
+  .speaker-meta span{opacity:0.55;}
+  .speaker-card .btn{padding:10px 20px; font-size:0.78rem; width:fit-content;}
+
+  /* ---------- ENVIRONMENT DIVIDERS ---------- */
+  .divider{
+    position:relative; height:130px; overflow:hidden;
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(180deg, rgba(124,179,66,0.10), rgba(10,14,39,0) 70%),
+      repeating-linear-gradient(90deg, rgba(124,179,66,0.16) 0px, rgba(124,179,66,0.16) 1px, transparent 1px, transparent 54px),
+      repeating-linear-gradient(0deg, rgba(124,179,66,0.13) 0px, rgba(124,179,66,0.13) 1px, transparent 1px, transparent 54px),
+      var(--navy);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .divider::before{
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(ellipse 500px 130px at 50% 50%, rgba(10,14,39,0) 0%, var(--navy) 90%);
+  }
+  .divider-ring{
+    position:relative; z-index:1; width:60px; height:60px; border-radius:50%;
+    border:3px solid var(--green-soft);
+    box-shadow: 0 0 26px rgba(168,214,92,0.55), inset 0 0 16px rgba(168,214,92,0.3);
+  }
+  .divider-marks{
+    position:relative; z-index:1; display:flex; gap:60px;
+  }
+  .divider-marks span{
+    width:14px; height:14px; border-radius:50%; background:var(--gold); opacity:0.75;
+    box-shadow:0 0 12px rgba(227,179,79,0.7);
+  }
+  @media (max-width:900px){
+    .divider{height:90px;}
+    .divider-marks{gap:30px;}
+  }
+
+  /* ---------- LEADERBOARD ---------- */
+  .lb-tabs{display:flex; gap:10px; margin-bottom:26px; flex-wrap:wrap;}
+  .lb-tab{
+    font-family:'Chakra Petch'; font-weight:600; font-size:0.84rem; padding:10px 20px;
+    border-radius:100px; border:1px solid var(--line); cursor:pointer; background:transparent; color:var(--white);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  }
+  .lb-tab.active{background:var(--gold); color:var(--navy); border-color:var(--gold);}
+  .lb-panel{
+    background:var(--card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border:1px solid var(--line); border-radius:18px; padding:8px; overflow-x:auto;
+  }
+  table{width:100%; border-collapse:collapse; font-size:0.92rem; min-width:640px;}
+  thead th{
+    text-align:left; font-family:'Chakra Petch'; text-transform:uppercase; letter-spacing:0.06em;
+    font-size:0.72rem; color:var(--gold); opacity:0.85; padding:14px 16px;
+    background:rgba(227,179,79,0.08); border-bottom:1px solid rgba(227,179,79,0.25);
+  }
+  thead th:first-child{border-top-left-radius:12px;}
+  thead th:last-child{border-top-right-radius:12px;}
+  tbody td{padding:14px 16px; border-bottom:1px solid var(--line);}
+  tbody tr:nth-child(odd) td{background:rgba(255,255,255,0.035);}
+  tbody tr:nth-child(even) td{background:rgba(10,14,39,0.25);}
+  tbody tr:hover td{background:rgba(227,179,79,0.1);}
+  tbody td:not(:last-child){border-right:1px solid rgba(255,255,255,0.05);}
+  .rank-pill{
+    font-family:'Chakra Petch'; font-weight:700; width:28px; height:28px; border-radius:8px;
+    display:flex; align-items:center; justify-content:center; background:rgba(227,179,79,0.15); color:var(--gold);
+  }
+
+  /* ---------- SPONSOR ---------- */
+  .sponsor-list{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  .sponsor-item{
+    border:1px solid var(--line); border-radius:12px; padding:16px 18px; font-size:0.92rem;
+    display:flex; justify-content:space-between; align-items:center; background:var(--card); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  }
+
+  /* ---------- FINAL CTA ---------- */
+  .final{
+    text-align:center; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    background: radial-gradient(ellipse at center, rgba(124,179,66,0.28), transparent 70%);
+  }
+  .final h2{font-size:clamp(2rem,4vw,3rem); margin-bottom:18px;}
+  .final p{opacity:0.8; max-width:560px; margin:0 auto 34px;}
+  .final .hero-btns{justify-content:center;}
+
+  /* ---------- FOOTER ---------- */
+  footer{padding:70px 0 34px;}
+  .foot-grid{display:grid; grid-template-columns:1.4fr repeat(4,1fr); gap:30px; margin-bottom:50px;}
+  .foot-col h5{font-family:'Chakra Petch'; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--gold); margin-bottom:16px;}
+  .foot-col a{display:block; font-size:0.88rem; opacity:0.72; margin-bottom:10px;}
+  .foot-col a:hover{opacity:1; color:var(--gold);}
+  .foot-bottom{
+    display:flex; justify-content:space-between; align-items:center; padding-top:26px;
+    border-top:1px solid var(--line); font-size:0.8rem; opacity:0.55; flex-wrap:wrap; gap:12px;
+  }
+
+  /* modal */
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(4,6,20,0.86); backdrop-filter:blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:200; padding:24px;
+  }
+  .modal-bg.open{display:flex;}
+  .modal-box{
+    max-width:820px; width:100%; aspect-ratio:16/9; border-radius:18px; border:1px solid var(--line);
+    background:linear-gradient(135deg,#171b45,#0a0e27); display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px; position:relative;
+  }
+  .modal-close{
+    position:absolute; top:16px; right:18px; font-family:'Chakra Petch'; font-size:1.3rem; cursor:pointer; opacity:0.7;
+  }
+  .modal-close:hover{opacity:1;}
+
+  /* ---------- SCROLL VISUALS: PARALLAX BACKGROUNDS + REVEAL FIGURES ---------- */
+  .section-bg{
+    position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none;
+    opacity:0; transition: opacity 1.6s ease;
+  }
+  .section-bg.visible{ opacity:1; }
+  .section-bg img{
+    position:absolute; top:-12%; left:-2%; width:104%; height:130%; object-fit:cover;
+    opacity:0.68; filter:saturate(0.95) brightness(0.85);
+    will-change:transform;
+  }
+  .section-bg::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, var(--navy) 0%, rgba(10,14,39,0.08) 20%, rgba(10,14,39,0.08) 80%, var(--navy) 100%);
+  }
+  section > .wrap{ position:relative; z-index:1; }
+
+  /* ---------- VECTOR "SACRED LIGHT" SCENE (CSS/SVG, motion layer — sits above photo backgrounds) ---------- */
+  .vector-scene{
+    position:absolute; inset:0; overflow:hidden; z-index:0; pointer-events:none;
+  }
+  .vs-rays{
+    position:absolute; left:50%; top:-45%; width:260%; height:180%;
+    transform:translateX(-50%);
+    background: repeating-conic-gradient(from 0deg at 50% 0%,
+      rgba(227,179,79,0.13) 0deg 2.5deg, transparent 2.5deg 13deg);
+    mix-blend-mode:screen;
+    animation: raySwing 46s linear infinite;
+    will-change:transform;
+  }
+  @keyframes raySwing{
+    0%{ transform:translateX(-50%) rotate(0deg); }
+    100%{ transform:translateX(-50%) rotate(360deg); }
+  }
+  .vs-glow{
+    position:absolute; left:50%; top:2%; width:380px; height:380px; margin-left:-190px;
+    background: radial-gradient(circle, rgba(227,179,79,0.32) 0%, rgba(124,179,66,0.14) 45%, transparent 72%);
+    filter: blur(4px);
+    border-radius:50%;
+    animation: glowPulse 5.5s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{ opacity:0.5; transform:scale(1); }
+    50%{ opacity:0.95; transform:scale(1.14); }
+  }
+  .vs-lantern{
+    position:absolute; left:50%; top:8%; width:56px; height:auto; margin-left:-28px;
+    opacity:0.4; filter:drop-shadow(0 0 16px rgba(227,179,79,0.7));
+    animation: lanternBob 4.5s ease-in-out infinite;
+    will-change:transform;
+  }
+  @keyframes lanternBob{
+    0%,100%{ transform:translateY(0px); filter:drop-shadow(0 0 12px rgba(227,179,79,0.55)); }
+    50%{ transform:translateY(-10px); filter:drop-shadow(0 0 24px rgba(227,179,79,0.85)); }
+  }
+  .vs-silhouette{
+    position:absolute; left:0; right:0; bottom:0; width:100%; height:34%;
+    opacity:0.4; will-change:transform;
+  }
+  .vs-silhouette svg{ width:100%; height:100%; display:block; }
+  .vector-scene::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, var(--navy) 0%, rgba(10,14,39,0.05) 25%, rgba(10,14,39,0.1) 75%, var(--navy) 100%);
+  }
+  /* when a section has both a photo layer and the light-motion layer, drop the silhouette a touch so the photo reads through */
+  .section-bg + .vector-scene .vs-silhouette{ opacity:0.22; }
+  .section-bg + .vector-scene::after{
+    background:linear-gradient(180deg, var(--navy) 0%, rgba(10,14,39,0.02) 22%, rgba(10,14,39,0.06) 78%, var(--navy) 100%);
+  }
+
+  .reveal-img{
+    border-radius:16px; overflow:hidden; border:1px solid var(--line);
+    opacity:0; transition: transform 1.1s cubic-bezier(.16,.84,.44,1), opacity 1.1s ease;
+    box-shadow:0 20px 50px rgba(0,0,0,0.35);
+  }
+  .reveal-img img{width:100%; height:100%; object-fit:cover; display:block;}
+  .reveal-img.dir-left{transform:translateX(-70px) rotate(-2deg);}
+  .reveal-img.dir-right{transform:translateX(70px) rotate(2deg);}
+  .reveal-img.dir-up{transform:translateY(60px);}
+  .reveal-img.visible{opacity:1; transform:translate(0,0) rotate(0deg);}
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal-img{transition:none; opacity:1; transform:none;}
+  }
+
+  /* responsive */
+  @media (max-width:900px){
+    .hero-grid, .plot-grid, .grid-4, .grid-3, .grid-2, .foot-grid{grid-template-columns:1fr;}
+    .nav-links, .nav-cta{display:none;}
+    .nav-toggle{display:flex;}
+    section{padding:70px 0;}
+    .hero{padding:150px 0 60px;}
+    .quick-actions{grid-template-columns:repeat(2,1fr);}
+    .stop{grid-template-columns:1fr; gap:6px;}
+    .sponsor-list{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important; transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav>
+    <a href="#top" class="logo" style="text-decoration:none;">
+      <img src="images/q4k-logo-nav-gold.png" alt="Q4K: Quest for the Kingdom" class="logo-img">
+    </a>
+    <div class="nav-links">
+      <a href="#ways-host">Host</a>
+      <a href="#ways-watch">Watch</a>
+      <a href="#ways-play">Play</a>
+      <a href="#ways-access">Access</a>
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#sponsor">Sponsor</a>
+    </div>
+    <a href="#ways-host" class="nav-cta">Host an Experience</a>
+    <button class="nav-toggle" aria-label="menu"><span></span><span></span><span></span></button>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-hero.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">September &mdash; Easter Campaign</div>
+      <h1>Host a <span class="accent">Quest for the Kingdom</span> Experience Plot</h1>
+      <p class="sub">Every host receives a fully interactive 3D game environment where players enter, watch lessons, move through game portals, answer Bible-based questions, collect objects, earn badges, and climb leaderboards. This isn't trivia &mdash; it's a gamified Bible-learning world.</p>
+      <div class="hero-btns">
+        <a href="#host-plot" class="btn btn-gold">Host an Experience</a>
+        <a href="#trailer" class="btn btn-ghost">Watch the Trailer</a>
+      </div>
+      <div class="quick-actions">
+        <a href="#ways-host" class="qa"><strong>Host</strong>a Q4K Plot</a>
+        <a href="#ways-watch" class="qa"><strong>Watch</strong>a Game Night</a>
+        <a href="#ways-play" class="qa"><strong>Play</strong>Anytime</a>
+        <a href="#ways-access" class="qa"><strong>Access</strong>Ticketed Events</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="portal">
+        <div class="portal-inner"></div>
+        <img src="images/q4k-icon-gold.png" alt="Q4K lantern emblem" class="portal-seal">
+      </div>
+      <div class="tag">Live speaker &middot; VR &amp; mixed reality &middot; mobile quests &middot; leaderboards</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-ring"></div></div>
+
+<!-- TRAILER -->
+<section id="trailer">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-trailer.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head center" style="margin-left:auto;margin-right:auto;">
+      <div class="eyebrow" style="justify-content:center;">First Look</div>
+      <h2>Watch the Quest for the Kingdom Trailer</h2>
+      <p>See the Q4K world, where biblical lessons become interactive quests, players unlock faith-based assets, and churches host immersive digital experiences for their communities.</p>
+    </div>
+    <div class="trailer-box" id="openTrailer">
+      <div class="play-btn"></div>
+    </div>
+    <div style="text-align:center; margin-top:30px;">
+      <a href="#host-plot" class="btn btn-gold">Host Your Own Experience Plot</a>
+    </div>
+  </div>
+</section>
+
+<!-- HOST PLOT -->
+<section id="host-plot">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-portal-courtyard.jpg" alt=""></div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">What Every Host Gets</div>
+      <h2>Your Q4K Host Plot Brings Every Lesson to Life</h2>
+      <p>Four connected zones &mdash; lobby, game tower, drop-off, and reward tower &mdash; give every church or group a ready-made Bible gaming world.</p>
+    </div>
+    <div class="plot-grid">
+      <div class="plot-img">
+        <img src="plotabl-game-tower-map.png" alt="Plotabl Game Tower Map showing the lobby, game tower, drop-off zone, and reward stair tower">
+      </div>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-num">1</div>
+          <div><h4>Lobby Starting Point</h4><p>A branded entry area where players begin, view screens, check leaderboards, and prepare for the quest.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-num">2</div>
+          <div><h4>Livestream Lesson Screen</h4><p>Stream speakers, pastors, teachers, or youth leaders directly into the gameplay experience.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-num">3</div>
+          <div><h4>Game Portals &amp; Question Objects</h4><p>Players enter Bible missions, trivia challenges, and scavenger hunts, then search, collect, and match objects tied to the lesson.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-num">4</div>
+          <div><h4>Drop-Off Zone &amp; Reward Tower</h4><p>Players submit collected items to complete challenges, then race up the reward stair tower to claim badges and prizes before time runs out.</p></div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-num">5</div>
+          <div><h4>Sponsor Reward Areas</h4><p>Sponsors support prizes, game credits, badges, featured assets, and youth access throughout the plot.</p></div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:44px;">
+      <a href="#" class="btn btn-gold">Host a Q4K Game Plot</a>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-marks"><span></span><span></span><span></span></div></div>
+
+<!-- ROAD TO EASTER -->
+<section id="roadmap">
+  <div class="section-bg" data-speed="0.12"><img src="images/bg-roadmap.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">September &rarr; Easter</div>
+      <h2>The Road to Easter</h2>
+      <p>Seven monthly themes carry players from discipleship in the fall to the full Passion of Christ experience at Easter.</p>
+    </div>
+    <div class="road">
+      <div class="stop"><div class="month">September</div><div class="stop-body"><h4>Follow Me: Discipleship Begins</h4><p>Church outreach, pop-up demos, and speaker nights focused on calling, identity, and following Jesus.</p></div></div>
+      <div class="stop"><div class="month">October</div><div class="stop-body"><h4>Stand Firm: Faith Under Pressure</h4><p>Missions about courage, spiritual choices, peer pressure, and standing firm in faith.</p></div></div>
+      <div class="stop"><div class="month">November</div><div class="stop-body"><h4>Kingdom Builders: Gratitude &amp; Service</h4><p>Gameplay centered on gratitude, generosity, teamwork, and using your gifts for kingdom purpose.</p></div></div>
+      <div class="stop"><div class="month">December</div><div class="stop-body"><h4>The Promise Arrives</h4><p>A Christmas-centered experience brings the birth of Jesus to life through live storytelling and game previews.</p></div></div>
+      <div class="stop"><div class="month">January</div><div class="stop-body"><h4>Early Access Opens</h4><p>Hosts unlock customizable environments, church-connected plots, badges, and multiplayer missions.</p></div></div>
+      <div class="stop"><div class="month">February</div><div class="stop-body"><h4>Connected Kingdom Communities</h4><p>Hosts connect environments side by side so multiple churches can play and build shared experiences.</p></div></div>
+      <div class="stop"><div class="month">March / Easter</div><div class="stop-body"><h4>The Passion Quest</h4><p>The full Easter experience: live gameplay, VR, mixed reality, music, speakers, and powerful storytelling.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED 3D ASSETS -->
+<section id="assets">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-assets.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">September &ndash; December</div>
+      <h2>Featured 3D Game Assets</h2>
+      <p>Each month unlocks a new asset tied to Scripture and a lesson theme. Players earn them by joining lessons, answering questions, and finishing quests.</p>
+    </div>
+    <div class="grid-4">
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-lantern.png" alt="The Disciple's Lantern"></div>
+        <div class="asset-tag">September &middot; Night 1</div>
+        <div class="badge">Light Bearer Badge</div>
+        <h4>The Disciple's Lantern</h4>
+        <p><strong>Matthew 5:16</strong> &mdash; Lights hidden paths and reveals clue markers during timed quests.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-net.png" alt="The Fisher's Net"></div>
+        <div class="asset-tag">September &middot; Night 2</div>
+        <div class="badge">Kingdom Catch Badge</div>
+        <h4>The Fisher's Net</h4>
+        <p><strong>Matthew 4:19</strong> &mdash; Helps players collect scattered truth objects and unlock team bonus points.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-shield.png" alt="The Shield of Faith"></div>
+        <div class="asset-tag">October &middot; Night 1</div>
+        <div class="badge">Stand Firm Badge</div>
+        <h4>The Shield of Faith</h4>
+        <p><strong>Ephesians 6:16</strong> &mdash; Blocks wrong-path penalties and unlocks courage-based challenge zones.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-stone.png" alt="The Stone of Courage"></div>
+        <div class="asset-tag">October &middot; Night 2</div>
+        <div class="badge">Giant Slayer Badge</div>
+        <h4>The Stone of Courage</h4>
+        <p><strong>1 Samuel 17:45</strong> &mdash; Activates boss-style challenge rounds where players answer faith questions to defeat obstacles.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-towel.png" alt="The Servant's Towel"></div>
+        <div class="asset-tag">November &middot; Night 1</div>
+        <div class="badge">Servant Leader Badge</div>
+        <h4>The Servant's Towel</h4>
+        <p><strong>John 13:14&ndash;15</strong> &mdash; Unlocks team-help features and bonus rewards for assisting other players.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-scroll.png" alt="The Gratitude Scroll"></div>
+        <div class="asset-tag">November &middot; Night 2</div>
+        <div class="badge">Grateful Heart Badge</div>
+        <h4>The Gratitude Scroll</h4>
+        <p><strong>1 Thessalonians 5:18</strong> &mdash; Reveals hidden blessing markers, bonus Scripture clues, and reward multipliers.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-star.png" alt="The Bethlehem Star"></div>
+        <div class="asset-tag">December &middot; Night 1</div>
+        <div class="badge">Star Seeker Badge</div>
+        <h4>The Bethlehem Star</h4>
+        <p><strong>Matthew 2:10</strong> &mdash; Guides players through the Christmas quest and unlocks nativity story moments.</p>
+      </div>
+      <div class="card">
+        <div class="asset-art"><img src="images/asset-chest.png" alt="The Gift Chest"></div>
+        <div class="asset-tag">December &middot; Night 2</div>
+        <div class="badge">Worship Giver Badge</div>
+        <h4>The Gift Chest</h4>
+        <p><strong>Matthew 2:11</strong> &mdash; Unlocks reward rooms, sponsor prizes, and special Christmas event items.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-ring"></div></div>
+
+<!-- SPEAKER GAME NIGHTS -->
+<section id="speakers">
+  <div class="section-bg" data-speed="0.13"><img src="images/bg-speakers.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Twice Monthly &middot; September&ndash;December</div>
+      <h2>Featured Speaker Game Nights</h2>
+      <p>Join online, watch a live lesson, answer interactive questions, complete a scavenger hunt, and unlock a 3D asset and badge.</p>
+    </div>
+    <div class="grid-4" id="speakerGrid"></div>
+    <p style="opacity:0.6; font-size:0.88rem; margin-top:26px;">Each featured night includes live teaching, interactive trivia, a digital scavenger hunt, unlockable assets, badges, and sponsor-supported rewards.</p>
+  </div>
+</section>
+
+<!-- WAYS TO ENGAGE -->
+<section id="play">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-ways.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head center" style="margin-left:auto;margin-right:auto;">
+      <div class="eyebrow" style="justify-content:center;">Choose Your Quest</div>
+      <h2>Choose How You Want to Join</h2>
+    </div>
+    <div class="grid-4">
+      <div class="card" id="ways-host">
+        <h3>Host</h3>
+        <p>Bring a Q4K experience plot to your church, youth night, or event with live trivia, VR, and leaderboard challenges.</p>
+        <ul><li>3D host plot</li><li>Livestream screen</li><li>Game portals</li><li>Speaker integration</li></ul>
+        <a href="#host-plot" class="cta-link">See What Hosts Get &rarr;</a>
+      </div>
+      <div class="card" id="ways-watch">
+        <h3>Watch</h3>
+        <p>Join livestream lessons, interactive Bible classes, speaker nights, and online quests from anywhere.</p>
+        <ul><li>Live speaker</li><li>Interactive trivia</li><li>Digital scavenger hunt</li><li>Unlockable 3D asset</li></ul>
+        <a href="#speakers" class="cta-link">Watch a Game Night &rarr;</a>
+      </div>
+      <div class="card" id="ways-play">
+        <h3>Play</h3>
+        <p>Buy credits, redeem access codes, and play Q4K anytime, solo or with a group.</p>
+        <ul><li>Credit purchase</li><li>Access code redemption</li><li>Scheduled gameplay</li><li>Leaderboard tracking</li></ul>
+        <a href="#packs" class="cta-link">Buy Credits &rarr;</a>
+      </div>
+      <div class="card" id="ways-access">
+        <h3>Access</h3>
+        <p>Attend featured, ticketed experiences at partner locations with live speakers, music, and group missions.</p>
+        <ul><li>Group gameplay up to 25</li><li>VR &amp; mixed reality</li><li>Partner locations</li><li>Live speakers &amp; music</li></ul>
+        <a href="#tickets" class="cta-link">Get Tickets &rarr;</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-marks"><span></span><span></span><span></span></div></div>
+
+<!-- GAME PACKS -->
+<section id="packs">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-packs.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Credits &amp; Fundraising</div>
+      <h2>Game Packs for Churches, Families &amp; Fundraisers</h2>
+      <p>Purchase credits in volume, give them to players, or use them as a fundraiser for youth ministries and church projects.</p>
+    </div>
+    <div class="grid-4">
+      <div class="card">
+        <h4>Starter Quest Pack</h4>
+        <p>For individual players or first-time users.</p>
+        <ul><li>Basic credit bundle</li><li>Access code</li><li>Starter badge</li></ul>
+        <span class="cta-link">Buy Starter Pack &rarr;</span>
+      </div>
+      <div class="card">
+        <h4>Family Quest Pack</h4>
+        <p>For families or small groups.</p>
+        <ul><li>Multi-player credits</li><li>Family access codes</li><li>Bonus badge</li></ul>
+        <span class="cta-link">Buy Family Pack &rarr;</span>
+      </div>
+      <div class="card">
+        <h4>Church Quest Pack</h4>
+        <p>For churches, youth groups, and ministries.</p>
+        <ul><li>Bulk credits</li><li>Group dashboard</li><li>Fundraiser option</li></ul>
+        <span class="cta-link">Request Church Pack &rarr;</span>
+      </div>
+      <div class="card">
+        <h4>Collector Quest Pack</h4>
+        <p>For premium players and special drops.</p>
+        <ul><li>NFC-enabled figurine</li><li>Exclusive unlock</li><li>Limited badge</li></ul>
+        <span class="cta-link">View Collector Drops &rarr;</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-ring"></div></div>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="section-bg" data-speed="0.12"><img src="images/bg-awards-dais.jpg" alt=""></div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Live Standings</div>
+      <h2>Kingdom Leaderboard</h2>
+    </div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-tab="overall">Overall Players</button>
+      <button class="lb-tab" data-tab="event">Event Leaderboard</button>
+      <button class="lb-tab" data-tab="top">Top Scorers</button>
+    </div>
+    <div class="lb-panel">
+      <table>
+        <thead><tr><th>Rank</th><th>Player</th><th>Church / Group</th><th>Points</th><th>Badges</th><th>Last Played</th></tr></thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+    </div>
+    <div style="text-align:center; margin-top:30px;">
+      <a href="#" class="btn btn-ghost">View Full Leaderboard</a>
+    </div>
+  </div>
+</section>
+
+<!-- TICKETED EVENTS -->
+<section id="tickets">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-tickets.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Featured Experiences</div>
+      <h2>Featured Ticketed Experiences</h2>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="badge">December</div>
+        <h3>The Promise Arrives</h3>
+        <p>A Christmas-centered interactive game night focused on the birth of Jesus &mdash; live storytelling, mobile participation, speaker lessons, and unlockable assets.</p>
+        <a href="#" class="btn btn-purple" style="margin-top:16px; width:fit-content;">Get December Access</a>
+      </div>
+      <div class="card">
+        <div class="badge">Easter Weekend</div>
+        <h3>The Passion Quest</h3>
+        <p>A full Q4K gaming experience centered on the Passion of Christ &mdash; live gameplay, VR, mixed reality, speakers, music, streaming, and group play.</p>
+        <a href="#" class="btn btn-gold" style="margin-top:16px; width:fit-content;">Get Easter Access</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPONSOR -->
+<section id="sponsor">
+  <div class="section-bg" data-speed="0.1"><img src="images/bg-sponsor.jpg" alt=""></div>
+  <div class="vector-scene">
+    <div class="vs-rays" data-speed="0.05"></div>
+    <div class="vs-glow"></div>
+    <img class="vs-lantern" src="images/q4k-icon-gold.png" alt="" data-speed="0.08">
+    <div class="vs-silhouette" data-speed="0.12">
+      <svg viewBox="0 0 1200 220" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="188" width="1200" height="32" fill="var(--navy-2)"/>
+        <rect x="40" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="34" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="150" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <rect x="1138" y="70" width="22" height="150" fill="var(--navy-2)"/>
+        <rect x="1132" y="58" width="34" height="14" fill="var(--green)" opacity="0.5"/>
+        <rect x="1032" y="100" width="18" height="120" fill="var(--navy-2)"/>
+        <polygon points="470,220 730,220 690,160 510,160" fill="var(--navy-2)"/>
+        <polygon points="510,160 690,160 655,120 545,120" fill="var(--navy-2)"/>
+        <polygon points="545,120 655,120 625,85 575,85" fill="var(--navy-2)"/>
+        <polygon points="575,85 625,85 605,55 595,55" fill="var(--navy-2)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Partner With Q4K</div>
+      <h2>Sponsor the Quest</h2>
+      <p>Sponsors support youth access, prizes, badges, featured game nights, ticketed events, and unlockable missions.</p>
+    </div>
+    <div class="sponsor-list">
+      <div class="sponsor-item">Sponsor a speaker night <span class="cta-link">&rarr;</span></div>
+      <div class="sponsor-item">Sponsor a 3D asset unlock <span class="cta-link">&rarr;</span></div>
+      <div class="sponsor-item">Sponsor a badge <span class="cta-link">&rarr;</span></div>
+      <div class="sponsor-item">Sponsor youth game credits <span class="cta-link">&rarr;</span></div>
+      <div class="sponsor-item">Sponsor a church leaderboard <span class="cta-link">&rarr;</span></div>
+      <div class="sponsor-item">Sponsor a ticketed event <span class="cta-link">&rarr;</span></div>
+    </div>
+    <div style="text-align:center; margin-top:34px;">
+      <a href="#" class="btn btn-gold">Become a Sponsor</a>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final">
+  <div class="section-bg" data-speed="0.14"><img src="images/bg-lantern-altar.jpg" alt=""></div>
+  <div class="wrap">
+    <div class="eyebrow" style="justify-content:center;">This Fall</div>
+    <h2>The Quest Begins This Fall</h2>
+    <p>Q4K is bringing Bible-based gameplay to churches, homes, live events, and digital worlds. Host it. Watch it. Play it. Access it.</p>
+    <div class="hero-btns">
+      <a href="#ways-host" class="btn btn-gold">Host an Experience</a>
+      <a href="#" class="btn btn-ghost">Join Early Access</a>
+      <a href="#packs" class="btn btn-ghost">Buy Game Packs</a>
+      <a href="#tickets" class="btn btn-ghost">Get Event Tickets</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <img src="images/q4k-logo-full-gold.png" alt="Q4K: Quest for the Kingdom" style="height:64px; width:auto; margin-bottom:6px;">
+        <p style="opacity:0.65; font-size:0.88rem; margin-top:14px; max-width:280px;">A faith-based gaming platform bringing Bible lessons to life through immersive 3D experiences.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Explore</h5>
+        <a href="#ways-host">Host</a><a href="#ways-watch">Watch</a><a href="#ways-play">Play</a><a href="#ways-access">Access</a><a href="#leaderboard">Leaderboard</a>
+      </div>
+      <div class="foot-col">
+        <h5>Resources</h5>
+        <a href="#">Lesson Downloads</a><a href="#">Speaker Guides</a><a href="#">Church Host Checklist</a><a href="#">Parent Guide</a>
+      </div>
+      <div class="foot-col">
+        <h5>Events</h5>
+        <a href="#">December: The Promise Arrives</a><a href="#">Easter Weekend: The Passion Quest</a><a href="#">Featured Game Nights</a>
+      </div>
+      <div class="foot-col">
+        <h5>Info</h5>
+        <a href="#">Terms</a><a href="#">Privacy Policy</a><a href="#">Refund Policy</a><a href="#">Contact / Support</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 Quest for the Kingdom. All rights reserved.</span>
+      <a href="#ways-host" class="btn btn-gold" style="padding:10px 22px; font-size:0.8rem;">Host Q4K</a>
+    </div>
+  </div>
+</footer>
+
+<div class="modal-bg" id="trailerModal">
+  <div class="modal-box">
+    <span class="modal-close" id="closeTrailer">&times;</span>
+    <div class="play-btn"></div>
+    <p style="font-family:'Chakra Petch'; font-size:0.8rem; opacity:0.6;">Trailer coming soon</p>
+  </div>
+</div>
+
+<script>
+  // parallax section backgrounds + vector scene silhouette layer
+  const parallaxLayers = document.querySelectorAll('.section-bg img, .vs-silhouette');
+  function updateParallax(){
+    parallaxLayers.forEach(el=>{
+      const speed = parseFloat(el.dataset.speed || el.parentElement.dataset.speed || 0.12);
+      const rect = (el.closest('.section-bg, .vector-scene') || el.parentElement).getBoundingClientRect();
+      const offset = rect.top * speed;
+      el.style.transform = `translateY(${offset}px)`;
+    });
+    requestAnimationFrame(updateParallax);
+  }
+  requestAnimationFrame(updateParallax);
+
+  // slide/fade-in plot images as each section scrolls into view
+  const revealIO = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        entry.target.classList.add('visible');
+        revealIO.unobserve(entry.target);
+      }
+    });
+  }, {threshold:0.2, rootMargin:"0px 0px -60px 0px"});
+  document.querySelectorAll('.reveal-img, .section-bg').forEach(el=> revealIO.observe(el));
+
+  // mobile nav
+  document.querySelector('.nav-toggle').addEventListener('click', ()=>{
+    const links = document.querySelector('.nav-links');
+    const cta = document.querySelector('.nav-cta');
+    const open = links.style.display === 'flex';
+    links.style.display = open ? 'none' : 'flex';
+    cta.style.display = open ? 'none' : 'inline-flex';
+    links.style.flexDirection='column';
+    links.style.position='absolute'; links.style.top='60px'; links.style.right='28px';
+    links.style.background='rgba(10,14,39,0.96)'; links.style.padding='20px'; links.style.borderRadius='14px';
+    links.style.border='1px solid var(--line)';
+  });
+
+  // trailer modal
+  const modal = document.getElementById('trailerModal');
+  document.getElementById('openTrailer').addEventListener('click', ()=> modal.classList.add('open'));
+  document.getElementById('closeTrailer').addEventListener('click', ()=> modal.classList.remove('open'));
+  modal.addEventListener('click', (e)=>{ if(e.target === modal) modal.classList.remove('open'); });
+
+  // featured speaker game nights (Sept–Dec, two per month)
+  const avatarIcon = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="#f6f4ef" stroke-width="1.6"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" stroke="#f6f4ef" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+  const speakers = [
+    {topic:"Walking as a Disciple", slot:"September &middot; Night 1", host:"Host Church TBD", asset:"Disciple's Lantern", badge:"Light Bearer Badge"},
+    {topic:"Called to Follow", slot:"September &middot; Night 2", host:"Host Church TBD", asset:"Fisher's Net", badge:"Kingdom Catch Badge"},
+    {topic:"Faith Under Pressure", slot:"October &middot; Night 1", host:"Host Church TBD", asset:"Shield of Faith", badge:"Stand Firm Badge"},
+    {topic:"Courage Over Fear", slot:"October &middot; Night 2", host:"Host Church TBD", asset:"Stone of Courage", badge:"Giant Slayer Badge"},
+    {topic:"Serving Like Jesus", slot:"November &middot; Night 1", host:"Host Church TBD", asset:"Servant's Towel", badge:"Servant Leader Badge"},
+    {topic:"Gratitude and Purpose", slot:"November &middot; Night 2", host:"Host Church TBD", asset:"Gratitude Scroll", badge:"Grateful Heart Badge"},
+    {topic:"The Promise Arrives", slot:"December &middot; Night 1", host:"Host Church TBD", asset:"Bethlehem Star", badge:"Star Seeker Badge"},
+    {topic:"Gifts for the King", slot:"December &middot; Night 2", host:"Host Church TBD", asset:"Gift Chest", badge:"Worship Giver Badge"},
+  ];
+  document.getElementById('speakerGrid').innerHTML = speakers.map(s => `
+    <div class="card speaker-card">
+      <div class="speaker-top">
+        <div class="speaker-avatar">${avatarIcon}</div>
+        <div>
+          <div class="speaker-name">Speaker Name TBD</div>
+          <div class="speaker-slot">${s.slot}</div>
+        </div>
+      </div>
+      <div class="speaker-topic">${s.topic}</div>
+      <div class="speaker-meta">
+        <div><span>Host:</span> ${s.host}</div>
+        <div><span>Featured Asset:</span> ${s.asset}</div>
+        <div><span>Badge:</span> ${s.badge}</div>
+      </div>
+      <a href="#" class="btn btn-gold">Register</a>
+    </div>
+  `).join('');
+
+  // leaderboard data
+  const lbData = {
+    overall: [
+      [1,'Micah J.','Grace Fellowship','4,820','12','Today'],
+      [2,'Ava R.','New Life Youth','4,410','10','Today'],
+      [3,'Elijah T.','Harvest Church','3,990','9','Yesterday'],
+      [4,'Zoe P.','Cornerstone Kids','3,760','8','2 days ago'],
+      [5,'Noah S.','River City Youth','3,510','8','3 days ago'],
+    ],
+    event: [
+      [1,'Lena M.','Easter Weekend Passion Quest','1,240','5','Today'],
+      [2,'Caleb H.','December Promise Arrives','1,180','5','Today'],
+      [3,'Grace W.','September Pop-Up','1,050','4','This week'],
+      [4,'Josiah B.','October Game Night','980','4','This week'],
+      [5,'Ruth K.','November Pop-Up','910','3','This week'],
+    ],
+    top: [
+      [1,'Ezra L.','All-Star Youth','6,300','18','Today'],
+      [2,'Hannah D.','Grace Fellowship','6,110','17','Today'],
+      [3,'Levi C.','Cornerstone Kids','5,980','16','Yesterday'],
+      [4,'Mia F.','Harvest Church','5,740','15','2 days ago'],
+      [5,'Owen G.','River City Youth','5,620','14','3 days ago'],
+    ]
+  };
+  const lbBody = document.getElementById('lbBody');
+  function renderLB(tab){
+    lbBody.innerHTML = lbData[tab].map(row=>`
+      <tr>
+        <td><span class="rank-pill">${row[0]}</span></td>
+        <td>${row[1]}</td>
+        <td style="opacity:0.75;">${row[2]}</td>
+        <td style="color:var(--gold); font-family:'Chakra Petch'; font-weight:600;">${row[3]}</td>
+        <td>${row[4]}</td>
+        <td style="opacity:0.6;">${row[5]}</td>
+      </tr>`).join('');
+  }
+  renderLB('overall');
+  document.querySelectorAll('.lb-tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.lb-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderLB(btn.dataset.tab);
+    });
+  });
+</script>
+
+</body>
+</html>

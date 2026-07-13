@@ -1,0 +1,224 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Church, Users, Eye, EyeOff, UserPlus, LogIn, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
+import { Button } from "@/components/ui/Button";
+import { useSession } from "@/context/SessionContext";
+import { AccountType } from "@/types";
+import { cn } from "@/lib/utils";
+import { photo } from "@/lib/images";
+import { stages } from "@/components/journey/stageMeta";
+import Link from "next/link";
+
+export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) {
+  const [tab, setTab] = useState<"signin" | "signup">(initialTab);
+  const [accountType, setAccountType] = useState<AccountType>("member");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const { login, register } = useSession();
+  const router = useRouter();
+
+  function handleSignIn(e: React.FormEvent) {
+    e.preventDefault();
+    login(accountType);
+    router.push("/dashboard");
+  }
+
+  function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    register(fullName, email, accountType);
+    router.push("/dashboard");
+  }
+
+  return (
+    <div className="min-h-screen grid lg:grid-cols-2">
+      <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
+        <img src={photo("auth-hero", 900, 1200)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
+        <div className="relative">
+          <Logo size="lg" />
+        </div>
+        <div className="relative max-w-md">
+          <h2 className="text-3xl font-bold text-foreground leading-tight">
+            Start your Kingdom <span className="text-accent-blue-light">journey.</span>
+          </h2>
+          <p className="text-muted mt-3 text-sm">
+            Join thousands of believers capturing sermons, studying truth, living it out, and being added to
+            God&apos;s story.
+          </p>
+          <div className="flex items-center flex-wrap gap-x-1 gap-y-3 mt-8">
+            {stages.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <div key={s.key} className="flex items-center gap-1">
+                  <div className="flex flex-col items-center text-center w-16">
+                    <div className="w-10 h-10 rounded-full bg-accent-blue/15 border border-accent-blue/40 flex items-center justify-center text-accent-blue-light mb-1">
+                      <Icon size={16} />
+                    </div>
+                    <span className="text-[10px] text-muted leading-tight">{s.label}</span>
+                  </div>
+                  {i < stages.length - 1 && <span className="w-4 h-px bg-border-subtle mb-4" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="relative qk-card p-3 flex items-center gap-2 text-xs text-muted">
+          <ShieldCheck size={14} className="text-accent-blue-light" />
+          &ldquo;Train up a child in the way he should go...&rdquo; — Proverbs 22:6
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center justify-center p-6 md:p-10">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden mb-8 flex justify-center">
+            <Logo size="lg" />
+          </div>
+
+          <div className="flex rounded-lg border border-border-subtle p-1 mb-6">
+            <button
+              onClick={() => setTab("signin")}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium rounded-md transition-colors",
+                tab === "signin" ? "bg-accent-blue text-white" : "text-muted hover:text-foreground"
+              )}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setTab("signup")}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium rounded-md transition-colors",
+                tab === "signup" ? "bg-accent-blue text-white" : "text-muted hover:text-foreground"
+              )}
+            >
+              Create Account
+            </button>
+          </div>
+
+          <h1 className="text-2xl font-bold text-foreground mb-1">
+            {tab === "signin" ? "Welcome back" : "Create your account"}
+          </h1>
+          <p className="text-sm text-muted mb-6">
+            {tab === "signin" ? "Sign in to continue your journey." : "Choose your account type and join the Kingdom"}
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-5">
+            <button
+              onClick={() => setAccountType("host")}
+              className={cn(
+                "qk-card p-4 text-left transition-colors",
+                accountType === "host" && "border-accent-blue-light qk-glow-blue"
+              )}
+            >
+              <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
+                <Church size={18} className="text-accent-blue-light" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Church Host</p>
+              <p className="text-xs text-muted mt-1">Create and manage your church, capture sermons, and guide your community&apos;s journey.</p>
+            </button>
+            <button
+              onClick={() => setAccountType("member")}
+              className={cn(
+                "qk-card p-4 text-left transition-colors",
+                accountType === "member" && "border-accent-blue-light qk-glow-blue"
+              )}
+            >
+              <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
+                <Users size={18} className="text-accent-blue-light" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Kingdom Member</p>
+              <p className="text-xs text-muted mt-1">Join your church, track your journey, and grow deeper in God&apos;s Word.</p>
+            </button>
+          </div>
+
+          <form onSubmit={tab === "signin" ? handleSignIn : handleSignUp} className="space-y-4">
+            {tab === "signup" && (
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1.5">Full Name</label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="w-full bg-surface-2 border border-border-subtle rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus-ring"
+                />
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1.5">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="w-full bg-surface-2 border border-border-subtle rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus-ring"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  placeholder={tab === "signin" ? "Enter your password" : "Create a strong password"}
+                  className="w-full bg-surface-2 border border-border-subtle rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {tab === "signup" && (
+              <label className="flex items-start gap-2 text-xs text-muted">
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
+                I agree to the <span className="text-accent-blue-light">Terms of Service</span> and{" "}
+                <span className="text-accent-blue-light">Privacy Policy</span>
+              </label>
+            )}
+
+            <Button type="submit" size="lg" className="w-full" disabled={tab === "signup" && !agreed}>
+              {tab === "signin" ? (
+                <>
+                  <LogIn size={17} /> Sign In
+                </>
+              ) : (
+                <>
+                  <UserPlus size={17} /> Create My Account
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="text-center text-xs text-muted mt-5">
+            {tab === "signin" ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <button onClick={() => setTab("signup")} className="text-accent-blue-light hover:underline">
+                  Create Account
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{" "}
+                <button onClick={() => setTab("signin")} className="text-accent-blue-light hover:underline">
+                  Sign In
+                </button>
+              </>
+            )}
+          </p>
+          <p className="text-center text-[11px] text-muted mt-6">
+            Authentication is simulated for this prototype. <Link href="/" className="text-accent-blue-light hover:underline">Back home</Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
