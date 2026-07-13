@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { LessonMediaType } from "@/types";
@@ -22,7 +23,7 @@ export interface SubmitLessonDraftInput {
 
 export interface SubmitLessonDraftResult {
   error?: string;
-  lesson?: { slug: string; title: string; churchSlug: string };
+  lesson?: { id: string; slug: string; title: string; churchSlug: string };
 }
 
 export async function submitLessonDraft(input: SubmitLessonDraftInput): Promise<SubmitLessonDraftResult> {
@@ -43,6 +44,25 @@ export async function submitLessonDraft(input: SubmitLessonDraftInput): Promise<
 
   try {
     const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "You must be signed in to submit a lesson." };
+
+    // Defense-in-depth, with a friendly message: the RPC/RLS would reject an unauthorized
+    // church_id too, but as a raw Postgres error rather than something a Host should have to read.
+    const { data: membership } = await supabase
+      .from("church_memberships")
+      .select("role")
+      .eq("profile_id", user.id)
+      .eq("church_id", input.churchId)
+      .in("role", ["host", "admin"])
+      .maybeSingle();
+    if (!membership) {
+      return { error: "You are not authorized to submit lessons for that church." };
+    }
+
     const { data, error } = await supabase.rpc("submit_lesson_draft", {
       p_church_id: input.churchId,
       p_title: input.title,
@@ -69,8 +89,15 @@ export async function submitLessonDraft(input: SubmitLessonDraftInput): Promise<
     if (error) return { error: error.message };
 
     const { data: church } = await supabase.from("churches").select("slug").eq("id", input.churchId).maybeSingle();
+    const churchSlug = church?.slug ?? input.churchId;
 
-    return { lesson: { slug: data.slug, title: data.title, churchSlug: church?.slug ?? input.churchId } };
+    // The draft itself is only visible to its own host (RLS), but keep the host-facing
+    // surfaces that reference it fresh rather than serving a cached miss.
+    revalidatePath(`/lessons/${data.slug}`);
+    revalidatePath(`/churches/${churchSlug}`);
+    revalidatePath("/host-dashboard");
+
+    return { lesson: { id: data.id, slug: data.slug, title: data.title, churchSlug } };
   } catch (err) {
     if (err instanceof SupabaseConfigError) return { error: err.message };
     return { error: "Something went wrong submitting your lesson. Please try again." };

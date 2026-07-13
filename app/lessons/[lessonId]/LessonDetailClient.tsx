@@ -21,19 +21,79 @@ import { startJourney, getJourney } from "@/services/journeyService";
 import { useAuthGuard } from "@/components/ui/useAuthGuard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn, formatDate } from "@/lib/utils";
-import { PublishedLesson, LessonMediaType } from "@/types";
+import { PublishedLesson, LessonMedia } from "@/types";
 import { publishLesson } from "./actions";
 
 const tabs = ["Overview", "Notes", "Video", "Slides", "Hosts", "Questions"] as const;
 
-const mediaIcon: Record<LessonMediaType, React.ElementType> = {
-  notes: FileText,
-  video: Play,
-  audio: Headphones,
-  slides: Presentation,
-  document: FileText,
-  transcript: FileText,
-};
+function isValidUrl(value: string | null | undefined): value is string {
+  if (!value) return false;
+  try {
+    const u = new URL(value);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// Supports youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, and already-embed URLs.
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") {
+      const id = u.pathname.slice(1);
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (u.hostname.includes("youtube.com")) {
+      if (u.pathname === "/watch") {
+        const id = u.searchParams.get("v");
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+      if (u.pathname.startsWith("/embed/")) return url;
+      if (u.pathname.startsWith("/shorts/")) {
+        const id = u.pathname.split("/")[2];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function MediaSection({
+  icon: Icon,
+  buttonLabel,
+  media,
+}: {
+  icon: React.ElementType;
+  buttonLabel: string;
+  media: LessonMedia;
+}) {
+  const hasUrl = !!media.url;
+  const urlValid = isValidUrl(media.url);
+  return (
+    <div>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <p className="text-sm font-medium text-foreground flex items-center gap-2">
+          <Icon size={15} className="text-accent-blue-light shrink-0" /> {media.title || buttonLabel}
+        </p>
+        {hasUrl && urlValid && (
+          <a
+            href={media.url!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border-subtle hover:border-accent-blue-light text-foreground shrink-0"
+          >
+            <Icon size={13} /> {buttonLabel}
+          </a>
+        )}
+        {hasUrl && !urlValid && <span className="text-xs text-red-300 shrink-0">Invalid link</span>}
+      </div>
+      {media.content && <p className="text-sm text-muted mt-1 whitespace-pre-wrap">{media.content}</p>}
+    </div>
+  );
+}
 
 export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const router = useRouter();
@@ -52,11 +112,14 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const journey = ready && session.isLoggedIn ? getJourney(session.user.id, lesson.id) : undefined;
   const activeHost = lesson.hosts.find((h) => h.id === selectedHost) ?? lesson.hosts[0];
 
-  const notesLikeMedia = lesson.media.filter((m) =>
-    (["notes", "audio", "document", "transcript"] as LessonMediaType[]).includes(m.mediaType)
-  );
+  const notesMedia = lesson.media.filter((m) => m.mediaType === "notes");
+  const audioMedia = lesson.media.filter((m) => m.mediaType === "audio");
+  const documentMedia = lesson.media.filter((m) => m.mediaType === "document");
+  const transcriptMedia = lesson.media.filter((m) => m.mediaType === "transcript");
+  const notesTabCount = notesMedia.length + audioMedia.length + documentMedia.length + transcriptMedia.length;
   const videoMedia = lesson.media.find((m) => m.mediaType === "video");
   const slidesMedia = lesson.media.find((m) => m.mediaType === "slides");
+  const videoEmbedUrl = videoMedia?.url ? getYouTubeEmbedUrl(videoMedia.url) : null;
 
   function handleStart() {
     guard(() => {
@@ -156,7 +219,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
                 )}
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
-                {notesLikeMedia.length > 0 && <TabButton icon={FileText} label="Open Notes" onClick={() => setTab("Notes")} />}
+                {notesTabCount > 0 && <TabButton icon={FileText} label="Open Notes" onClick={() => setTab("Notes")} />}
                 {videoMedia && <TabButton icon={Play} label="Watch Video" onClick={() => setTab("Video")} />}
                 {slidesMedia && <TabButton icon={Presentation} label="View Slides" onClick={() => setTab("Slides")} />}
               </div>
@@ -200,29 +263,21 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
           )}
 
           {tab === "Notes" && (
-            <div className="qk-card p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Lesson Materials</h3>
-              {notesLikeMedia.length > 0 ? (
-                <ul className="space-y-3">
-                  {notesLikeMedia.map((m) => {
-                    const Icon = mediaIcon[m.mediaType];
-                    return (
-                      <li key={m.id} className="flex items-start gap-2.5 text-sm">
-                        <Icon size={15} className="text-accent-blue-light mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-foreground font-medium capitalize">{m.title || m.mediaType}</p>
-                          {m.url && (
-                            <a href={m.url} target="_blank" rel="noreferrer" className="text-accent-blue-light hover:underline break-all">
-                              {m.url}
-                            </a>
-                          )}
-                          {m.content && <p className="text-muted mt-1 whitespace-pre-wrap">{m.content}</p>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
+            <div className="qk-card p-5 space-y-5">
+              <h3 className="text-sm font-semibold text-foreground -mb-1">Lesson Materials</h3>
+              {notesMedia.map((m) => (
+                <MediaSection key={m.id} icon={FileText} buttonLabel="Open Notes" media={m} />
+              ))}
+              {audioMedia.map((m) => (
+                <MediaSection key={m.id} icon={Headphones} buttonLabel="Listen to Audio" media={m} />
+              ))}
+              {documentMedia.map((m) => (
+                <MediaSection key={m.id} icon={FileText} buttonLabel="Open Document" media={m} />
+              ))}
+              {transcriptMedia.map((m) => (
+                <MediaSection key={m.id} icon={FileText} buttonLabel="Open Transcript" media={m} />
+              ))}
+              {notesTabCount === 0 && (
                 <p className="text-sm text-muted">No notes, audio, documents, or transcript were captured for this lesson.</p>
               )}
             </div>
@@ -230,29 +285,54 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
 
           {tab === "Video" && (
             <div className="qk-card p-5">
-              {videoMedia ? (
-                <div className="aspect-video rounded-lg overflow-hidden bg-surface-2 flex items-center justify-center relative">
+              {!videoMedia ? (
+                <p className="text-sm text-muted">No video was captured for this lesson.</p>
+              ) : !isValidUrl(videoMedia.url) ? (
+                <p className="text-sm text-red-300">This lesson&apos;s video link looks invalid.</p>
+              ) : videoEmbedUrl ? (
+                <div className="aspect-video rounded-lg overflow-hidden bg-surface-2">
+                  <iframe
+                    src={videoEmbedUrl}
+                    title="Lesson video"
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <a
+                  href={videoMedia.url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group aspect-video rounded-lg overflow-hidden bg-surface-2 flex items-center justify-center relative"
+                >
                   {lesson.featuredImageUrl && (
                     <img src={lesson.featuredImageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
                   )}
-                  <div className="relative w-14 h-14 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
+                  <div className="relative w-14 h-14 rounded-full bg-black/50 backdrop-blur flex items-center justify-center group-hover:bg-black/70 transition-colors">
                     <Play size={22} className="text-white ml-1" fill="white" />
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted">No video was captured for this lesson.</p>
+                  <span className="absolute bottom-3 right-3 text-xs bg-black/60 text-white px-2.5 py-1 rounded">Watch Video</span>
+                </a>
               )}
             </div>
           )}
 
           {tab === "Slides" && (
             <div className="qk-card p-5">
-              {slidesMedia ? (
-                <div className="aspect-video rounded-lg bg-surface-2 flex items-center justify-center text-muted text-sm">
-                  <Presentation size={28} className="mr-2" /> Slide deck placeholder
-                </div>
-              ) : (
+              {!slidesMedia ? (
                 <p className="text-sm text-muted">No slides were captured for this lesson.</p>
+              ) : !isValidUrl(slidesMedia.url) ? (
+                <p className="text-sm text-red-300">This lesson&apos;s slides link looks invalid.</p>
+              ) : (
+                <a
+                  href={slidesMedia.url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="aspect-video rounded-lg bg-surface-2 flex items-center justify-center gap-2 text-foreground text-sm border border-transparent hover:border-accent-blue-light transition-colors"
+                >
+                  <Presentation size={22} className="text-accent-blue-light" /> View Slides
+                </a>
               )}
             </div>
           )}
