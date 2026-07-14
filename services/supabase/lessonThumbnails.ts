@@ -9,7 +9,11 @@ export function buildThumbnailPath(churchId: string, lessonId: string, uniqueId:
   return `${churchId}/${lessonId}/${uniqueId}-${sanitizeFileName(fileName)}`;
 }
 
-export type UploadThumbnailResult = { publicUrl: string; error?: undefined } | { error: string; publicUrl?: undefined };
+// A literal `ok` discriminant (rather than e.g. `{ publicUrl: string; error?: undefined }`) is
+// required for TypeScript to reliably narrow this union via `if (!result.ok)` -- narrowing on the
+// truthiness of a same-shaped optional field is not guaranteed and previously let
+// `result.publicUrl` through as `string | undefined` at call sites.
+export type UploadThumbnailResult = { ok: true; publicUrl: string } | { ok: false; error: string };
 
 // upsert: true means retrying the same (lessonId, uniqueId) pair overwrites in place instead of
 // creating an orphaned duplicate object if a submit/save is retried.
@@ -22,10 +26,15 @@ export async function uploadLessonThumbnail(
     upsert: true,
     contentType: file.type,
   });
-  if (error) return { error: error.message };
+  if (error) return { ok: false, error: error.message };
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-  return { publicUrl: data.publicUrl };
+  // getPublicUrl only ever fails to return a usable URL if the bucket/path is malformed -- treat
+  // that the same as any other upload failure rather than saving an empty/undefined URL.
+  if (!data?.publicUrl) {
+    return { ok: false, error: "Could not generate a public URL for the uploaded thumbnail." };
+  }
+  return { ok: true, publicUrl: data.publicUrl };
 }
 
 // Public URLs look like ".../storage/v1/object/public/lesson-thumbnails/<path>" -- pull the path

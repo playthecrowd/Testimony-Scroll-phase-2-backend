@@ -180,7 +180,7 @@ export function ExperienceBuilderForm() {
     const path = buildThumbnailPath(forChurchId, lessonId, thumbnailUniqueId, thumbnailFile.name);
 
     const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
-    if (uploadResult.error) {
+    if (!uploadResult.ok) {
       setThumbnailStatus("failed");
       return;
     }

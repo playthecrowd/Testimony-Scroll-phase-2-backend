@@ -48,7 +48,7 @@ export function ThumbnailEditorPanel({ lesson, churchId }: { lesson: PublishedLe
     const path = buildThumbnailPath(churchId, lesson.id, uniqueId, file.name);
 
     const uploadResult = await uploadLessonThumbnail(supabase, path, file);
-    if (uploadResult.error) {
+    if (!uploadResult.ok) {
       setSaving(false);
       setError(`Upload failed: ${uploadResult.error}`);
       return;
