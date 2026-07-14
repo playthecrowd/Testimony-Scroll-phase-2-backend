@@ -11,8 +11,10 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 export const dynamic = "force-dynamic";
 
 export default async function ChurchesPage() {
-  let churches;
-  let lessonCounts: Awaited<ReturnType<typeof getPublishedLessonsByChurch>>[];
+  let churches: Awaited<ReturnType<typeof getPublishedChurches>> = [];
+  let lessonCounts: Awaited<ReturnType<typeof getPublishedLessonsByChurch>>[] = [];
+  let loadError = "";
+
   try {
     const supabase = await createClient();
     churches = await getPublishedChurches(supabase);
@@ -25,7 +27,11 @@ export default async function ChurchesPage() {
         </div>
       );
     }
-    throw err;
+    // A failed public query (e.g. a column mismatch between code and the connected database)
+    // must not crash the whole route. Log full detail server-side only -- never show raw
+    // database/query internals to visitors.
+    console.error("[ChurchesPage] Failed to load churches:", err);
+    loadError = "We couldn't load churches right now. Please try again shortly.";
   }
 
   return (
@@ -36,7 +42,9 @@ export default async function ChurchesPage() {
       </h1>
       <p className="text-muted text-sm mt-1 mb-6">Explore churches participating in Quest for the Kingdom.</p>
 
-      {churches.length === 0 ? (
+      {loadError ? (
+        <ErrorState message={loadError} />
+      ) : churches.length === 0 ? (
         <EmptyState message="No churches have published yet." />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

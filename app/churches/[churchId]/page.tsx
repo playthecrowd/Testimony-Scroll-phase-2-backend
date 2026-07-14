@@ -16,7 +16,7 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ c
   const { churchId } = await params;
 
   let church;
-  let lessons;
+  let lessons: Awaited<ReturnType<typeof getPublishedLessonsByChurch>> = [];
   try {
     const supabase = await createClient();
     church = await getPublishedChurch(supabase, churchId);
@@ -29,7 +29,15 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ c
         </div>
       );
     }
-    throw err;
+    // Same rule as the churches list page: a failed query (e.g. a column mismatch between code
+    // and the connected database) must not crash the whole route, and raw database/query
+    // internals must never reach visitors -- log the detail server-side only.
+    console.error(`[ChurchDetailPage] Failed to load church "${churchId}":`, err);
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message="We couldn't load this church right now. Please try again shortly." />
+      </div>
+    );
   }
 
   if (!church) notFound();
