@@ -5,6 +5,7 @@ import { Search, X, Play, FileText, Presentation, BookOpen, Church, Star, Clock3
 import { createClient } from "@/lib/supabase/client";
 import { getPublishedLessons } from "@/services/supabase/lessons";
 import { getPublishedChurches } from "@/services/supabase/churches";
+import { SupabaseConfigError } from "@/lib/supabase/env";
 import { PublishedLessonCard } from "@/components/lessons/PublishedLessonCard";
 import { StatPill } from "@/components/ui/StatPill";
 import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
@@ -47,8 +48,17 @@ export default function LessonsPage() {
         setLessons(lessonRows);
         setChurches(churchRows);
         setError("");
-      } catch {
-        if (!cancelled) setError("Could not load lessons.");
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof SupabaseConfigError) {
+          setError(err.message);
+        } else {
+          // This page fetches client-side, so the real error only surfaces in the browser
+          // console (not Vercel's server Runtime Logs) -- still better than discarding it
+          // silently, and the visitor only ever sees the generic message below.
+          console.error("[LessonsPage] Failed to load lessons:", err);
+          setError("Could not load lessons.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
