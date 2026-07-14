@@ -7,7 +7,7 @@ const CHURCH_FIELDS = "id, name, slug, logo_url, city, region, country, member_c
 const LESSON_SELECT = `
   id, slug, title, short_description, about_text, topic, subject, ministry_category,
   date, duration_label, lesson_type, primary_scripture, supporting_scriptures, tags,
-  featured_image_url, quest_url, quest_level, xp_reward, status, contributors_count, created_at,
+  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, created_at,
   church:churches(${CHURCH_FIELDS}),
   speaker:speakers(id, name, avatar_url, bio),
   media:lesson_media(id, media_type, url, content, title, sort_order),
@@ -33,6 +33,7 @@ function mapLesson(row: any): PublishedLesson {
     supportingScriptures: row.supporting_scriptures ?? [],
     tags: row.tags ?? [],
     featuredImageUrl: row.featured_image_url,
+    featuredImageAlt: row.featured_image_alt,
     questUrl: row.quest_url,
     questLevel: row.quest_level,
     xpReward: row.xp_reward,

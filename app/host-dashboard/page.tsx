@@ -11,6 +11,7 @@ import { generateCharacterAndStory } from "@/services/storyService";
 import { getLesson } from "@/services/lessonService";
 import { StatPill, SectionCard } from "@/components/ui/StatPill";
 import { Button, LinkButton } from "@/components/ui/Button";
+import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { formatDate } from "@/lib/utils";
 import { Testimony } from "@/types";
 
@@ -95,11 +96,11 @@ export default function HostDashboardPage() {
           </div>
         </SectionCard>
 
-        <SectionCard title="Recent Lesson Submissions" action="Capture a Lesson" actionHref="/capture" icon={BookOpen}>
+        <SectionCard title="Recent Lesson Submissions" action="Build a Lesson Experience" actionHref="/experience-builder" icon={BookOpen}>
           <div className="space-y-2.5">
             {lessons.slice(0, 8).map((l) => (
               <Link key={l.id} href={`/lessons/${l.slug}`} className="flex items-center gap-2.5 group">
-                <img src={l.featuredImageUrl} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                <LessonThumbnail src={l.featuredImageUrl} alt="" aspect="square" rounded="rounded-lg" className="w-10 h-10 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-foreground truncate group-hover:text-accent-blue-light">{l.title}</p>
                   <p className="text-[11px] text-muted">{formatDate(l.date)}</p>

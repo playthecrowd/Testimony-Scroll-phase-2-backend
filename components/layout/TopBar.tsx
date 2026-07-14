@@ -12,7 +12,7 @@ import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "/capture", label: "Capture" },
+  { href: "/experience-builder", label: "Experience Builder" },
   { href: "/lessons", label: "Explore" },
   { href: "/churches", label: "Churches" },
   { href: "/lessons", label: "Lessons" },

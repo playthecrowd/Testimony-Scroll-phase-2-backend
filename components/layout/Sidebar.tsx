@@ -27,7 +27,7 @@ import { useEffect } from "react";
 const memberLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/my-journey", label: "My Journey", icon: Map },
-  { href: "/capture", label: "Capture", icon: Target },
+  { href: "/experience-builder", label: "Build Experience", icon: Target },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
@@ -39,7 +39,7 @@ const memberLinks = [
 const hostLinks = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/capture", label: "Capture", icon: Target },
+  { href: "/experience-builder", label: "Build Experience", icon: Target },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },

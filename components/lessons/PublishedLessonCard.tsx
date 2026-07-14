@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Play, FileText, Presentation, Headphones, Users2, Sparkles, Box } from "lucide-react";
 import { PublishedLesson } from "@/types";
 import { formatDate } from "@/lib/utils";
+import { LessonThumbnail } from "./LessonThumbnail";
 
 // Visually identical to components/lessons/LessonCard.tsx (which stays untouched and keeps
 // serving the still-mocked homepage). This variant reads already-joined church/speaker data
@@ -25,14 +26,13 @@ export function PublishedLessonCard({ lesson }: { lesson: PublishedLesson }) {
       href={`/lessons/${lesson.slug}`}
       className="qk-card overflow-hidden flex flex-col group hover:border-accent-blue-light/50 transition-colors focus-ring"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-surface-2">
-        {lesson.featuredImageUrl && (
-          <img
-            src={lesson.featuredImageUrl}
-            alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        )}
+      <LessonThumbnail
+        src={lesson.featuredImageUrl}
+        alt={lesson.featuredImageAlt}
+        imgClassName="group-hover:scale-105 transition-transform duration-300"
+        rounded="rounded-none"
+        sizes="(min-width: 1536px) 23vw, (min-width: 1024px) 31vw, (min-width: 640px) 48vw, 100vw"
+      >
         {hasVideo && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
@@ -50,7 +50,7 @@ export function PublishedLessonCard({ lesson }: { lesson: PublishedLesson }) {
             <Box size={11} /> Quest
           </span>
         )}
-      </div>
+      </LessonThumbnail>
 
       <div className="p-3.5 flex-1 flex flex-col">
         {lesson.topic && <span className="text-[11px] text-accent-blue-light font-medium mb-1">{lesson.topic}</span>}

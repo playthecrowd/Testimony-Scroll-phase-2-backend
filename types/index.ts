@@ -351,6 +351,7 @@ export interface PublishedLesson {
   supportingScriptures: string[];
   tags: string[];
   featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
   questUrl: string | null;
   questLevel: number | null;
   xpReward: number | null;

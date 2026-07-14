@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -23,6 +23,10 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { cn, formatDate } from "@/lib/utils";
 import { PublishedLesson, LessonMedia } from "@/types";
 import { publishLesson } from "./actions";
+import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
+import { ThumbnailEditorPanel } from "@/components/lessons/ThumbnailEditorPanel";
+import { getMyHostChurches } from "@/services/supabase/churches";
+import { createClient } from "@/lib/supabase/client";
 
 const tabs = ["Overview", "Notes", "Video", "Slides", "Hosts", "Questions"] as const;
 
@@ -106,6 +110,24 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
   const [publishedNow, setPublishedNow] = useState(false);
+  const [canManageThumbnail, setCanManageThumbnail] = useState(false);
+
+  useEffect(() => {
+    if (!ready || !session.isLoggedIn || session.accountType !== "host") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const myChurches = await getMyHostChurches(supabase);
+        if (!cancelled) setCanManageThumbnail(myChurches.some((c) => c.id === lesson.church.id));
+      } catch {
+        if (!cancelled) setCanManageThumbnail(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, session, lesson.church.id]);
 
   const selectedHost = selectedHostOverride ?? lesson.hosts[0]?.id ?? null;
   const questions = getStudyQuestionsForLesson(lesson.id);
@@ -161,7 +183,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
           </div>
           {publishError && <p className="text-xs text-red-300">{publishError}</p>}
           <Button onClick={handlePublish} disabled={publishing}>
-            {publishing ? "Publishing..." : "Publish Lesson"}
+            {publishing ? "Publishing..." : "Publish Experience"}
           </Button>
         </div>
       )}
@@ -176,16 +198,20 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
         <div>
           <div className="grid sm:grid-cols-[220px_1fr] gap-5 mb-6">
-            <div className="relative aspect-square sm:aspect-auto sm:h-full rounded-xl overflow-hidden bg-surface-2">
-              {lesson.featuredImageUrl && (
-                <img src={lesson.featuredImageUrl} className="w-full h-full object-cover" alt="" />
-              )}
+            <LessonThumbnail
+              src={lesson.featuredImageUrl}
+              alt={lesson.featuredImageAlt}
+              aspect="square"
+              className="sm:aspect-auto sm:h-full"
+              sizes="220px"
+              priority
+            >
               {lesson.questLevel && (
                 <span className="absolute top-2 right-2 text-[11px] bg-black/60 text-white px-2 py-0.5 rounded-full">
                   Level {lesson.questLevel}
                 </span>
               )}
-            </div>
+            </LessonThumbnail>
             <div>
               <p className="text-xs text-accent-blue-light font-medium mb-1">Lesson</p>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">{lesson.title}</h1>
@@ -307,6 +333,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
                   className="group aspect-video rounded-lg overflow-hidden bg-surface-2 flex items-center justify-center relative"
                 >
                   {lesson.featuredImageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={lesson.featuredImageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
                   )}
                   <div className="relative w-14 h-14 rounded-full bg-black/50 backdrop-blur flex items-center justify-center group-hover:bg-black/70 transition-colors">
@@ -396,6 +423,8 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
         </div>
 
         <aside className="space-y-4">
+          {canManageThumbnail && <ThumbnailEditorPanel lesson={lesson} churchId={lesson.church.id} />}
+
           <div className="qk-card p-4">
             {journey ? (
               <LinkButton

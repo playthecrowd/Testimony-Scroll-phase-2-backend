@@ -13,16 +13,20 @@ import {
   CheckCircle2,
   X,
   LayoutDashboard,
+  AlertTriangle,
 } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { createClient } from "@/lib/supabase/client";
 import { getMyHostChurches } from "@/services/supabase/churches";
 import { getPublishedLessonsByChurch } from "@/services/supabase/lessons";
+import { buildThumbnailPath, uploadLessonThumbnail } from "@/services/supabase/lessonThumbnails";
 import { submitLessonDraft } from "./actions";
-import { publishLesson } from "@/app/lessons/[lessonId]/actions";
+import { publishLesson, updateLessonThumbnail } from "@/app/lessons/[lessonId]/actions";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
+import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
+import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
 import { PublishedChurch, PublishedLesson } from "@/types";
 
 const lessonTypes = ["sermon", "bible-study", "youth", "devotional", "series"] as const;
@@ -37,7 +41,7 @@ function isValidUrl(value: string): boolean {
   }
 }
 
-export function CaptureForm() {
+export function ExperienceBuilderForm() {
   const router = useRouter();
   const { session, ready } = useSession();
 
@@ -71,6 +75,14 @@ export function CaptureForm() {
   const [created, setCreated] = useState<{ id: string; slug: string; title: string; churchSlug: string } | null>(
     null
   );
+
+  // Thumbnail is only uploaded after the lesson draft exists (its id is part of the storage
+  // path), so until then this is all local, unsaved state.
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const [thumbnailAlt, setThumbnailAlt] = useState("");
+  const [thumbnailUniqueId] = useState(() => crypto.randomUUID());
+  const [thumbnailStatus, setThumbnailStatus] = useState<"idle" | "uploading" | "failed" | "done">("idle");
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
@@ -126,7 +138,7 @@ export function CaptureForm() {
   if (!session.isLoggedIn) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host to capture a lesson.</p>
+        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host to build a lesson experience.</p>
         <LinkButton href="/login">Sign In</LinkButton>
       </div>
     );
@@ -135,7 +147,7 @@ export function CaptureForm() {
   if (session.accountType !== "host") {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Only Church Host accounts can capture lessons.</p>
+        <p className="text-foreground font-semibold mb-2">Only Church Host accounts can build a lesson experience.</p>
         <LinkButton href="/dashboard">Go to Dashboard</LinkButton>
       </div>
     );
@@ -149,8 +161,48 @@ export function CaptureForm() {
     }
   }
 
+  function handleSelectThumbnail(file: File) {
+    setThumbnailFile(file);
+    setThumbnailPreviewUrl(URL.createObjectURL(file));
+    setThumbnailStatus("idle");
+  }
+
+  function handleRemoveThumbnail() {
+    setThumbnailFile(null);
+    setThumbnailPreviewUrl(null);
+    setThumbnailStatus("idle");
+  }
+
+  async function performThumbnailUpload(lessonId: string, forChurchId: string, lessonSlug: string, churchSlug: string) {
+    if (!thumbnailFile) return;
+    setThumbnailStatus("uploading");
+    const supabase = createClient();
+    const path = buildThumbnailPath(forChurchId, lessonId, thumbnailUniqueId, thumbnailFile.name);
+
+    const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
+    if (uploadResult.error) {
+      setThumbnailStatus("failed");
+      return;
+    }
+
+    const updateResult = await updateLessonThumbnail({
+      lessonId,
+      lessonSlug,
+      churchSlug,
+      featuredImageUrl: uploadResult.publicUrl,
+      featuredImageAlt: thumbnailAlt || null,
+    });
+    if (updateResult.error) {
+      setThumbnailStatus("failed");
+      return;
+    }
+    setThumbnailStatus("done");
+    router.refresh();
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return; // reentrancy guard against a fast double-click/double-submit
     setError("");
 
     if (!title || !topic || !shortDescription || !speakerName || !date || !ministryCategory || !primaryScripture) {
@@ -158,7 +210,7 @@ export function CaptureForm() {
       return;
     }
     if (!churchId) {
-      setError("Complete your church setup before capturing a lesson.");
+      setError("Complete your church setup before building a lesson experience.");
       return;
     }
     if (!notesUrl && !videoUrl && !audioUrl && !slidesUrl && !documentUrl && !transcript) {
@@ -200,16 +252,22 @@ export function CaptureForm() {
         { mediaType: "transcript", content: transcript },
       ],
     });
-    setSubmitting(false);
 
     if (result.error) {
+      setSubmitting(false);
       setError(result.error);
       return;
     }
     if (result.lesson) {
       setCreated(result.lesson);
+      // The draft itself is safely created at this point regardless of what happens next --
+      // a thumbnail upload failure below must never look like the whole submission failed.
+      if (thumbnailFile) {
+        await performThumbnailUpload(result.lesson.id, churchId, result.lesson.slug, result.lesson.churchSlug);
+      }
       router.refresh();
     }
+    setSubmitting(false);
   }
 
   async function handlePublishFromSuccess() {
@@ -235,13 +293,41 @@ export function CaptureForm() {
         <h1 className="text-2xl font-bold text-foreground mb-2">
           {published ? "Lesson Published" : "Lesson Saved as Draft"}
         </h1>
-        <p className="text-muted text-sm mb-8">
+        <p className="text-muted text-sm mb-4">
           {published ? (
             <>&ldquo;{created.title}&rdquo; is now live in the Lessons Library and your church archive.</>
           ) : (
-            <>&ldquo;{created.title}&rdquo; was saved as a draft. Preview it, then publish when you&apos;re ready.</>
+            <>
+              Your lesson experience has been saved as a draft. Preview &ldquo;{created.title}&rdquo;, then publish
+              when you&apos;re ready.
+            </>
           )}
         </p>
+
+        {thumbnailStatus === "uploading" && (
+          <p className="text-xs text-muted bg-surface-2 border border-border-subtle rounded-lg px-3 py-2 mb-4 inline-block">
+            Uploading thumbnail...
+          </p>
+        )}
+        {thumbnailStatus === "failed" && (
+          <div className="text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2.5 mb-4 text-left">
+            <p className="text-red-300 flex items-center gap-1.5">
+              <AlertTriangle size={14} /> Your lesson was saved, but the thumbnail image failed to upload.
+            </p>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="mt-2"
+              onClick={() => performThumbnailUpload(created.id, churchId, created.slug, created.churchSlug)}
+            >
+              Retry Thumbnail Upload
+            </Button>
+          </div>
+        )}
+        {thumbnailStatus === "done" && (
+          <p className="text-xs text-accent-blue-light mb-4">Thumbnail uploaded.</p>
+        )}
+
         {publishError && (
           <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 mb-4 inline-block">
             {publishError}
@@ -253,7 +339,7 @@ export function CaptureForm() {
           </LinkButton>
           {!published && (
             <Button onClick={handlePublishFromSuccess} disabled={publishing}>
-              {publishing ? "Publishing..." : "Publish Lesson"}
+              {publishing ? "Publishing..." : "Publish Experience"}
             </Button>
           )}
           <LinkButton href="/host-dashboard" variant={published ? "primary" : "secondary"}>
@@ -268,10 +354,14 @@ export function CaptureForm() {
             setTitle("");
             setTopic("");
             setShortDescription("");
+            setThumbnailFile(null);
+            setThumbnailPreviewUrl(null);
+            setThumbnailAlt("");
+            setThumbnailStatus("idle");
           }}
           className="text-sm text-muted hover:text-foreground underline mt-6"
         >
-          Capture another lesson
+          Build another experience
         </button>
       </div>
     );
@@ -279,11 +369,13 @@ export function CaptureForm() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-foreground">Capture a Lesson</h1>
-      <p className="text-muted text-sm mt-1 mb-5">Share what God is teaching. Your lesson starts the journey.</p>
+      <h1 className="text-2xl md:text-3xl font-bold text-foreground">Build a Lesson Experience</h1>
+      <p className="text-muted text-sm mt-1 mb-5">
+        Turn a sermon, Bible class, or teaching into a study, Quest, and story journey.
+      </p>
 
       <div className="mb-6 overflow-x-auto qk-scrollbar">
-        <JourneyStepper lessonId="new" currentStage="not-started" linkBase={() => "/capture"} />
+        <JourneyStepper lessonId="new" currentStage="not-started" linkBase={() => "/experience-builder"} />
       </div>
 
       {churchesLoading ? (
@@ -292,14 +384,23 @@ export function CaptureForm() {
         <ErrorState message={churchesError} />
       ) : churches.length === 0 ? (
         <div className="qk-card p-10 text-center text-muted text-sm">
-          <p className="mb-4">You don&apos;t manage a church yet. Complete church setup to start capturing lessons.</p>
+          <p className="mb-4">You don&apos;t manage a church yet. Complete church setup to start building lesson experiences.</p>
           <LinkButton href="/onboarding/church">Complete Church Setup</LinkButton>
         </div>
       ) : (
         <div className="grid lg:grid-cols-[1fr_340px] gap-5">
           <form onSubmit={handleSubmit} className="qk-card p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground">Lesson Details</h2>
+            <h2 className="text-sm font-semibold text-foreground">Lesson Setup</h2>
             <p className="text-xs text-muted -mt-3">Provide the key details about this lesson.</p>
+
+            <ThumbnailUploadField
+              previewUrl={thumbnailPreviewUrl}
+              alt={thumbnailAlt}
+              onSelectFile={handleSelectThumbnail}
+              onRemove={handleRemoveThumbnail}
+              onAltChange={setThumbnailAlt}
+              disabled={submitting}
+            />
 
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="Lesson Title" required>
@@ -446,7 +547,7 @@ export function CaptureForm() {
                 <Save size={16} /> Save Draft
               </Button>
               <Button type="submit" disabled={submitting}>
-                <Send size={16} /> {submitting ? "Submitting..." : "Submit Lesson"}
+                <Send size={16} /> {submitting ? "Saving..." : "Save Experience Draft"}
               </Button>
               <Link
                 href={`/churches/${churches.find((c) => c.id === churchId)?.slug ?? ""}`}
@@ -497,7 +598,13 @@ export function CaptureForm() {
               <div className="space-y-3">
                 {recentLessons.map((l) => (
                   <div key={l.id} className="flex items-center gap-2.5">
-                    {l.featuredImageUrl && <img src={l.featuredImageUrl} className="w-10 h-10 rounded-lg object-cover" alt="" />}
+                    <LessonThumbnail
+                      src={l.featuredImageUrl}
+                      alt={l.featuredImageAlt}
+                      aspect="square"
+                      rounded="rounded-lg"
+                      className="w-10 h-10 shrink-0"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-foreground truncate">{l.title}</p>
                       <p className="text-[11px] text-muted">{l.date}</p>
@@ -511,25 +618,6 @@ export function CaptureForm() {
           </div>
         </div>
       )}
-
-      <style jsx global>{`
-        .qk-input {
-          width: 100%;
-          background: var(--surface-2);
-          border: 1px solid var(--border-subtle);
-          border-radius: 0.5rem;
-          padding: 0.6rem 0.85rem;
-          font-size: 0.875rem;
-          color: var(--foreground);
-        }
-        .qk-input::placeholder {
-          color: var(--muted);
-        }
-        .qk-input:focus {
-          outline: 2px solid var(--accent-blue-light);
-          outline-offset: 1px;
-        }
-      `}</style>
     </div>
   );
 }
