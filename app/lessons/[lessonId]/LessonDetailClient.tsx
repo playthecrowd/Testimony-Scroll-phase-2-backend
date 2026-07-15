@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Radio,
   Users2,
+  Pencil,
 } from "lucide-react";
 import { getStudyQuestionsForLesson } from "@/data/questions";
 import { useSession } from "@/context/SessionContext";
@@ -423,6 +424,11 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
         </div>
 
         <aside className="space-y-4">
+          {canManageThumbnail && (
+            <LinkButton href={`/experience-builder/${lesson.slug}/edit`} variant="secondary" className="w-full justify-center">
+              <Pencil size={16} /> Edit Experience
+            </LinkButton>
+          )}
           {canManageThumbnail && <ThumbnailEditorPanel lesson={lesson} churchId={lesson.church.id} />}
 
           <div className="qk-card p-4">

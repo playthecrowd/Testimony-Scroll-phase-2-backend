@@ -73,9 +73,45 @@ export async function publishLesson(
     revalidatePath("/churches");
     revalidatePath(`/churches/${churchSlug}`);
     revalidatePath("/host-dashboard");
+    revalidatePath("/experience-builder");
     return {};
   } catch (err) {
     if (err instanceof SupabaseConfigError) return { error: err.message };
     return { error: "Something went wrong publishing this lesson." };
+  }
+}
+
+export interface UnpublishLessonResult {
+  error?: string;
+}
+
+// Mirrors publishLesson exactly, in reverse. The Host-facing confirmation ("Unpublish this
+// lesson?") happens in the UI before this is ever called.
+export async function unpublishLesson(
+  lessonId: string,
+  lessonSlug: string,
+  churchSlug: string
+): Promise<UnpublishLessonResult> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("lessons")
+      .update({ status: "draft" })
+      .eq("id", lessonId)
+      .select("id")
+      .maybeSingle();
+    if (error) return { error: error.message };
+    if (!data) return { error: "You are not authorized to unpublish this lesson." };
+
+    revalidatePath(`/lessons/${lessonSlug}`);
+    revalidatePath("/lessons");
+    revalidatePath("/churches");
+    revalidatePath(`/churches/${churchSlug}`);
+    revalidatePath("/host-dashboard");
+    revalidatePath("/experience-builder");
+    return {};
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) return { error: err.message };
+    return { error: "Something went wrong unpublishing this lesson." };
   }
 }

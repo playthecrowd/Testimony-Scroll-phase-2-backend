@@ -7,7 +7,7 @@ const CHURCH_FIELDS = "id, name, slug, logo_url, city, region, country, member_c
 const LESSON_SELECT = `
   id, slug, title, short_description, about_text, topic, subject, ministry_category,
   date, duration_label, lesson_type, primary_scripture, supporting_scriptures, tags,
-  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, created_at,
+  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, created_at, updated_at,
   church:churches(${CHURCH_FIELDS}),
   speaker:speakers(id, name, avatar_url, bio),
   media:lesson_media(id, media_type, url, content, title, sort_order),
@@ -40,6 +40,7 @@ function mapLesson(row: any): PublishedLesson {
     status: row.status,
     contributorsCount: row.contributors_count ?? 0,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
     church: mapChurch(row.church),
     speaker: row.speaker
       ? { id: row.speaker.id, name: row.speaker.name, avatarUrl: row.speaker.avatar_url, bio: row.speaker.bio }
@@ -101,4 +102,17 @@ export async function getLessonBySlug(supabase: SupabaseClient, slug: string): P
   const { data, error } = await supabase.from("lessons").select(LESSON_SELECT).eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data ? mapLesson(data) : null;
+}
+
+// Deliberately no .eq("status", ...) filter -- this is for the Host lesson-management view, so
+// RLS is what should decide visibility: published rows are visible to everyone, and draft rows
+// only come back at all because the caller manages this church (lessons_select_published_or_managed).
+export async function getManagedLessonsByChurch(supabase: SupabaseClient, churchId: string): Promise<PublishedLesson[]> {
+  const { data, error } = await supabase
+    .from("lessons")
+    .select(LESSON_SELECT)
+    .eq("church_id", churchId)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapLesson);
 }

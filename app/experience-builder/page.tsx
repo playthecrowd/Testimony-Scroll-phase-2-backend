@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
+import { getMyHostChurches } from "@/services/supabase/churches";
+import { getManagedLessonsByChurch } from "@/services/supabase/lessons";
+import { HostLessonManagementList } from "@/components/lessons/HostLessonManagementList";
+import { PublishedLesson } from "@/types";
 import { ExperienceBuilderForm } from "./ExperienceBuilderForm";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +16,9 @@ export const dynamic = "force-dynamic";
 // below keeps its own checks too, but a Kingdom Member or churchless Host should never even
 // receive the form markup in the first place.
 export default async function ExperienceBuilderPage() {
+  const supabase = await createClient();
+
   try {
-    const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -45,5 +50,30 @@ export default async function ExperienceBuilderPage() {
     throw err;
   }
 
-  return <ExperienceBuilderForm />;
+  // Past this point the Host is authenticated and manages at least one church. Loading their
+  // lesson-management list is a separate, non-fatal step -- a failure here must not crash the
+  // whole builder page (the create form below still needs to render).
+  let managedLessons: PublishedLesson[] = [];
+  let managementLoadError = "";
+  try {
+    const churches = await getMyHostChurches(supabase);
+    const lessonLists = await Promise.all(churches.map((c) => getManagedLessonsByChurch(supabase, c.id)));
+    managedLessons = lessonLists.flat().sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+  } catch (err) {
+    console.error("[ExperienceBuilderPage] Failed to load managed lessons:", err);
+    managementLoadError = "We couldn't load your lessons right now. Please try again shortly.";
+  }
+
+  return (
+    <>
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 pt-6 md:pt-8">
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-1">Your Lessons</h2>
+          <p className="text-muted text-sm mb-4">Manage the lesson experiences you&apos;ve built.</p>
+          {managementLoadError ? <ErrorState message={managementLoadError} /> : <HostLessonManagementList lessons={managedLessons} />}
+        </section>
+      </div>
+      <ExperienceBuilderForm />
+    </>
+  );
 }

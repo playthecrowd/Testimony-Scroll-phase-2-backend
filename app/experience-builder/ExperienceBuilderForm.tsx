@@ -27,19 +27,11 @@ import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
+import { isValidMediaUrl as isValidUrl } from "@/lib/lessonForm";
+import { Field } from "@/components/ui/FormField";
 import { PublishedChurch, PublishedLesson } from "@/types";
 
 const lessonTypes = ["sermon", "bible-study", "youth", "devotional", "series"] as const;
-
-function isValidUrl(value: string): boolean {
-  if (!value.trim()) return true; // empty is fine, field is optional
-  try {
-    const u = new URL(value.trim());
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 export function ExperienceBuilderForm() {
   const router = useRouter();
@@ -619,16 +611,5 @@ export function ExperienceBuilderForm() {
         </div>
       )}
     </div>
-  );
-}
-
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="block text-xs font-medium text-muted mb-1.5">
-        {label} {required && <span className="text-accent-blue-light">*</span>}
-      </span>
-      {children}
-    </label>
   );
 }

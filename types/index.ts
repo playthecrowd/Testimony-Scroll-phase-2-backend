@@ -358,6 +358,7 @@ export interface PublishedLesson {
   status: "draft" | "published";
   contributorsCount: number;
   createdAt: string;
+  updatedAt: string;
   church: PublishedChurch;
   speaker: PublishedSpeaker | null;
   media: LessonMedia[];
