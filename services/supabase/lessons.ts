@@ -104,6 +104,22 @@ export async function getLessonBySlug(supabase: SupabaseClient, slug: string): P
   return data ? mapLesson(data) : null;
 }
 
+// RLS-gated exactly like getLessonBySlug -- a published lesson is visible to anyone, a draft only
+// to its own church's host/admin. Used by the journey routes, which link by lessons.id (UUID),
+// never by slug.
+export async function getLessonById(supabase: SupabaseClient, id: string): Promise<PublishedLesson | null> {
+  const { data, error } = await supabase.from("lessons").select(LESSON_SELECT).eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? mapLesson(data) : null;
+}
+
+export async function getLessonsByIds(supabase: SupabaseClient, ids: string[]): Promise<PublishedLesson[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("lessons").select(LESSON_SELECT).in("id", ids);
+  if (error) throw error;
+  return (data ?? []).map(mapLesson);
+}
+
 // Deliberately no .eq("status", ...) filter -- this is for the Host lesson-management view, so
 // RLS is what should decide visibility: published rows are visible to everyone, and draft rows
 // only come back at all because the caller manages this church (lessons_select_published_or_managed).

@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { StageComingSoon } from "@/components/journey/StageComingSoon";
 import {
   CheckCircle2,
   Circle,
@@ -66,7 +67,7 @@ export default function AppliedStagePage({ params }: { params: Promise<{ lessonI
     }
   }, [ready, session, lesson]);
 
-  if (!lesson) return notFound();
+  if (!lesson) return <StageComingSoon stageLabel="Applied" />;
   if (!ready) return null;
   if (!session.isLoggedIn) {
     router.push("/login");

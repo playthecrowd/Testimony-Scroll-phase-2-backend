@@ -12,6 +12,17 @@ import { photo } from "@/lib/images";
 import { stages } from "@/components/journey/stageMeta";
 import Link from "next/link";
 
+// Reads ?next=... at submit time rather than via useSearchParams(), which would require wrapping
+// this component's page in a Suspense boundary to keep /login statically rendered. Only allows a
+// same-site relative path -- never an absolute/external URL -- so this can't become an open
+// redirect.
+function getNextDestination(): string | null {
+  if (typeof window === "undefined") return null;
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
+
 export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) {
   const [tab, setTab] = useState<"signin" | "signup">(initialTab);
   const [accountType, setAccountType] = useState<AccountType>("member");
@@ -36,7 +47,7 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
       setError(result.error);
       return;
     }
-    router.push(result.destination ?? "/dashboard");
+    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -53,7 +64,7 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
       setCheckEmail(true);
       return;
     }
-    router.push(result.destination ?? "/dashboard");
+    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   if (checkEmail) {

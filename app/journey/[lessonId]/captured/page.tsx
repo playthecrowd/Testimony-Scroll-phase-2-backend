@@ -1,13 +1,14 @@
 "use client";
 
 import { use, useEffect } from "react";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { getLesson } from "@/services/lessonService";
 import { startJourney, getJourney } from "@/services/journeyService";
 import { useSession } from "@/context/SessionContext";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { LinkButton } from "@/components/ui/Button";
+import { StageComingSoon } from "@/components/journey/StageComingSoon";
 
 export default function CapturedStagePage({ params }: { params: Promise<{ lessonId: string }> }) {
   const { lessonId } = use(params);
@@ -23,7 +24,10 @@ export default function CapturedStagePage({ params }: { params: Promise<{ lesson
     }
   }, [ready, session, lesson]);
 
-  if (!lesson) return notFound();
+  // getLesson() only recognizes the mock/demo lesson catalog -- a real Supabase lesson id lands
+  // here (e.g. via the journey stepper's stage links) and must never 404. This stage isn't wired
+  // to real lesson data yet, so show the shared coming-soon state instead.
+  if (!lesson) return <StageComingSoon stageLabel="Captured" />;
   if (!ready) return null;
   if (!session.isLoggedIn) {
     router.push("/login");

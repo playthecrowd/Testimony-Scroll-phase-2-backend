@@ -365,3 +365,22 @@ export interface PublishedLesson {
   hosts: PublishedLessonHost[];
   ministries: Ministry[];
 }
+
+// Supabase-backed member journey progress (public.lesson_journeys / public.lesson_journey_items,
+// migration 0008). Separate from the mock Journey/JourneyChecklist types above, which the
+// still-mocked Experienced/Applied/Added-to-Story stages continue to use.
+export interface LessonJourney {
+  id: string;
+  lessonId: string;
+  currentStage: "captured" | "studied" | "experienced" | "applied" | "added-to-story";
+  studiedStartedAt: string;
+  studiedCompletedAt: string | null;
+  lastOpenedAt: string;
+}
+
+export interface LessonJourneyItem {
+  id: string;
+  itemKey: string;
+  completed: boolean;
+  completedAt: string | null;
+}

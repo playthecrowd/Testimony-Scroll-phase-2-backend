@@ -10,22 +10,14 @@ import { LinkButton } from "@/components/ui/Button";
 import { useSession } from "@/context/SessionContext";
 import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
-
-const navLinks = [
-  { href: "/experience-builder", label: "Experience Builder" },
-  { href: "/lessons", label: "Explore" },
-  { href: "/churches", label: "Churches" },
-  { href: "/lessons", label: "Lessons" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/kingdom-scroll", label: "Kingdom Scroll" },
-  { href: "/events", label: "Events" },
-  { href: "/about", label: "About" },
-];
+import { visibleTopBarLinks } from "@/lib/navigation";
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { session, ready } = useSession();
   const pathname = usePathname();
   const [unread, setUnread] = useState(0);
+  const isHost = ready && session.isLoggedIn && session.accountType === "host";
+  const navLinks = visibleTopBarLinks(isHost);
 
   useEffect(() => {
     if (ready && session.isLoggedIn) setUnread(getUnreadCount(session.user.id));

@@ -1,8 +1,9 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Box, CheckCircle2, Feather, Crown, Award, FlaskConical } from "lucide-react";
+import { StageComingSoon } from "@/components/journey/StageComingSoon";
 import { getLesson } from "@/services/lessonService";
 import { useSession } from "@/context/SessionContext";
 import { getJourney, startJourney, completeExperienced } from "@/services/journeyService";
@@ -36,7 +37,7 @@ export default function ExperiencedStagePage({ params }: { params: Promise<{ les
     }
   }, [ready, session, lesson]);
 
-  if (!lesson) return notFound();
+  if (!lesson) return <StageComingSoon stageLabel="Experienced" />;
   if (!ready) return null;
   if (!session.isLoggedIn) {
     router.push("/login");

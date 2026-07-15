@@ -1,9 +1,10 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { notFound, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, UserRound, ScrollText as ScrollIcon, Map, Crown, Play, Sparkles } from "lucide-react";
+import { StageComingSoon } from "@/components/journey/StageComingSoon";
 import { getLesson } from "@/services/lessonService";
 import { useSession } from "@/context/SessionContext";
 import { getJourney, completeAddedToStory } from "@/services/journeyService";
@@ -27,7 +28,7 @@ export default function AddedToStoryPage({ params }: { params: Promise<{ lessonI
     }
   }, [ready, session, lesson]);
 
-  if (!lesson) return notFound();
+  if (!lesson) return <StageComingSoon stageLabel="Added to the Story" />;
   if (!ready) return null;
   if (!session.isLoggedIn) {
     router.push("/login");

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { getStudyQuestionsForLesson } from "@/data/questions";
 import { useSession } from "@/context/SessionContext";
-import { startJourney, getJourney } from "@/services/journeyService";
+import { getJourneyForLesson } from "@/services/supabase/journeys";
 import { useAuthGuard } from "@/components/ui/useAuthGuard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn, formatDate } from "@/lib/utils";
@@ -106,7 +106,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const { guard, Modal } = useAuthGuard();
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [selectedHostOverride, setSelectedHostOverride] = useState<string | null>(null);
-  const [, force] = useState(0);
+  const [hasJourney, setHasJourney] = useState(false);
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
@@ -130,9 +130,31 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
     };
   }, [ready, session, lesson.church.id]);
 
+  // Read-only: this never creates a journey. The Studied page itself is the one place a journey
+  // record is created (getOrCreateJourney's upsert on first load) -- this effect only decides
+  // whether to show "Start Your Journey" or "Continue Your Journey".
+  useEffect(() => {
+    if (!ready || !session.isLoggedIn) {
+      setHasJourney(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const journey = await getJourneyForLesson(supabase, lesson.id);
+        if (!cancelled) setHasJourney(!!journey);
+      } catch {
+        if (!cancelled) setHasJourney(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, session, lesson.id]);
+
   const selectedHost = selectedHostOverride ?? lesson.hosts[0]?.id ?? null;
   const questions = getStudyQuestionsForLesson(lesson.id);
-  const journey = ready && session.isLoggedIn ? getJourney(session.user.id, lesson.id) : undefined;
   const activeHost = lesson.hosts.find((h) => h.id === selectedHost) ?? lesson.hosts[0];
 
   const notesMedia = lesson.media.filter((m) => m.mediaType === "notes");
@@ -145,9 +167,9 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const videoEmbedUrl = videoMedia?.url ? getYouTubeEmbedUrl(videoMedia.url) : null;
 
   function handleStart() {
+    // The journey record itself is created by the Studied page on load (getOrCreateJourney),
+    // not here -- this just navigates there once the auth guard passes.
     guard(() => {
-      startJourney(session.user.id, lesson.id);
-      force((v) => v + 1);
       router.push(`/journey/${lesson.id}/studied`);
     });
   }
@@ -432,16 +454,15 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
           {canManageThumbnail && <ThumbnailEditorPanel lesson={lesson} churchId={lesson.church.id} />}
 
           <div className="qk-card p-4">
-            {journey ? (
-              <LinkButton
-                href={`/journey/${lesson.id}/${journey.stage === "captured" ? "studied" : journey.stage}`}
-                className="w-full justify-center"
-              >
-                <Box size={16} /> Continue Journey
+            {hasJourney ? (
+              // Same destination as Start -- the Studied route is shared for every lesson and
+              // is where progress actually lives, regardless of which stage is current.
+              <LinkButton href={`/journey/${lesson.id}/studied`} className="w-full justify-center">
+                <Box size={16} /> Continue Your Journey
               </LinkButton>
             ) : (
               <Button onClick={handleStart} className="w-full justify-center">
-                <Box size={16} /> Start This Journey
+                <Box size={16} /> Start Your Journey
               </Button>
             )}
             <p className="text-xs text-muted text-center mt-2">Step into a live hosted experience with a community.</p>
