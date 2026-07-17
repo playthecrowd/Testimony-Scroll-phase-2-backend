@@ -78,6 +78,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-3 mb-6">
+        <LinkButton href="/lessons">Find a Lesson</LinkButton>
+        <LinkButton href="/request-lesson" variant="secondary">
+          Request a Lesson
+        </LinkButton>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
         <StatPill icon={Box} value={journeys.length} label="Lessons Captured" />
         <StatPill icon={BookOpen} value={completedLessons.length} label="Lessons Studied" />

@@ -157,3 +157,35 @@ test("lesson_experiences and lesson_questions support edit-time removal (update+
     }
   }
 });
+
+// Phase 5 (docs/PHASE5_AUDIT.md): lesson_requests has a distinct shape from the tables above (own-
+// row + manager + a narrowly-scoped public-once-approved policy), so it gets its own dedicated
+// checks rather than being folded into CHURCH_SCOPED_TABLES' generic loop.
+test("lesson_requests has no bare using(true) policy -- public visibility is scoped to approved rows only", () => {
+  for (const chunk of policiesOn("lesson_requests")) {
+    assert.doesNotMatch(
+      chunk,
+      /using\s*\(\s*true\s*\)/i,
+      "A policy on public.lesson_requests uses using(true) -- pending/church-directed requests must never be broadcast"
+    );
+  }
+});
+
+test("lesson_requests' public SELECT policy is narrowed to scope='public' and status='approved'", () => {
+  const publicPolicy = policiesOn("lesson_requests").find((c) => /lesson_requests_select_public_approved/i.test(c));
+  assert.ok(publicPolicy, "Expected a lesson_requests_select_public_approved policy");
+  assert.match(publicPolicy!, /scope\s*=\s*'public'/);
+  assert.match(publicPolicy!, /status\s*=\s*'approved'/);
+});
+
+test("lesson_requests' manager policy reuses private.is_church_manager for both church-directed and public (admin) access", () => {
+  const managedPolicies = policiesOn("lesson_requests").filter((c) => /private\.is_church_manager/.test(c));
+  assert.ok(managedPolicies.length > 0, "Expected at least one lesson_requests policy gated by private.is_church_manager");
+});
+
+test("lesson_requests self-service insert always starts at status='submitted'", () => {
+  const insertPolicy = policiesOn("lesson_requests").find((c) => /for insert/i.test(c));
+  assert.ok(insertPolicy, "Expected an INSERT policy on lesson_requests");
+  assert.match(insertPolicy!, /requested_by\s*=\s*auth\.uid\(\)/);
+  assert.match(insertPolicy!, /status\s*=\s*'submitted'/);
+});

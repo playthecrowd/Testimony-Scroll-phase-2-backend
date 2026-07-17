@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Building2, BookOpen, Users2, Send, PencilLine, UserPlus, Sparkles } from "lucide-react";
+import { Building2, BookOpen, Users2, Send, PencilLine, UserPlus, Sparkles, MessageSquareText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
 import { getMyHostChurches, getChurchMemberCount } from "@/services/supabase/churches";
 import { getManagedLessonsByChurch } from "@/services/supabase/lessons";
+import { getChurchLessonRequests } from "@/services/supabase/lessonRequests";
 import { TestimonyReviewPreview } from "@/components/host-dashboard/TestimonyReviewPreview";
 import { StatPill, SectionCard } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
@@ -89,12 +90,17 @@ export default async function HostDashboardPage() {
 
   let lessons: PublishedLesson[] = [];
   let memberCount = 0;
+  let pendingRequestCount = 0;
   let loadError = "";
   try {
-    [lessons, memberCount] = await Promise.all([
+    const [lessonsResult, memberCountResult, requestsResult] = await Promise.all([
       getManagedLessonsByChurch(supabase, church.id),
       getChurchMemberCount(supabase, church.id),
+      getChurchLessonRequests(supabase, church.id),
     ]);
+    lessons = lessonsResult;
+    memberCount = memberCountResult;
+    pendingRequestCount = requestsResult.filter((r) => r.status === "submitted" || r.status === "under_review").length;
   } catch (err) {
     console.error("[HostDashboardPage] Failed to load church stats:", err);
     loadError = "We couldn't load your church's stats right now. Please try again shortly.";
@@ -163,6 +169,17 @@ export default async function HostDashboardPage() {
               <UserPlus size={13} /> Invite Members
             </LinkButton>
           </div>
+        </SectionCard>
+
+        <SectionCard title="Lesson Requests" action="View All" actionHref="/host-dashboard/lesson-requests" icon={MessageSquareText}>
+          {pendingRequestCount > 0 ? (
+            <p className="text-sm text-muted">
+              <span className="text-foreground font-semibold">{pendingRequestCount}</span> request{pendingRequestCount === 1 ? "" : "s"}{" "}
+              waiting on {church.name}.
+            </p>
+          ) : (
+            <p className="text-sm text-muted">No lesson requests waiting right now.</p>
+          )}
         </SectionCard>
 
         <SectionCard title="Recent Lessons" action="Build a Lesson Experience" actionHref="/experience-builder" icon={BookOpen}>

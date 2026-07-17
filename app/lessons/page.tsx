@@ -7,6 +7,7 @@ import { getPublishedLessons } from "@/services/supabase/lessons";
 import { getPublishedChurches } from "@/services/supabase/churches";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { PublishedLessonCard } from "@/components/lessons/PublishedLessonCard";
+import { LinkButton } from "@/components/ui/Button";
 import { StatPill } from "@/components/ui/StatPill";
 import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
 import { cn } from "@/lib/utils";
@@ -95,8 +96,15 @@ export default function LessonsPage() {
       <PageBackground src={backgrounds.roadToEaster} opacity={0.42} />
       <div className="grid xl:grid-cols-[1fr_300px] gap-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lessons</h1>
-          <p className="text-muted text-sm mt-1 mb-5">Browse every captured lesson, sermon, class, and study resource.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lessons</h1>
+              <p className="text-muted text-sm mt-1 mb-5">Browse every captured lesson, sermon, class, and study resource.</p>
+            </div>
+            <LinkButton href="/request-lesson" variant="secondary" size="sm">
+              Request a Lesson
+            </LinkButton>
+          </div>
 
           <div className="qk-card p-4 mb-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <FilterField label="Church">

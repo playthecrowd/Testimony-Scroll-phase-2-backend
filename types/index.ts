@@ -436,3 +436,19 @@ export interface LessonJourneyItem {
   completed: boolean;
   completedAt: string | null;
 }
+
+// Phase 5 (docs/PHASE5_AUDIT.md): public.lesson_requests.
+export type LessonRequestScope = "church" | "public";
+export type LessonRequestStatus = "submitted" | "under_review" | "approved" | "declined" | "fulfilled";
+
+export interface LessonRequest {
+  id: string;
+  topic: string;
+  notes: string | null;
+  scope: LessonRequestScope;
+  churchId: string | null;
+  churchName: string | null;
+  status: LessonRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}

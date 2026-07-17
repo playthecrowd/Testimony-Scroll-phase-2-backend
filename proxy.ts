@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // permission itself, and RLS is the last line of defense -- this is a network boundary,
 // not the authorization system.
 
-const PROTECTED_PATHS = ["/experience-builder", "/capture", "/onboarding"];
+const PROTECTED_PATHS = ["/experience-builder", "/capture", "/onboarding", "/admin"];
 const AUTH_PATHS = ["/login", "/signup"];
 
 export async function proxy(request: NextRequest) {
