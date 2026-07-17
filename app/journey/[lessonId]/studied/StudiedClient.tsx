@@ -15,11 +15,12 @@ import {
   AlertTriangle,
   Save,
   Box,
+  ChevronDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setChecklistItemCompletion, touchLastOpened, markStudiedComplete } from "@/services/supabase/journeys";
 import { getApplicableChecklistItems, ChecklistItemKey } from "@/lib/journeyChecklist";
-import { getStudyQuestionsForLesson } from "@/data/questions";
+import { getYouTubeEmbedUrl } from "@/lib/videoEmbed";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -46,11 +47,10 @@ export function StudiedClient({
   const [exitMessage, setExitMessage] = useState("");
   const [tab, setTab] = useState<string>("Overview");
 
-  // NOTE on question source (PHASE 9 audit finding): getStudyQuestionsForLesson falls back to a
-  // small generic default bank for any lesson id it doesn't have hand-written questions for --
-  // i.e. every real lesson today. These are placeholders, not Host-authored content; labeled
-  // "Reflection Questions" (not attributed to the Host) for that reason.
-  const questions = useMemo(() => getStudyQuestionsForLesson(lesson.id), [lesson.id]);
+  // Real, Host-authored per-lesson questions as of Phase 3 (docs/PHASE3_AUDIT.md) -- previously
+  // this read from data/questions.ts, a generic placeholder bank unrelated to what the Host
+  // actually wrote (this file used to carry a note about that; see git history).
+  const questions = lesson.questions;
 
   const applicableItems = useMemo(
     () => getApplicableChecklistItems({ ...lesson, media: lesson.media }),
@@ -61,6 +61,15 @@ export function StudiedClient({
     items.forEach((item) => map.set(item.itemKey, item));
     return map;
   }, [items]);
+  const questionsItemCompleted = completionByKey.get("questions")?.completed ?? false;
+
+  // Per-question acknowledgement (local UI state) -- the persisted checklist still only tracks
+  // one "questions" item (lib/journeyChecklist.ts's fixed vocabulary), since lesson_questions rows
+  // are recreated wholesale on every Host edit (no stable id to hang durable per-question progress
+  // off of). Checking every question here is what marks that single persisted item complete.
+  const [checkedQuestionIds, setCheckedQuestionIds] = useState<Set<string>>(
+    () => new Set(questionsItemCompleted ? questions.map((q) => q.id) : [])
+  );
 
   const completedCount = applicableItems.filter((def) => completionByKey.get(def.key)?.completed).length;
   const totalCount = applicableItems.length;
@@ -107,6 +116,38 @@ export function StudiedClient({
         const next = new Set(prev);
         next.delete(key);
         return next;
+      });
+    }
+  }
+
+  async function toggleQuestionChecked(questionId: string) {
+    const next = new Set(checkedQuestionIds);
+    if (next.has(questionId)) next.delete(questionId);
+    else next.add(questionId);
+    setCheckedQuestionIds(next);
+
+    const allChecked = questions.length > 0 && questions.every((q) => next.has(q.id));
+    if (allChecked === questionsItemCompleted) return; // already in sync -- no save needed
+    if (pendingKeys.has("questions")) return;
+
+    setPendingKeys((prev) => new Set(prev).add("questions"));
+    setExitMessage("");
+    try {
+      const supabase = createClient();
+      const updated = await setChecklistItemCompletion(supabase, journey.id, "questions", allChecked);
+      setItems((prev) => {
+        const rest = prev.filter((i) => i.itemKey !== "questions");
+        rest.push(updated);
+        return rest;
+      });
+    } catch (err) {
+      console.error("[StudiedClient] Failed to save questions acknowledgement:", err);
+      setCompleteError("We couldn't save that item just now. Please try again.");
+    } finally {
+      setPendingKeys((prev) => {
+        const nextPending = new Set(prev);
+        nextPending.delete("questions");
+        return nextPending;
       });
     }
   }
@@ -176,6 +217,10 @@ export function StudiedClient({
             </div>
           </div>
 
+          <div className="lg:hidden mb-5">
+            <ScripturePanel lesson={lesson} collapsible />
+          </div>
+
           <div className="flex items-center gap-1 mb-5 border-b border-border-subtle overflow-x-auto qk-scrollbar">
             {availableTabs.map((t) => (
               <button
@@ -201,16 +246,6 @@ export function StudiedClient({
                   <p className="text-sm text-muted">No overview was provided for this lesson.</p>
                 )}
               </div>
-              {lesson.supportingScriptures.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-2">Supporting Scriptures</h3>
-                  <ul className="space-y-1 text-sm text-muted">
-                    {lesson.supportingScriptures.map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           )}
 
@@ -231,9 +266,22 @@ export function StudiedClient({
           {activeTab === "Video" && (
             <div className="qk-card p-5 space-y-4">
               {videoMedia.length === 0 && <p className="text-sm text-muted">No video was provided for this lesson.</p>}
-              {videoMedia.map((m) => (
-                <MediaLink key={m.id} icon={Play} label={m.title || "Watch Video"} url={m.url} content={m.content} />
-              ))}
+              {videoMedia.map((m) => {
+                const embedUrl = m.url ? getYouTubeEmbedUrl(m.url) : null;
+                return embedUrl ? (
+                  <div key={m.id} className="aspect-video rounded-lg overflow-hidden bg-surface-2">
+                    <iframe
+                      src={embedUrl}
+                      title={m.title || "Lesson video"}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <MediaLink key={m.id} icon={Play} label={m.title || "Watch Video"} url={m.url} content={m.content} />
+                );
+              })}
             </div>
           )}
 
@@ -267,19 +315,46 @@ export function StudiedClient({
           {activeTab === "Questions" && (
             <div className="qk-card p-5">
               <h3 className="text-sm font-semibold text-foreground mb-1">Reflection Questions</h3>
-              <p className="text-xs text-muted mb-3">General reflection prompts to guide your study of this lesson.</p>
-              <ol className="space-y-2.5">
-                {questions.map((q, i) => (
-                  <li key={q.id} className="flex items-start gap-2.5 text-sm text-muted">
-                    <span className="text-accent-blue-light font-medium">{i + 1}.</span> {q.question}
-                  </li>
-                ))}
-              </ol>
+              {questions.length === 0 ? (
+                <p className="text-sm text-muted">No questions were provided for this lesson.</p>
+              ) : (
+                <>
+                  <p className="text-xs text-muted mb-3">Check off each question as you reflect on it.</p>
+                  <ol className="space-y-3">
+                    {questions.map((q, i) => {
+                      const checked = checkedQuestionIds.has(q.id);
+                      return (
+                        <li key={q.id}>
+                          <button
+                            onClick={() => toggleQuestionChecked(q.id)}
+                            disabled={isStudiedComplete || pendingKeys.has("questions")}
+                            aria-pressed={checked}
+                            className="w-full flex items-start gap-2.5 text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {checked ? (
+                              <CheckCircle2 size={16} className="text-accent-blue-light shrink-0 mt-0.5" />
+                            ) : (
+                              <Circle size={16} className="text-muted shrink-0 mt-0.5" />
+                            )}
+                            <span className={cn("text-sm", checked ? "text-foreground" : "text-muted")}>
+                              <span className="text-accent-blue-light font-medium">{i + 1}.</span> {q.question}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </>
+              )}
             </div>
           )}
         </div>
 
         <aside className="space-y-4">
+          <div className="hidden lg:block">
+            <ScripturePanel lesson={lesson} />
+          </div>
+
           <div className="qk-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">Complete Your Study</h3>
             <p className="text-xs text-muted mb-3">Check off each item as you go. Your progress saves automatically.</p>
@@ -287,6 +362,25 @@ export function StudiedClient({
               {applicableItems.map((def) => {
                 const completed = completionByKey.get(def.key)?.completed ?? false;
                 const busy = pendingKeys.has(def.key);
+
+                // Questions is acknowledged per-question in the Questions tab when real
+                // questions exist -- this row becomes a read-only status, not a manual toggle,
+                // so the two can't drift out of sync. With no real questions to check off
+                // individually, it stays a plain manual toggle like every other item.
+                if (def.key === "questions" && questions.length > 0) {
+                  return (
+                    <div key={def.key} className="w-full flex items-center gap-2.5">
+                      {completed ? (
+                        <CheckCircle2 size={17} className="text-accent-blue-light shrink-0" />
+                      ) : (
+                        <Circle size={17} className="text-muted shrink-0" />
+                      )}
+                      <span className={cn("text-sm flex-1", completed ? "text-foreground" : "text-muted")}>{def.label}</span>
+                      {!completed && <span className="text-[10px] text-muted shrink-0">See Questions tab</span>}
+                    </div>
+                  );
+                }
+
                 return (
                   <button
                     key={def.key}
@@ -387,6 +481,40 @@ function MediaLink({
         )}
       </div>
       {content && <p className="text-sm text-muted mt-1 whitespace-pre-wrap">{content}</p>}
+    </div>
+  );
+}
+
+// Persistent scripture reference (Part 11) -- rendered twice by the caller: once as an always-
+// expanded card in the desktop aside (visible regardless of which tab is active), and once as a
+// collapsible accordion on mobile, positioned above the tab content instead of requiring a scroll
+// past it. `collapsible` switches between those two presentations of the same content.
+function ScripturePanel({ lesson, collapsible }: { lesson: PublishedLesson; collapsible?: boolean }) {
+  const [expanded, setExpanded] = useState(!collapsible);
+  if (!lesson.primaryScripture && lesson.supportingScriptures.length === 0) return null;
+
+  return (
+    <div className="qk-card p-4">
+      {collapsible ? (
+        <button type="button" onClick={() => setExpanded((e) => !e)} className="w-full flex items-center justify-between text-left">
+          <h3 className="text-sm font-semibold text-foreground">Scripture</h3>
+          <ChevronDown size={16} className={cn("text-muted transition-transform", expanded && "rotate-180")} />
+        </button>
+      ) : (
+        <h3 className="text-sm font-semibold text-foreground mb-2">Scripture</h3>
+      )}
+      {expanded && (
+        <div className={collapsible ? "mt-3" : ""}>
+          {lesson.primaryScripture && <p className="text-sm text-foreground font-medium mb-1.5">{lesson.primaryScripture}</p>}
+          {lesson.supportingScriptures.length > 0 && (
+            <ul className="space-y-1 text-xs text-muted">
+              {lesson.supportingScriptures.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

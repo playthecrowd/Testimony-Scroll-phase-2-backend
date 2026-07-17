@@ -21,6 +21,7 @@ import { getJourneyForLesson } from "@/services/supabase/journeys";
 import { useAuthGuard } from "@/components/ui/useAuthGuard";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { cn, formatDate } from "@/lib/utils";
+import { getYouTubeEmbedUrl } from "@/lib/videoEmbed";
 import { PublishedLesson, LessonMedia } from "@/types";
 import { publishLesson } from "./actions";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
@@ -37,31 +38,6 @@ function isValidUrl(value: string | null | undefined): value is string {
     return u.protocol === "http:" || u.protocol === "https:";
   } catch {
     return false;
-  }
-}
-
-// Supports youtube.com/watch?v=, youtu.be/, youtube.com/shorts/, and already-embed URLs.
-function getYouTubeEmbedUrl(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname === "youtu.be") {
-      const id = u.pathname.slice(1);
-      return id ? `https://www.youtube.com/embed/${id}` : null;
-    }
-    if (u.hostname.includes("youtube.com")) {
-      if (u.pathname === "/watch") {
-        const id = u.searchParams.get("v");
-        return id ? `https://www.youtube.com/embed/${id}` : null;
-      }
-      if (u.pathname.startsWith("/embed/")) return url;
-      if (u.pathname.startsWith("/shorts/")) {
-        const id = u.pathname.split("/")[2];
-        return id ? `https://www.youtube.com/embed/${id}` : null;
-      }
-    }
-    return null;
-  } catch {
-    return null;
   }
 }
 
@@ -472,12 +448,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
 
           {activeHost?.church && (
             <div className="qk-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">Your Host Selection</h3>
-                <button onClick={() => setTab("Hosts")} className="text-xs text-accent-blue-light hover:underline">
-                  Change
-                </button>
-              </div>
+              <h3 className="text-sm font-semibold text-foreground mb-3">Your Host Selection</h3>
               <div className="flex items-center gap-2.5">
                 {activeHost.church.logoUrl && <img src={activeHost.church.logoUrl} className="w-10 h-10 rounded-full" alt="" />}
                 <div>
