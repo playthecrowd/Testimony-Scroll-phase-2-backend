@@ -35,8 +35,17 @@ function policiesOn(table: string): string[] {
 }
 
 // Every table that stores per-church data. speakers/ministries are deliberately excluded: they're
-// public lookup data by design, not a leak (see docs/PHASE1_AUDIT.md section 3).
-const CHURCH_SCOPED_TABLES = ["churches", "church_memberships", "lessons", "lesson_media", "lesson_hosts", "lesson_ministries"];
+// public lookup data by design, not a leak (see docs/PHASE1_AUDIT.md section 3). church_invites
+// is Phase 2 (docs/PHASE2_AUDIT.md) -- per-email invitations, manager-only by design.
+const CHURCH_SCOPED_TABLES = [
+  "churches",
+  "church_memberships",
+  "lessons",
+  "lesson_media",
+  "lesson_hosts",
+  "lesson_ministries",
+  "church_invites",
+];
 
 test("every church-scoped table has at least one RLS policy", () => {
   for (const table of CHURCH_SCOPED_TABLES) {
@@ -75,4 +84,39 @@ test("church_memberships still restricts self-service inserts to the caller's ow
   assert.ok(selfInsert, "Expected an INSERT policy on church_memberships");
   assert.match(selfInsert!, /profile_id\s*=\s*auth\.uid\(\)/);
   assert.match(selfInsert!, /role\s*=\s*'member'/);
+});
+
+// Phase 2 (docs/PHASE2_AUDIT.md): a real Church Member Management list needs member
+// names/emails, which requires profiles to be readable beyond just the caller's own row.
+test("profiles has no bare using(true) policy (member names/emails stay church-manager-gated)", () => {
+  for (const chunk of policiesOn("profiles")) {
+    assert.doesNotMatch(chunk, /using\s*\(\s*true\s*\)/i, "A policy on public.profiles uses using(true) -- this would expose every user's profile to anyone");
+  }
+});
+
+test("profiles allows a church manager to read their own church's members' profiles", () => {
+  const managerRead = policiesOn("profiles")
+    .filter((c) => /for select/i.test(c))
+    .some((c) => /private\.is_church_manager/.test(c));
+  assert.ok(managerRead, "Expected a SELECT policy on profiles gated by private.is_church_manager");
+});
+
+test("profiles still restricts self-service updates to the caller's own row", () => {
+  const selfUpdate = policiesOn("profiles").find((c) => /for update/i.test(c));
+  assert.ok(selfUpdate, "Expected an UPDATE policy on profiles");
+  assert.match(selfUpdate!, /id\s*=\s*auth\.uid\(\)/);
+});
+
+test("church_invites acceptance only happens through accept_church_invite, not a direct policy", () => {
+  // The invitee has no UPDATE grant on church_invites at all -- only a church manager does
+  // (church_invites_update_managed). Acceptance is exclusively the SECURITY DEFINER RPC's job.
+  const functionMatch = sql.match(/create or replace function public\.accept_church_invite\([\s\S]*?\$\$;/);
+  assert.ok(functionMatch, "Expected public.accept_church_invite to be defined");
+  assert.match(functionMatch![0], /security definer/i, "accept_church_invite must be SECURITY DEFINER to redeem an invite on the caller's behalf");
+
+  const updatePolicies = policiesOn("church_invites").filter((c) => /for update/i.test(c));
+  assert.ok(updatePolicies.length > 0, "Expected an UPDATE policy on church_invites");
+  for (const chunk of updatePolicies) {
+    assert.match(chunk, /private\.is_church_manager/, "Every UPDATE policy on church_invites must still be manager-gated");
+  }
 });

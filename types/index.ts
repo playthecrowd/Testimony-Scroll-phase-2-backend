@@ -317,6 +317,37 @@ export interface PublishedChurch {
   memberCount: number;
   description: string | null;
   verified: boolean;
+  addressLine1: string | null;
+  website: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  churchType: string | null;
+  bannerUrl: string | null;
+}
+
+export interface ChurchMinistry {
+  id: string;
+  name: string;
+}
+
+export interface ChurchMember {
+  membershipId: string;
+  profileId: string;
+  fullName: string | null;
+  email: string;
+  avatarUrl: string | null;
+  role: "member" | "host" | "admin";
+  joinedAt: string;
+}
+
+export interface ChurchInvite {
+  id: string;
+  churchId: string;
+  email: string;
+  token: string;
+  status: "pending" | "accepted" | "revoked";
+  createdAt: string;
+  acceptedAt: string | null;
 }
 
 export interface PublishedSpeaker {

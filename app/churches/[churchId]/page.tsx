@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Users2, CheckCircle2, BookOpen } from "lucide-react";
+import { ArrowLeft, Users2, CheckCircle2, BookOpen, Globe, Mail, Phone, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getPublishedChurch } from "@/services/supabase/churches";
+import { getPublishedChurch, getChurchMinistries } from "@/services/supabase/churches";
 import { getPublishedLessonsByChurch } from "@/services/supabase/lessons";
 import { PublishedLessonCard } from "@/components/lessons/PublishedLessonCard";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
 import { ErrorState } from "@/components/ui/AsyncState";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { SectionCard } from "@/components/ui/StatPill";
+import { ShareLinkCard } from "@/components/ui/ShareLinkCard";
+import { ChurchMinistry } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +20,16 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ c
 
   let church;
   let lessons: Awaited<ReturnType<typeof getPublishedLessonsByChurch>> = [];
+  let ministries: ChurchMinistry[] = [];
   try {
     const supabase = await createClient();
     church = await getPublishedChurch(supabase, churchId);
-    lessons = church ? await getPublishedLessonsByChurch(supabase, church.id) : [];
+    if (church) {
+      [lessons, ministries] = await Promise.all([
+        getPublishedLessonsByChurch(supabase, church.id),
+        getChurchMinistries(supabase, church.id),
+      ]);
+    }
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       return (
@@ -55,7 +64,10 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ c
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             {church.name} {church.verified && <CheckCircle2 size={16} className="text-accent-blue-light" />}
           </h1>
-          <p className="text-sm text-muted mt-1">{[church.city, church.region].filter(Boolean).join(", ")}</p>
+          <p className="text-sm text-muted mt-1">
+            {church.churchType && <span className="mr-2">{church.churchType} ·</span>}
+            {[church.addressLine1, church.city, church.region].filter(Boolean).join(", ")}
+          </p>
           {church.description && <p className="text-sm text-muted mt-3 max-w-2xl">{church.description}</p>}
           <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted">
             <span className="flex items-center gap-1.5">
@@ -64,11 +76,39 @@ export default async function ChurchDetailPage({ params }: { params: Promise<{ c
             <span className="flex items-center gap-1.5">
               <BookOpen size={13} /> {lessons.length} lessons captured
             </span>
+            {church.website && (
+              <a href={church.website} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 hover:text-foreground">
+                <Globe size={13} /> Website
+              </a>
+            )}
+            {church.contactEmail && (
+              <a href={`mailto:${church.contactEmail}`} className="flex items-center gap-1.5 hover:text-foreground">
+                <Mail size={13} /> {church.contactEmail}
+              </a>
+            )}
+            {church.contactPhone && (
+              <span className="flex items-center gap-1.5">
+                <Phone size={13} /> {church.contactPhone}
+              </span>
+            )}
           </div>
+          {ministries.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {ministries.map((m) => (
+                <span key={m.id} className="text-xs bg-surface-2 border border-border-subtle text-muted px-2 py-1 rounded-full">
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-foreground mb-4">Church Archive</h2>
+      <SectionCard title="Share This Church" icon={Share2}>
+        <ShareLinkCard path={`/join/${church.slug}`} />
+      </SectionCard>
+
+      <h2 className="text-lg font-semibold text-foreground mt-6 mb-4">Church Archive</h2>
       {lessons.length > 0 ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {lessons.map((l) => (

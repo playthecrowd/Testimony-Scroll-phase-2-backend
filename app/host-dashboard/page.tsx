@@ -126,6 +126,9 @@ export default async function HostDashboardPage() {
             {memberCount.toLocaleString()} member{memberCount === 1 ? "" : "s"}
           </p>
         </div>
+        <Link href="/host-dashboard/church-profile" className="sm:ml-auto text-xs text-accent-blue-light hover:underline shrink-0">
+          Edit Church Profile
+        </Link>
       </div>
 
       {loadError && <ErrorState message={loadError} />}
