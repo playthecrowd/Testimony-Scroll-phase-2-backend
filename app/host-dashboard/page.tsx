@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Building2, BookOpen, Users2, Send, PencilLine, UserPlus, Sparkles, MessageSquareText } from "lucide-react";
+import { Building2, BookOpen, Users2, Send, PencilLine, UserPlus, Sparkles, MessageSquareText, Feather } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
 import { getMyHostChurches, getChurchMemberCount } from "@/services/supabase/churches";
 import { getManagedLessonsByChurch } from "@/services/supabase/lessons";
 import { getChurchLessonRequests } from "@/services/supabase/lessonRequests";
-import { TestimonyReviewPreview } from "@/components/host-dashboard/TestimonyReviewPreview";
+import { getChurchTestimonies } from "@/services/supabase/testimonies";
 import { StatPill, SectionCard } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
@@ -25,10 +25,6 @@ const NEW_LESSON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 // come from the same real, RLS-scoped churches/church_memberships/lessons tables the Experience
 // Builder already uses (see services/supabase/churches.ts, services/supabase/lessons.ts).
 //
-// Testimonies/Kingdom Scroll have no Supabase table yet (Phase 6), so the review card stays on
-// the Phase-One mock catalog -- kept, but relabeled as a preview and excluded from the real stats
-// grid so a new host never sees a fabricated "Testimonies Awaiting Review" number for their
-// church. See TestimonyReviewPreview.
 export default async function HostDashboardPage() {
   const supabase = await createClient();
 
@@ -91,16 +87,19 @@ export default async function HostDashboardPage() {
   let lessons: PublishedLesson[] = [];
   let memberCount = 0;
   let pendingRequestCount = 0;
+  let pendingTestimonyCount = 0;
   let loadError = "";
   try {
-    const [lessonsResult, memberCountResult, requestsResult] = await Promise.all([
+    const [lessonsResult, memberCountResult, requestsResult, testimoniesResult] = await Promise.all([
       getManagedLessonsByChurch(supabase, church.id),
       getChurchMemberCount(supabase, church.id),
       getChurchLessonRequests(supabase, church.id),
+      getChurchTestimonies(supabase, church.id),
     ]);
     lessons = lessonsResult;
     memberCount = memberCountResult;
     pendingRequestCount = requestsResult.filter((r) => r.status === "submitted" || r.status === "under_review").length;
+    pendingTestimonyCount = testimoniesResult.filter((t) => t.churchStatus === "pending").length;
   } catch (err) {
     console.error("[HostDashboardPage] Failed to load church stats:", err);
     loadError = "We couldn't load your church's stats right now. Please try again shortly.";
@@ -182,6 +181,17 @@ export default async function HostDashboardPage() {
           )}
         </SectionCard>
 
+        <SectionCard title="Testimony Review" action="View All" actionHref="/host-dashboard/testimonies" icon={Feather}>
+          {pendingTestimonyCount > 0 ? (
+            <p className="text-sm text-muted">
+              <span className="text-foreground font-semibold">{pendingTestimonyCount}</span> testimon{pendingTestimonyCount === 1 ? "y" : "ies"}{" "}
+              awaiting review.
+            </p>
+          ) : (
+            <p className="text-sm text-muted">No testimonies awaiting review right now.</p>
+          )}
+        </SectionCard>
+
         <SectionCard title="Recent Lessons" action="Build a Lesson Experience" actionHref="/experience-builder" icon={BookOpen}>
           {recentLessons.length === 0 && !loadError ? (
             <p className="text-sm text-muted">No lessons yet -- build your first one to see it here.</p>
@@ -209,10 +219,6 @@ export default async function HostDashboardPage() {
             </div>
           )}
         </SectionCard>
-      </div>
-
-      <div className="mt-5">
-        <TestimonyReviewPreview />
       </div>
     </div>
   );

@@ -189,3 +189,58 @@ test("lesson_requests self-service insert always starts at status='submitted'", 
   assert.match(insertPolicy!, /requested_by\s*=\s*auth\.uid\(\)/);
   assert.match(insertPolicy!, /status\s*=\s*'submitted'/);
 });
+
+// Phase 6 (docs/PHASE6_AUDIT.md): testimonies has a two-stage status shape (church_status +
+// platform_status) -- the real mechanism behind "a testimony must not become publicly visible
+// immediately."
+test("testimonies has no bare using(true) policy -- public visibility requires both statuses approved", () => {
+  for (const chunk of policiesOn("testimonies")) {
+    assert.doesNotMatch(
+      chunk,
+      /using\s*\(\s*true\s*\)/i,
+      "A policy on public.testimonies uses using(true) -- pending/unapproved testimonies must never be broadcast"
+    );
+  }
+});
+
+test("testimonies' public SELECT policy requires visibility='public' AND both statuses='approved'", () => {
+  const publicPolicy = policiesOn("testimonies").find((c) => /testimonies_select_public_approved/i.test(c));
+  assert.ok(publicPolicy, "Expected a testimonies_select_public_approved policy");
+  assert.match(publicPolicy!, /visibility\s*=\s*'public'/);
+  assert.match(publicPolicy!, /church_status\s*=\s*'approved'/);
+  assert.match(publicPolicy!, /platform_status\s*=\s*'approved'/);
+});
+
+test("testimonies' manager policy reuses private.is_church_manager for both church review and platform (admin) moderation", () => {
+  const managedPolicies = policiesOn("testimonies").filter((c) => /private\.is_church_manager/.test(c));
+  assert.ok(managedPolicies.length > 0, "Expected at least one testimonies policy gated by private.is_church_manager");
+});
+
+test("testimonies' status columns are protected: a church manager can't set platform_status and vice versa", () => {
+  const functionMatch = sql.match(/create or replace function public\.protect_testimony_status_columns\(\)[\s\S]*?\$\$;/);
+  assert.ok(functionMatch, "Expected public.protect_testimony_status_columns to be defined");
+  const body = functionMatch![0];
+  assert.match(body, /platform_status is distinct from old\.platform_status/);
+  assert.match(body, /church_status is distinct from old\.church_status/);
+
+  const updateTrigger = sql.match(/create trigger protect_testimony_status_columns_trigger[\s\S]*?;/);
+  assert.ok(updateTrigger, "Expected protect_testimony_status_columns_trigger to be attached to testimonies");
+});
+
+test("testimonies_before_insert enforces lesson completion and derives church_id/display_name server-side", () => {
+  const functionMatch = sql.match(/create or replace function public\.testimonies_before_insert\(\)[\s\S]*?\$\$;/);
+  assert.ok(functionMatch, "Expected public.testimonies_before_insert to be defined");
+  const body = functionMatch![0];
+  assert.match(body, /security definer/i);
+  assert.match(body, /studied_completed_at is not null/, "Must check the real lesson_journeys completion state, not trust client input");
+  assert.match(body, /new\.church_id\s*:=/, "church_id must be derived server-side from the lesson, never trusted from the client");
+});
+
+test("testimony_likes can only be inserted for an already fully-approved public testimony", () => {
+  const insertPolicy = policiesOn("testimony_likes").find((c) => /for insert/i.test(c));
+  assert.ok(insertPolicy, "Expected an INSERT policy on testimony_likes");
+  assert.match(insertPolicy!, /profile_id\s*=\s*auth\.uid\(\)/);
+  assert.match(insertPolicy!, /visibility\s*=\s*'public'/);
+  assert.match(insertPolicy!, /church_status\s*=\s*'approved'/);
+  assert.match(insertPolicy!, /platform_status\s*=\s*'approved'/);
+});

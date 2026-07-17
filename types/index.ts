@@ -452,3 +452,43 @@ export interface LessonRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 6 (docs/PHASE6_AUDIT.md): public.testimonies. "Published" here follows the same
+// convention as PublishedLesson -- it represents any real row (pending/approved/rejected), not
+// only ones actually visible on the public Kingdom Scroll.
+// "PublishedTestimonyVisibility" (not just "TestimonyVisibility") specifically to avoid colliding
+// with the mock TestimonyVisibility type defined earlier in this file -- the mock type uses
+// hyphenated values ("church-only"), the real schema uses underscores ("church_only"); these are
+// genuinely different types, not a naming accident. TestimonyIdentityDisplay/ChurchStatus/
+// PlatformStatus don't collide with anything in the mock section, so they keep short names.
+export type PublishedTestimonyVisibility = "public" | "church_only" | "private";
+export type TestimonyIdentityDisplay = "full_name" | "first_name" | "username" | "anonymous";
+export type TestimonyChurchStatus = "pending" | "approved" | "rejected";
+export type TestimonyPlatformStatus = "not_submitted" | "pending" | "approved" | "rejected";
+
+export interface PublishedTestimony {
+  id: string;
+  churchId: string;
+  churchName: string | null;
+  primaryLessonId: string;
+  primaryLessonTitle: string | null;
+  primaryLessonSlug: string | null;
+  supportingLessonIds: string[];
+  title: string;
+  topic: string | null;
+  scripture: string | null;
+  writtenTestimony: string;
+  videoUrl: string | null;
+  audioUrl: string | null;
+  visibility: PublishedTestimonyVisibility;
+  identityDisplay: TestimonyIdentityDisplay;
+  displayName: string | null;
+  suggestedCharacter: string | null;
+  storyGenerationPermission: boolean;
+  futureEpisodePermission: boolean;
+  voiceLikenessPermission: boolean;
+  churchStatus: TestimonyChurchStatus;
+  platformStatus: TestimonyPlatformStatus;
+  createdAt: string;
+  updatedAt: string;
+}

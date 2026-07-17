@@ -3,16 +3,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
-import { getPendingPublicLessonRequests } from "@/services/supabase/lessonRequests";
-import { PublicLessonRequestsList } from "@/components/admin/PublicLessonRequestsList";
+import { getPendingPublicTestimonies } from "@/services/supabase/testimonies";
+import { PublicTestimoniesList } from "@/components/admin/PublicTestimoniesList";
 
 export const dynamic = "force-dynamic";
 
-// First real Production Administrator surface (docs/PHASE5_AUDIT.md) -- profiles.is_platform_admin
-// has existed since Milestone One with no UI anywhere until now. Server-checked here, same as
-// every other role gate in this repo (church_memberships checks elsewhere) -- proxy.ts only
-// handles the "signed in at all" edge redirect for /admin, never the real authorization decision.
-export default async function AdminLessonRequestsPage() {
+export default async function AdminTestimoniesPage() {
   const supabase = await createClient();
 
   let userId: string | null = null;
@@ -44,25 +40,25 @@ export default async function AdminLessonRequestsPage() {
     );
   }
 
-  let requests: Awaited<ReturnType<typeof getPendingPublicLessonRequests>> = [];
+  let testimonies: Awaited<ReturnType<typeof getPendingPublicTestimonies>> = [];
   let loadError = "";
   try {
-    requests = await getPendingPublicLessonRequests(supabase);
+    testimonies = await getPendingPublicTestimonies(supabase);
   } catch (err) {
-    console.error("[AdminLessonRequestsPage] Failed to load public lesson requests:", err);
-    loadError = "We couldn't load public lesson requests right now. Please try again shortly.";
+    console.error("[AdminTestimoniesPage] Failed to load public testimonies:", err);
+    loadError = "We couldn't load public testimonies right now. Please try again shortly.";
   }
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lesson Request Moderation</h1>
-        <Link href="/admin/testimonies" className="text-xs text-accent-blue-light hover:underline">
-          Testimony Moderation →
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Testimony Moderation</h1>
+        <Link href="/admin/lesson-requests" className="text-xs text-accent-blue-light hover:underline">
+          Lesson Request Moderation →
         </Link>
       </div>
-      <p className="text-muted text-sm mb-6">Public, platform-wide lesson requests awaiting review before anyone else can see them.</p>
-      {loadError ? <ErrorState message={loadError} /> : <PublicLessonRequestsList requests={requests} />}
+      <p className="text-muted text-sm mb-6">Public testimonies already approved by their church, awaiting Kingdom Scroll approval.</p>
+      {loadError ? <ErrorState message={loadError} /> : <PublicTestimoniesList testimonies={testimonies} />}
     </div>
   );
 }
