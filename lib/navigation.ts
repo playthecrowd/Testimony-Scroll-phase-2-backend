@@ -25,7 +25,7 @@ export interface AppNavLink {
 }
 
 export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/my-journey", label: "My Journey", icon: Map },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
@@ -37,7 +37,7 @@ export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
 
 export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+  { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },

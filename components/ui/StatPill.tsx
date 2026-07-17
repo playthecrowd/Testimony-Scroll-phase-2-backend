@@ -6,14 +6,16 @@ export function StatPill({
   value,
   label,
   trend,
+  href,
 }: {
   icon: LucideIcon;
   value: string | number;
   label: string;
   trend?: string;
+  href?: string;
 }) {
-  return (
-    <div className="qk-card px-4 py-3.5 flex items-center gap-3">
+  const content = (
+    <>
       <div className="w-10 h-10 rounded-lg bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center text-accent-blue-light shrink-0">
         <Icon size={18} />
       </div>
@@ -22,8 +24,18 @@ export function StatPill({
         <p className="text-xs text-muted mt-1 truncate">{label}</p>
         {trend && <p className="text-[11px] text-accent-blue-light mt-0.5">{trend}</p>}
       </div>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="qk-card px-4 py-3.5 flex items-center gap-3 hover:border-accent-blue-light/50 transition-colors">
+        {content}
+      </Link>
+    );
+  }
+
+  return <div className="qk-card px-4 py-3.5 flex items-center gap-3">{content}</div>;
 }
 
 export function SectionCard({

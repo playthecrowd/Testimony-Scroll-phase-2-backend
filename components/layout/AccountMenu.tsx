@@ -47,7 +47,7 @@ export function AccountMenu() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5"
           >
-            <Shield size={15} /> {session.accountType === "host" ? "Host Dashboard" : "Dashboard"}
+            <Shield size={15} /> {session.accountType === "host" ? "Host Dashboard" : "My Dashboard"}
           </Link>
 
           <div className="my-2 border-t border-border-subtle" />

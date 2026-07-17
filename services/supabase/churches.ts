@@ -62,3 +62,17 @@ export async function getMyHostChurches(supabase: SupabaseClient): Promise<Publi
     .filter((c): c is NonNullable<typeof c> => !!c)
     .map(mapChurch);
 }
+
+// Real, live count of every church_memberships row for a church (any role) -- churches.member_count
+// is a static seed/demo column, never updated as people actually join, so it can't be trusted for
+// the Host Dashboard header. RLS on church_memberships only lets this count the caller's own rows
+// unless the caller is that church's manager or a platform admin (private.is_church_manager), which
+// is exactly who is allowed to call this.
+export async function getChurchMemberCount(supabase: SupabaseClient, churchId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("church_memberships")
+    .select("id", { count: "exact", head: true })
+    .eq("church_id", churchId);
+  if (error) throw error;
+  return count ?? 0;
+}
