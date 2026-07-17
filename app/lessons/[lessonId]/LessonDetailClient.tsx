@@ -16,7 +16,6 @@ import {
   Users2,
   Pencil,
 } from "lucide-react";
-import { getStudyQuestionsForLesson } from "@/data/questions";
 import { useSession } from "@/context/SessionContext";
 import { getJourneyForLesson } from "@/services/supabase/journeys";
 import { useAuthGuard } from "@/components/ui/useAuthGuard";
@@ -154,7 +153,10 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   }, [ready, session, lesson.id]);
 
   const selectedHost = selectedHostOverride ?? lesson.hosts[0]?.id ?? null;
-  const questions = getStudyQuestionsForLesson(lesson.id);
+  // Real, per-lesson questions as of Phase 3 (docs/PHASE3_AUDIT.md) -- previously this read from
+  // data/questions.ts, a static mock catalog disconnected from real lessons. Listing them here is
+  // as far as Phase 3 goes; required-response/completion tracking is Phase 4's job.
+  const questions = lesson.questions;
   const activeHost = lesson.hosts.find((h) => h.id === selectedHost) ?? lesson.hosts[0];
 
   const notesMedia = lesson.media.filter((m) => m.mediaType === "notes");
@@ -506,6 +508,29 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {lesson.experiences.length > 0 && (
+            <div className="qk-card p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-2">Connected Experiences</h3>
+              <div className="space-y-2.5">
+                {lesson.experiences.map((le) => (
+                  <div key={le.id} className="flex items-center gap-2.5">
+                    <LessonThumbnail
+                      src={le.experience.previewImageUrl}
+                      alt=""
+                      aspect="square"
+                      rounded="rounded-lg"
+                      className="w-9 h-9 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{le.experience.name}</p>
+                      {le.relationshipNote && <p className="text-[11px] text-muted truncate">{le.relationshipNote}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </aside>

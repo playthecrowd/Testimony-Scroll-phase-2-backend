@@ -395,6 +395,27 @@ export interface PublishedLesson {
   media: LessonMedia[];
   hosts: PublishedLessonHost[];
   ministries: Ministry[];
+  questions: LessonQuestion[];
+  experiences: LessonExperienceLink[];
+}
+
+export interface LessonQuestion {
+  id: string;
+  question: string;
+  sortOrder: number;
+}
+
+export interface Experience {
+  id: string;
+  name: string;
+  description: string | null;
+  previewImageUrl: string | null;
+}
+
+export interface LessonExperienceLink {
+  id: string;
+  relationshipNote: string | null;
+  experience: Experience;
 }
 
 // Supabase-backed member journey progress (public.lesson_journeys / public.lesson_journey_items,

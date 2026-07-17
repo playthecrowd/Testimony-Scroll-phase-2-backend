@@ -7,6 +7,8 @@ import { Save, Send, X, Eye, EyeOff, CheckCircle2, AlertTriangle, Tag as TagIcon
 import { createClient } from "@/lib/supabase/client";
 import { getLessonBySlug } from "@/services/supabase/lessons";
 import { buildThumbnailPath, uploadLessonThumbnail, deleteLessonThumbnailByUrl } from "@/services/supabase/lessonThumbnails";
+import { getExperiences, replaceLessonExperiences } from "@/services/supabase/experiences";
+import { replaceLessonQuestions } from "@/services/supabase/questions";
 import { validateRequiredLessonFields, isValidMediaUrl } from "@/lib/lessonForm";
 import { LessonEditAction, LessonStatus } from "@/lib/lessonStatus";
 import { updateLessonExperience } from "./actions";
@@ -14,7 +16,9 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Field } from "@/components/ui/FormField";
 import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
 import { MediaItemsEditor, MediaItemFormRow } from "@/components/lessons/MediaItemsEditor";
-import { PublishedLesson } from "@/types";
+import { QuestionsEditor } from "@/components/lessons/QuestionsEditor";
+import { ExperienceConnectionSelector, ExperienceSelection } from "@/components/lessons/ExperienceConnectionSelector";
+import { PublishedLesson, Experience } from "@/types";
 
 const lessonTypes = ["sermon", "bible-study", "youth", "devotional", "series"] as const;
 
@@ -59,6 +63,28 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
   const [mediaItems, setMediaItems] = useState<MediaItemFormRow[]>(() => mediaRowsFromLesson(initialLesson));
   const existingMediaIdsRef = useRef(initialLesson.media.map((m) => m.id));
 
+  const [questions, setQuestions] = useState<string[]>(() => initialLesson.questions.map((q) => q.question));
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [experienceSelections, setExperienceSelections] = useState<ExperienceSelection[]>(() =>
+    initialLesson.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const catalog = await getExperiences(supabase);
+        if (!cancelled) setExperiences(catalog);
+      } catch {
+        if (!cancelled) setExperiences([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(initialLesson.featuredImageUrl);
   const [thumbnailAlt, setThumbnailAlt] = useState(initialLesson.featuredImageAlt ?? "");
@@ -99,6 +125,8 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     thumbnailFile,
     thumbnailAlt,
     removeExistingThumbnail,
+    questions,
+    experienceSelections,
   ]);
 
   // Covers tab close / refresh / typed-URL navigation. In-app link clicks (sidebar, top nav) are
@@ -262,6 +290,23 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       await deleteLessonThumbnailByUrl(supabase, lesson.featuredImageUrl);
     }
 
+    // Best-effort, same as the create wizard: the lesson's core fields are already confirmed
+    // saved above, so a failure here must not look like the whole save failed.
+    try {
+      await replaceLessonQuestions(supabase, lesson.id, questions);
+    } catch (err) {
+      console.error("[EditExperienceForm] Failed to save questions:", err);
+    }
+    try {
+      await replaceLessonExperiences(
+        supabase,
+        lesson.id,
+        experienceSelections.map((s) => ({ experienceId: s.experienceId, relationshipNote: s.relationshipNote || null }))
+      );
+    } catch (err) {
+      console.error("[EditExperienceForm] Failed to save experience connections:", err);
+    }
+
     // Re-fetch the saved lesson and reset every field from it. This is what keeps a second save
     // in the same session correct (new media rows now have real ids instead of null, so they're
     // updated rather than re-inserted as duplicates) rather than trying to hand-correlate
@@ -289,6 +334,10 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setXpReward(fresh.xpReward != null ? String(fresh.xpReward) : "");
       setMediaItems(mediaRowsFromLesson(fresh));
       existingMediaIdsRef.current = fresh.media.map((m) => m.id);
+      setQuestions(fresh.questions.map((q) => q.question));
+      setExperienceSelections(
+        fresh.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
+      );
       setThumbnailFile(null);
       setThumbnailPreviewUrl(fresh.featuredImageUrl);
       setThumbnailAlt(fresh.featuredImageAlt ?? "");
@@ -460,6 +509,21 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
           <div>
             <span className="block text-xs font-medium text-muted mb-1.5">Lesson Media</span>
             <MediaItemsEditor items={mediaItems} onChange={setMediaItems} disabled={submitting} />
+          </div>
+
+          <div>
+            <span className="block text-xs font-medium text-muted mb-1.5">Questions</span>
+            <QuestionsEditor questions={questions} onChange={setQuestions} disabled={submitting} />
+          </div>
+
+          <div>
+            <span className="block text-xs font-medium text-muted mb-1.5">Experience Connection</span>
+            <ExperienceConnectionSelector
+              experiences={experiences}
+              selections={experienceSelections}
+              onChange={setExperienceSelections}
+              disabled={submitting}
+            />
           </div>
 
           {error && (

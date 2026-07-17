@@ -28,16 +28,3 @@ export function checkThumbnailAspectRatio(width: number, height: number): string
   }
   return null;
 }
-
-// Strips anything that isn't safe in a storage path, keeps the extension, and caps length so a
-// pathological filename can't blow up the {churchId}/{lessonId}/{name} object key.
-export function sanitizeFileName(name: string): string {
-  const dotIndex = name.lastIndexOf(".");
-  const ext = dotIndex > -1 ? name.slice(dotIndex).toLowerCase().replace(/[^a-z0-9.]/g, "") : "";
-  const base = (dotIndex > -1 ? name.slice(0, dotIndex) : name)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  return `${base || "thumbnail"}${ext}`;
-}

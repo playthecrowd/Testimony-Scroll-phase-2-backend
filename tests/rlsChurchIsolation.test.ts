@@ -25,18 +25,29 @@ function readAllMigrations(): string {
 
 const sql = readAllMigrations();
 
-// One chunk per `create policy` statement, so each check only ever looks at that policy's own
-// USING/WITH CHECK clause -- never a different, unrelated policy later in the file.
-const policyChunks = sql.split(/(?=create policy)/gi).filter((c) => c.trim().toLowerCase().startsWith("create policy"));
+// One chunk per `create policy` statement, truncated at that statement's own terminating
+// semicolon -- so each check only ever looks at that one policy's USING/WITH CHECK clause, never
+// bleeding into whatever unrelated table/grant/comment happens to follow it in the file before
+// the next `create policy` keyword appears (a table definition sitting between two policies would
+// otherwise get folded into the first policy's chunk and could false-match its table name).
+const policyChunks = sql
+  .split(/(?=create policy)/gi)
+  .filter((c) => c.trim().toLowerCase().startsWith("create policy"))
+  .map((c) => {
+    const semiIdx = c.indexOf(";");
+    return semiIdx === -1 ? c : c.slice(0, semiIdx + 1);
+  });
 
 function policiesOn(table: string): string[] {
   const re = new RegExp(`on public\\.${table}\\b`, "i");
   return policyChunks.filter((c) => re.test(c));
 }
 
-// Every table that stores per-church data. speakers/ministries are deliberately excluded: they're
-// public lookup data by design, not a leak (see docs/PHASE1_AUDIT.md section 3). church_invites
-// is Phase 2 (docs/PHASE2_AUDIT.md) -- per-email invitations, manager-only by design.
+// Every table that stores per-church data. speakers/ministries/experiences are deliberately
+// excluded: they're public lookup data by design, not a leak (see docs/PHASE1_AUDIT.md section 3,
+// docs/PHASE3_AUDIT.md section 3c). church_invites is Phase 2 (docs/PHASE2_AUDIT.md) -- per-email
+// invitations, manager-only by design. lesson_questions/lesson_experiences are Phase 3
+// (docs/PHASE3_AUDIT.md) -- follow the same published-or-managed shape as lesson_media.
 const CHURCH_SCOPED_TABLES = [
   "churches",
   "church_memberships",
@@ -45,6 +56,8 @@ const CHURCH_SCOPED_TABLES = [
   "lesson_hosts",
   "lesson_ministries",
   "church_invites",
+  "lesson_questions",
+  "lesson_experiences",
 ];
 
 test("every church-scoped table has at least one RLS policy", () => {
@@ -118,5 +131,29 @@ test("church_invites acceptance only happens through accept_church_invite, not a
   assert.ok(updatePolicies.length > 0, "Expected an UPDATE policy on church_invites");
   for (const chunk of updatePolicies) {
     assert.match(chunk, /private\.is_church_manager/, "Every UPDATE policy on church_invites must still be manager-gated");
+  }
+});
+
+// Phase 3 (docs/PHASE3_AUDIT.md section 3c): experiences is intentionally public/cross-church --
+// same shape as speakers/ministries -- so it's deliberately excluded from CHURCH_SCOPED_TABLES
+// above rather than accidentally caught by the using(true) check.
+test("experiences is intentionally public-read, with no authenticated write policy yet", () => {
+  const selectPolicies = policiesOn("experiences").filter((c) => /for select/i.test(c));
+  assert.ok(selectPolicies.length > 0, "Expected a SELECT policy on experiences");
+  assert.ok(
+    selectPolicies.some((c) => /using\s*\(\s*true\s*\)/i.test(c)),
+    "Expected experiences' SELECT policy to be public (using(true)) -- it's shared platform content, not church-owned"
+  );
+  const writePolicies = policiesOn("experiences").filter((c) => /for (insert|update|delete)/i.test(c));
+  assert.equal(writePolicies.length, 0, "experiences should have no write policy yet -- catalog management is Phase 9, not this phase");
+});
+
+test("lesson_experiences and lesson_questions support edit-time removal (update+delete), unlike lesson_ministries", () => {
+  for (const table of ["lesson_experiences", "lesson_questions"]) {
+    const deletePolicies = policiesOn(table).filter((c) => /for delete/i.test(c));
+    assert.ok(deletePolicies.length > 0, `Expected a DELETE policy on ${table}`);
+    for (const chunk of deletePolicies) {
+      assert.match(chunk, /private\.is_church_manager/, `DELETE policy on ${table} must be manager-gated`);
+    }
   }
 });

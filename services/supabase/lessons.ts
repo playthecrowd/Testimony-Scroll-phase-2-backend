@@ -1,8 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PublishedLesson } from "@/types";
 import { mapChurch } from "./churches";
+import { mapExperience } from "./experiences";
 
 const CHURCH_FIELDS = "id, name, slug, logo_url, city, region, country, member_count, description, verified";
+const EXPERIENCE_FIELDS = "id, name, description, preview_image_url";
 
 const LESSON_SELECT = `
   id, slug, title, short_description, about_text, topic, subject, ministry_category,
@@ -12,7 +14,9 @@ const LESSON_SELECT = `
   speaker:speakers(id, name, avatar_url, bio),
   media:lesson_media(id, media_type, url, content, title, sort_order),
   hosts:lesson_hosts(id, status, participant_count, schedule_label, quest_url, church:churches(${CHURCH_FIELDS})),
-  lesson_ministries(ministry:ministries(id, name))
+  lesson_ministries(ministry:ministries(id, name)),
+  questions:lesson_questions(id, question, sort_order),
+  lesson_experiences(id, relationship_note, experience:experiences(${EXPERIENCE_FIELDS}))
 `;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,7 +72,31 @@ function mapLesson(row: any): PublishedLesson {
       .filter(Boolean)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((m: any) => ({ id: m.id, name: m.name })),
+    questions: (row.questions ?? [])
+      .slice()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((q: any) => ({ id: q.id, question: q.question, sortOrder: q.sort_order ?? 0 })),
+    experiences: (row.lesson_experiences ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((le: any) => le.experience)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((le: any) => ({ id: le.id, relationshipNote: le.relationship_note, experience: mapExperience(le.experience) })),
   };
+}
+
+// Adds one lesson_media row to an already-created lesson -- used for the create wizard's deferred
+// document upload (the file can only be uploaded to Storage once the lesson has a real id, same
+// reason the thumbnail upload is a second phase after creation; see ExperienceBuilderForm).
+export async function addLessonMediaItem(
+  supabase: SupabaseClient,
+  lessonId: string,
+  mediaType: string,
+  url: string
+): Promise<void> {
+  const { error } = await supabase.from("lesson_media").insert({ lesson_id: lessonId, media_type: mediaType, url });
+  if (error) throw error;
 }
 
 export async function getPublishedLessons(supabase: SupabaseClient): Promise<PublishedLesson[]> {

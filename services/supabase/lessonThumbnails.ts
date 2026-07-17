@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sanitizeFileName } from "@/lib/lessonThumbnail";
+import { sanitizeFileName } from "@/lib/utils";
 
 const BUCKET = "lesson-thumbnails";
 
