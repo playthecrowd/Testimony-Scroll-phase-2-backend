@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 /**
  * Renders a full-bleed background image behind page content, tinted with the
  * site's navy/blue palette so it reads as part of the brand rather than a
@@ -18,10 +20,13 @@
 export function PageBackground({ src, opacity = 0.5 }: { src: string; opacity?: number }) {
   return (
     <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-      <img
+      <Image
         src={src}
         alt=""
-        className="qk-bg-image w-full h-full object-cover"
+        fill
+        sizes="100vw"
+        priority
+        className="qk-bg-image object-cover"
         style={{ "--qk-bg-target-opacity": opacity } as React.CSSProperties}
       />
       {/* Brand tint: navy/blue wash + the same radial accents used on the base background,

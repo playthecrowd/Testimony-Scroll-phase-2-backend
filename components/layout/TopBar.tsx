@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { Bell, Menu } from "lucide-react";
 import { Logo } from "./Logo";
 import { AccountMenu } from "./AccountMenu";
@@ -15,13 +14,9 @@ import { visibleTopBarLinks } from "@/lib/navigation";
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { session, ready } = useSession();
   const pathname = usePathname();
-  const [unread, setUnread] = useState(0);
+  const unread = ready && session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
   const isHost = ready && session.isLoggedIn && session.accountType === "host";
   const navLinks = visibleTopBarLinks(isHost);
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) setUnread(getUnreadCount(session.user.id));
-  }, [ready, session, pathname]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-background/85 backdrop-blur">

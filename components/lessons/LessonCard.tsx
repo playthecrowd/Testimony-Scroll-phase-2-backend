@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Play, FileText, Presentation, Headphones, Users2, Sparkles, Box } from "lucide-react";
 import { Lesson } from "@/types";
 import { getChurchById } from "@/data/churches";
@@ -59,7 +60,7 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
         <h3 className="text-sm font-semibold text-foreground leading-snug mb-1.5 line-clamp-2">{lesson.title}</h3>
         {speaker && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <img src={speaker.avatarUrl} alt="" className="w-5 h-5 rounded-full" />
+            <Image src={speaker.avatarUrl} alt="" width={20} height={20} className="rounded-full" />
             <span className="text-xs text-muted truncate">{speaker.name}</span>
           </div>
         )}

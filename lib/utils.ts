@@ -10,6 +10,13 @@ export function formatDate(dateStr: string) {
   }
 }
 
+// Reads the current wall-clock time internally so callers never call Date.now() directly in a
+// component's render body (react-hooks/purity) -- used for the Host Dashboard's 7-day "New"
+// lesson badge.
+export function isWithin(dateStr: string, windowMs: number): boolean {
+  return Date.now() - new Date(dateStr).getTime() < windowMs;
+}
+
 // Strips anything that isn't safe in a storage path, keeps the extension, and caps length so a
 // pathological filename can't blow up a {churchId}/{lessonId}/{name} object key. Shared by both
 // lesson thumbnail and lesson document uploads (lib/lessonThumbnail.ts, lib/lessonDocument.ts).

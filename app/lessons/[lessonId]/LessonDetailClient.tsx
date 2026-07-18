@@ -81,7 +81,11 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const { guard, Modal } = useAuthGuard();
   const [tab, setTab] = useState<(typeof tabs)[number]>("Overview");
   const [selectedHostOverride, setSelectedHostOverride] = useState<string | null>(null);
-  const [hasJourney, setHasJourney] = useState(false);
+  const [journeyExists, setJourneyExists] = useState(false);
+  // Gated on the live session, not just the last fetch result -- so a logout that doesn't unmount
+  // this component (session flips without a full navigation) can't leave a stale "Continue Your
+  // Journey" state visible for a now-signed-out visitor.
+  const hasJourney = ready && session.isLoggedIn && journeyExists;
 
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState("");
@@ -109,18 +113,15 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   // record is created (getOrCreateJourney's upsert on first load) -- this effect only decides
   // whether to show "Start Your Journey" or "Continue Your Journey".
   useEffect(() => {
-    if (!ready || !session.isLoggedIn) {
-      setHasJourney(false);
-      return;
-    }
+    if (!ready || !session.isLoggedIn) return;
     let cancelled = false;
     (async () => {
       try {
         const supabase = createClient();
         const journey = await getJourneyForLesson(supabase, lesson.id);
-        if (!cancelled) setHasJourney(!!journey);
+        if (!cancelled) setJourneyExists(!!journey);
       } catch {
-        if (!cancelled) setHasJourney(false);
+        if (!cancelled) setJourneyExists(false);
       }
     })();
     return () => {

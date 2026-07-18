@@ -22,11 +22,10 @@ export default function MyJourneyPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!ready) return;
-    if (!session.isLoggedIn) {
-      setLoading(false);
-      return;
-    }
+    // Anonymous visitors never reach the loading/error render below -- the
+    // `!session.isLoggedIn` guard further down returns the sign-in prompt first, so `loading`
+    // only ever matters for a logged-in fetch and doesn't need a state transition here.
+    if (!ready || !session.isLoggedIn) return;
     let cancelled = false;
     (async () => {
       setLoading(true);

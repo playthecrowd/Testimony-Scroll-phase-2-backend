@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronDown, User, LogOut, Shield } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 
@@ -24,7 +25,7 @@ export function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/5 focus-ring"
       >
-        <img src={session.user.avatarUrl} alt={session.user.fullName} className="w-8 h-8 rounded-full" />
+        <Image src={session.user.avatarUrl} alt={session.user.fullName} width={32} height={32} className="rounded-full" />
         <span className="hidden md:block text-left leading-tight">
           <span className="block text-sm font-semibold text-foreground">{session.user.fullName}</span>
           <span className="block text-[11px] text-muted">

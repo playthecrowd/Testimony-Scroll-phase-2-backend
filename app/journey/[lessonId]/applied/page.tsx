@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StageComingSoon } from "@/components/journey/StageComingSoon";
 import {
@@ -22,7 +22,7 @@ import { submitTestimony, getTestimony, approveTestimony } from "@/services/test
 import { generateCharacterAndStory } from "@/services/storyService";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { cn, formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Journey, Testimony, TestimonyIdentity, TestimonyVisibility } from "@/types";
 
 const steps = [
@@ -55,8 +55,17 @@ export default function AppliedStagePage({ params }: { params: Promise<{ lessonI
   const [permVoice, setPermVoice] = useState(true);
   const [submitted, setSubmitted] = useState<Testimony | null>(null);
 
+  // Mock/demo route (services/journeyService, localStorage-backed) -- deferred for a real
+  // Supabase-backed rebuild in a later member-journey phase, see docs/PHASE9_5_STABILIZATION.md.
+  // startedForLessonRef guards the mutating startJourney() call so React Strict Mode's dev-only
+  // double-invoke of this effect can't create two journey records for the same lesson; the
+  // queueMicrotask defers the state updates out of the effect's synchronous commit phase.
+  const startedForLessonRef = useRef<string | null>(null);
   useEffect(() => {
-    if (ready && session.isLoggedIn && lesson) {
+    if (!(ready && session.isLoggedIn && lesson)) return;
+    if (startedForLessonRef.current === lesson.id) return;
+    startedForLessonRef.current = lesson.id;
+    queueMicrotask(() => {
       let j = getJourney(session.user.id, lesson.id);
       if (!j) j = startJourney(session.user.id, lesson.id);
       setJourney(j);
@@ -64,7 +73,7 @@ export default function AppliedStagePage({ params }: { params: Promise<{ lessonI
         const t = getTestimony(j.testimonyId);
         if (t) setSubmitted(t);
       }
-    }
+    });
   }, [ready, session, lesson]);
 
   if (!lesson) return <StageComingSoon stageLabel="Applied" />;

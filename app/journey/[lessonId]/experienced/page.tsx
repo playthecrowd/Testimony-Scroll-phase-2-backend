@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, CheckCircle2, Feather, Crown, Award, FlaskConical } from "lucide-react";
 import { StageComingSoon } from "@/components/journey/StageComingSoon";
@@ -8,7 +8,6 @@ import { getLesson } from "@/services/lessonService";
 import { useSession } from "@/context/SessionContext";
 import { getJourney, startJourney, completeExperienced } from "@/services/journeyService";
 import { getUserQuestResult, simulateQuestCompletion, getLeaderboard } from "@/services/questService";
-import { getHostById } from "@/data/hosts";
 import { getUserById, demoMember } from "@/data/users";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { Button, LinkButton } from "@/components/ui/Button";
@@ -28,13 +27,22 @@ export default function ExperiencedStagePage({ params }: { params: Promise<{ les
   const [result, setResult] = useState<QuestResult | undefined>();
   const [lbTab, setLbTab] = useState<(typeof leaderboardTabs)[number]>("Global");
 
+  // Mock/demo route (services/journeyService, localStorage-backed) -- deferred for a real
+  // Supabase-backed rebuild in a later member-journey phase, see docs/PHASE9_5_STABILIZATION.md.
+  // startedForLessonRef guards the mutating startJourney() call so React Strict Mode's dev-only
+  // double-invoke of this effect can't create two journey records for the same lesson; the
+  // queueMicrotask defers the state updates out of the effect's synchronous commit phase.
+  const startedForLessonRef = useRef<string | null>(null);
   useEffect(() => {
-    if (ready && session.isLoggedIn && lesson) {
+    if (!(ready && session.isLoggedIn && lesson)) return;
+    if (startedForLessonRef.current === lesson.id) return;
+    startedForLessonRef.current = lesson.id;
+    queueMicrotask(() => {
       let j = getJourney(session.user.id, lesson.id);
       if (!j) j = startJourney(session.user.id, lesson.id);
       setJourney(j);
       setResult(getUserQuestResult(session.user.id, lesson.id));
-    }
+    });
   }, [ready, session, lesson]);
 
   if (!lesson) return <StageComingSoon stageLabel="Experienced" />;

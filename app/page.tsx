@@ -1,6 +1,6 @@
+import Image from "next/image";
 import { LinkButton } from "@/components/ui/Button";
 import { JourneyStagesBar } from "@/components/journey/JourneyStagesBar";
-import { LessonCard } from "@/components/lessons/LessonCard";
 import { SectionCard } from "@/components/ui/StatPill";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { FeaturedEventBanner } from "@/components/layout/FeaturedEventBanner";
@@ -101,8 +101,14 @@ export default function HomePage() {
         <SectionCard title="Church Archives" action="View all" actionHref="/churches" icon={Church}>
           {featuredLesson && (
             <Link href={`/lessons/${featuredLesson.slug}`} className="block group">
-              <div className="aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2">
-                <img src={featuredLesson.featuredImageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2">
+                <Image
+                  src={featuredLesson.featuredImageUrl}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw"
+                  className="object-cover group-hover:scale-105 transition-transform"
+                />
               </div>
               <p className="text-sm font-semibold text-foreground line-clamp-1">{featuredLesson.title}</p>
               <p className="text-xs text-muted">{featuredLesson.durationLabel}</p>
@@ -133,7 +139,7 @@ export default function HomePage() {
 
         <SectionCard title="3D Quest Experience" action="Enter Quest" actionHref="/lessons" icon={Box}>
           <div className="relative aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2">
-            <img src={photo("quest-preview", 500, 300)} alt="" className="w-full h-full object-cover" />
+            <Image src={photo("quest-preview", 500, 300)} alt="" fill sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw" className="object-cover" />
             <span className="absolute top-2 left-2 text-[11px] bg-black/60 text-white px-2 py-0.5 rounded-full">Level 7</span>
           </div>
           <p className="text-sm font-semibold text-foreground">The Narrow Path</p>
@@ -159,7 +165,7 @@ export default function HomePage() {
           <div className="space-y-3">
             {testimonies.map((t) => (
               <Link key={t.id} href="/kingdom-scroll" className="flex items-start gap-2 group">
-                <img src={t.thumbnailUrl} className="w-8 h-8 rounded-full object-cover shrink-0" alt="" />
+                <Image src={t.thumbnailUrl} width={32} height={32} className="rounded-full object-cover shrink-0" alt="" />
                 <div className="min-w-0">
                   <p className="text-xs text-foreground line-clamp-2 group-hover:text-accent-blue-light">{t.writtenTestimony}</p>
                   <p className="text-[10px] text-muted mt-0.5 flex items-center gap-1">

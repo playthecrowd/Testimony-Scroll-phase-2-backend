@@ -8,17 +8,12 @@ import { useSession } from "@/context/SessionContext";
 import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_MEMBER_LINKS, SIDEBAR_HOST_LINKS } from "@/lib/navigation";
-import { useEffect } from "react";
 
 export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; onCloseMobile: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const { session } = useSession();
   const pathname = usePathname();
-  const [unread, setUnread] = useState(0);
-
-  useEffect(() => {
-    if (session.isLoggedIn) setUnread(getUnreadCount(session.user.id));
-  }, [session, pathname]);
+  const unread = session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
 
   const links = session.accountType === "host" ? SIDEBAR_HOST_LINKS : SIDEBAR_MEMBER_LINKS;
 

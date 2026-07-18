@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Award, Lock } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getAllBadges, getUserBadges } from "@/services/badgeService";
 import { getLesson } from "@/services/lessonService";
-import { UserBadge } from "@/types";
 import { cn, formatDate } from "@/lib/utils";
 import { LinkButton } from "@/components/ui/Button";
 import { PageBackground } from "@/components/layout/PageBackground";
@@ -13,12 +11,8 @@ import { backgrounds } from "@/data/backgrounds";
 
 export default function BadgesPage() {
   const { session, ready } = useSession();
-  const [earned, setEarned] = useState<UserBadge[]>([]);
   const badges = getAllBadges();
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) setEarned(getUserBadges(session.user.id));
-  }, [ready, session]);
+  const earned = ready && session.isLoggedIn ? getUserBadges(session.user.id) : [];
 
   if (!ready) return null;
   if (!session.isLoggedIn) {

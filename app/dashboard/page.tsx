@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BookOpen,
   BookMarked,
@@ -31,14 +31,7 @@ import { LinkButton } from "@/components/ui/Button";
 
 export default function DashboardPage() {
   const { session, ready } = useSession();
-  const [journeys, setJourneys] = useState<Journey[]>([]);
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) {
-      setJourneys(getUserJourneys(session.user.id));
-    }
-  }, [ready, session, tick]);
+  const journeys = ready && session.isLoggedIn ? getUserJourneys(session.user.id) : [];
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
@@ -157,7 +150,7 @@ export default function DashboardPage() {
               if (!lesson) return null;
               return (
                 <Link key={j.id} href={`/lessons/${lesson.slug}`} className="flex items-center gap-2.5 group">
-                  <img src={lesson.featuredImageUrl} className="w-10 h-10 rounded-lg object-cover" alt="" />
+                  <Image src={lesson.featuredImageUrl} width={40} height={40} className="rounded-lg object-cover" alt="" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium text-foreground truncate group-hover:text-accent-blue-light">{lesson.title}</p>
                     <p className="text-[11px] text-muted">{formatDate(j.studiedAt ?? j.startedAt)}</p>
@@ -217,7 +210,13 @@ function ContinueCard({ journey }: { journey: Journey }) {
   return (
     <Link href={`/journey/${lesson.id}/${journey.stage === "captured" ? "studied" : journey.stage}`} className="block group">
       <div className="relative aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2.5">
-        <img src={lesson.featuredImageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+        <Image
+          src={lesson.featuredImageUrl}
+          alt=""
+          fill
+          sizes="(min-width: 1280px) 20vw, (min-width: 640px) 33vw, 100vw"
+          className="object-cover group-hover:scale-105 transition-transform"
+        />
         <span className="absolute top-2 left-2 text-[11px] bg-black/60 text-white px-2 py-0.5 rounded-full">In Progress</span>
       </div>
       <p className="text-sm font-semibold text-foreground">{lesson.title}</p>

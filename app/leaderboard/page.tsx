@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Crown, Trophy } from "lucide-react";
 import { getLeaderboard } from "@/services/questService";
 import { getAllLessons } from "@/services/lessonService";
@@ -18,16 +18,14 @@ export default function LeaderboardPage() {
   const [lessonFilter, setLessonFilter] = useState("all");
   const lessons = getAllLessons();
 
-  const entries = useMemo(() => {
-    let list = getLeaderboard(lessonFilter === "all" ? undefined : lessonFilter);
-    if (scope === "My Church" && ready && session.isLoggedIn) {
-      list = list.filter((e) => {
-        const u = getUserById(e.userId) ?? demoMember;
-        return u.churchId === session.user.churchId;
-      });
-    }
-    return list.slice(0, 25);
-  }, [scope, lessonFilter, ready, session]);
+  let entries = getLeaderboard(lessonFilter === "all" ? undefined : lessonFilter);
+  if (scope === "My Church" && ready && session.isLoggedIn) {
+    entries = entries.filter((e) => {
+      const u = getUserById(e.userId) ?? demoMember;
+      return u.churchId === session.user.churchId;
+    });
+  }
+  entries = entries.slice(0, 25);
 
   return (
     <div className="relative max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-8">

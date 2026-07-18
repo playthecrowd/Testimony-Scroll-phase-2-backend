@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Church, Users, Eye, EyeOff, UserPlus, LogIn, ShieldCheck, MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
@@ -93,7 +94,13 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
-        <img src={photo("auth-hero", 900, 1200)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+        <Image
+          src={photo("auth-hero", 900, 1200)}
+          alt=""
+          fill
+          sizes="50vw"
+          className="object-cover opacity-70"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
         <div className="relative">
           <Logo size="lg" />

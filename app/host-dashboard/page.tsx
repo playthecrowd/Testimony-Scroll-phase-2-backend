@@ -11,7 +11,7 @@ import { getChurchTestimonies } from "@/services/supabase/testimonies";
 import { StatPill, SectionCard } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
-import { formatDate } from "@/lib/utils";
+import { formatDate, isWithin } from "@/lib/utils";
 import { PublishedLesson } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -108,7 +108,6 @@ export default async function HostDashboardPage() {
   const publishedCount = lessons.filter((l) => l.status === "published").length;
   const draftCount = lessons.filter((l) => l.status === "draft").length;
   const recentLessons = lessons.slice(0, 8);
-  const now = Date.now();
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
@@ -211,7 +210,7 @@ export default async function HostDashboardPage() {
                   >
                     {l.status === "draft" ? "Draft" : "Published"}
                   </span>
-                  {now - new Date(l.createdAt).getTime() < NEW_LESSON_WINDOW_MS && (
+                  {isWithin(l.createdAt, NEW_LESSON_WINDOW_MS) && (
                     <span className="text-[10px] bg-accent-purple/15 text-accent-purple px-2 py-0.5 rounded-full shrink-0">New</span>
                   )}
                 </Link>
