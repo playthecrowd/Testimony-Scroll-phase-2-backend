@@ -10,13 +10,19 @@ wallet/ledger/RLS/RPC foundation (11.1), wallet workflows/credit requests/Experi
 (11.2), Points/XP/Levels/Badges/Trophies/Leaderboards (11.3), real progression UI (11.4), and final
 stabilization/QA/production-readiness (11.5) — see `docs/PHASE11_1_AUDIT.md` through
 `docs/PHASE11_5_AUDIT.md`, plus `docs/KINGDOM_ECONOMY_RELEASE_CHECKLIST.md` for the release gate.
-Migrations `0027`–`0033` are live; `0034` (a cosmetic trigger-name fix) and `0035` (a read-only
-wallet/ledger reconciliation diagnostic) are written and dry-run-verified but **intentionally not
-yet pushed**, awaiting their own separate authorization like every prior live database change.
-Phase 11.5's own audit (§20) recommends the system for production release, contingent on the
-release checklist's owner-side items (real environment/Vercel verification, smoke-test accounts,
-owner acceptance testing) rather than any known code or database defect. The Kingdom Economy &
-Progression phase (Phase 11) is functionally complete; no Phase 11.6 has been scoped.
+**Migrations `0027`–`0035` are all live** on the linked Supabase project. `0034` (a cosmetic
+trigger-name fix) and `0035` (a read-only wallet/ledger reconciliation diagnostic) were pushed on
+explicit owner authorization and re-verified live — the corrected trigger exists under its new,
+non-truncated name with no duplicate remaining, and a live run of the reconciliation diagnostic
+found zero wallet balance/ledger drift. `npx supabase db push --dry-run` reports the remote
+database up to date; no migration is pending. Phase 11.5's audit (`docs/PHASE11_5_AUDIT.md` §20)
+recommends the system for production release, contingent on the release checklist's owner-side
+items (real environment/Vercel verification, smoke-test accounts, owner acceptance testing) rather
+than any known code or database defect. The Kingdom Economy & Progression phase (Phase 11) is
+functionally complete; no Phase 11.6 has been scoped. Named, non-blocking technical debt remains
+(no progression-award reversal mechanism, `reverse_credit_transaction`'s duplicated refund logic,
+`/profile`'s remaining mock identity model, full browser owner-acceptance testing still required)
+— see `docs/PHASE11_5_AUDIT.md` §19 for the complete, current list.
 
 ## Phase 11.1 — Database, ledger, RLS, and RPC foundation
 

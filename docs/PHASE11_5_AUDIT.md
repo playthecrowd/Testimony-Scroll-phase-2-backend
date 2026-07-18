@@ -148,12 +148,13 @@ Reviewed every financial RPC individually (not sampled): `create_member_wallet`,
   diagnose_wallet_balance_drift` all confirmed to have zero EXECUTE grant to `authenticated`/`anon`
   (only `postgres`, the function owner).
 
-**Reconciliation diagnostic created** (migration `0035`): `private.diagnose_wallet_balance_drift()`
-— a read-only, `SECURITY DEFINER`, `stable` function comparing every wallet's stored
-`current_balance` against the real `sum()` of its own `credit_ledger_entries` rows, returning only
-the wallets where they disagree. Never granted to any client role — an internal ops diagnostic,
-not a client-facing feature, and exposes no mutation path whatsoever (satisfying the brief's "do
-not expose a reconciliation mutation path to clients" explicitly).
+**Reconciliation diagnostic created, pushed live, and run** (migration `0035`): `private.
+diagnose_wallet_balance_drift()` — a read-only, `SECURITY DEFINER`, `stable` function comparing
+every wallet's stored `current_balance` against the real `sum()` of its own `credit_ledger_
+entries` rows, returning only the wallets where they disagree. Never granted to any client role —
+an internal ops diagnostic, not a client-facing feature, and exposes no mutation path whatsoever
+(satisfying the brief's "do not expose a reconciliation mutation path to clients" explicitly). Run
+live after the push: **zero rows returned — no wallet drift found** (§18).
 
 ## 4. Credit request state machine
 
@@ -409,15 +410,15 @@ Every new table/view/function/trigger reviewed:
   (award rules, level thresholds) or explicitly re-validated (request status whitelist checks).
 - **Leaderboard privacy leakage**: none found (§8).
 
-**Trigger-name truncation — resolved this phase.** Migration `0034` renames the one trigger whose
+**Trigger-name truncation — resolved and live.** Migration `0034` renamed the one trigger whose
 original name exceeded Postgres's 63-byte identifier limit
 (`award_progression_on_testimony_kingdom_scroll_publication_trigg`, silently truncated at creation
 in `0033`) to a short, exact name that fits without truncation
-(`testimony_kingdom_scroll_publication_trigger`, 46 characters). This was a purely cosmetic defect
+(`testimony_kingdom_scroll_publication_trigger`, 44 characters). This was a purely cosmetic defect
 (the trigger itself was always fully functional, confirmed live in Phase 11.3's verification) — the
-rename carries no behavioral risk since renaming a trigger changes only what `pg_trigger` reports,
-never what it does. **Written and dry-run-verified; not pushed live without separate
-authorization** (§18/§20).
+rename carried no behavioral risk since renaming a trigger changes only what `pg_trigger` reports,
+never what it does. **Pushed live on explicit authorization and re-verified: exactly one trigger
+now exists under the new name, enabled, invoking the same unchanged function** (§18/§20).
 
 **Reverse-transaction duplication — left undisturbed, documented (§2).** Consolidating `reverse_
 credit_transaction`'s inline logic into `private.apply_refund` (which would require
@@ -647,11 +648,12 @@ since Phase 10.
 
 ## 18. Live database verification
 
-Performed against the linked Supabase project (`ytnftubajizhuylhmsib`), read-only:
+**First pass** (before `0034`/`0035` were pushed), performed against the linked Supabase project
+(`ytnftubajizhuylhmsib`), read-only:
 
-- `npx supabase migration list`: `0001`–`0033` all show matching local/remote entries; `0034`/
-  `0035` (this phase's two corrective migrations) correctly show an empty remote entry —
-  intentionally pending, not yet pushed (see below).
+- `npx supabase migration list`: `0001`–`0033` all showed matching local/remote entries; `0034`/
+  `0035` (this phase's two corrective migrations) correctly showed an empty remote entry —
+  intentionally pending, not yet pushed.
 - Consolidated live counts: all 10 economy/progression tables present, both leaderboard views
   present, RLS enabled on all 10 tables, 6 of 7 progression/credit triggers enabled under their
   original name, the 7th (Kingdom Scroll publication) confirmed enabled under its still-truncated
@@ -663,35 +665,66 @@ Performed against the linked Supabase project (`ytnftubajizhuylhmsib`), read-onl
   regardless of this grant.
 - No real member or church data was modified for this verification — every query was a read.
 
-**Migrations `0034` and `0035` are written and dry-run-verified but intentionally not pushed live**
-in this step — per the brief's own Step 9 instruction ("do not push it without separate explicit
-approval, report it as pending"), a corrective migration remains its own, separately-authorized
-action, consistent with every live database change since Phase 11.1.
+**Second pass — after explicit owner authorization, migrations `0034` and `0035` were pushed to
+the linked Supabase project** (the repository's only linked project, the same one every prior
+phase has used) and re-verified live:
+
+- `npx supabase migration list` post-push: all of `0001`–`0035` now show matching local/remote
+  entries. `npx supabase db push --dry-run` reports "Remote database is up to date."
+- **Trigger correction verified**: exactly one trigger now exists for the testimony Kingdom Scroll
+  publication event (`pg_trigger` query returned a single row) — named
+  `testimony_kingdom_scroll_publication_trigger` (44 characters, well under the 63-byte limit),
+  attached to `public.testimonies`, enabled (`tgenabled = 'O'`), and still invoking the exact same,
+  unchanged function (`award_progression_on_testimony_kingdom_scroll_publication`). The old
+  truncated identifier no longer exists as a separate row — `ALTER TRIGGER ... RENAME` renames a
+  trigger in place (same object, same OID, same behavior); it never creates a duplicate or leaves
+  a gap where the trigger is momentarily missing.
+- **Reconciliation diagnostic verified**: `private.diagnose_wallet_balance_drift` confirmed live —
+  `security definer`, `provolatile = 's'` (`STABLE`, i.e. read-only), `search_path=""` locked,
+  schema `private`. `information_schema.routine_privileges` shows exactly one grantee,
+  `postgres` (the function owner) — **no `authenticated` or `anon` EXECUTE grant exists**.
+- **Reconciliation result — run live, read-only**: `select * from
+  private.diagnose_wallet_balance_drift();` returned **zero rows**. Every wallet's stored
+  `current_balance` matches the real sum of its own `credit_ledger_entries` rows exactly — **no
+  drift found**, for either member or church wallets. No corrective action was needed or taken.
+- No real member or church financial/progression data was modified by this push or its
+  verification — `0034` renamed an existing trigger in place, `0035` added a new read-only
+  function, and the diagnostic itself performed only a `SELECT`.
 
 ## 19. Known limitations
 
-- **Migrations `0034`/`0035` are pending**, not live — awaiting explicit push authorization.
 - **No progression reversal mechanism exists** (§6) — a pre-existing, honestly-documented gap, not
   introduced or expected to be closed this phase.
 - **`reverse_credit_transaction`'s duplicated refund-mechanics logic** (§2/§9) — a real DRY
   violation, not a functional defect; left unconsolidated per this phase's own "no broad redesign
-  absent a real defect" instruction. Recommended for a future minor consolidation.
+  absent a real defect" instruction. Recommended for a future minor consolidation. **Not fixed.**
 - **`/profile`'s remaining mock identity/session model and the "3D Quest Experience" journey
-  stage** remain deferred (§11), with their future migration paths now explicitly documented.
+  stage** remain deferred (§11), with their future migration paths documented. **Not fixed.**
 - **No admin UI exists yet for manual badge/points/XP adjustment** (named since Phase 11.3,
-  unchanged).
+  unchanged). **Not fixed.**
 - **No live browser/concurrent-connection test harness exists in this sandbox** (§12/§13) — the
-  same standing limitation as every real-data QA section since Phase 1.
+  same standing limitation as every real-data QA section since Phase 1. Full browser-based owner
+  acceptance testing is still required before release.
 - **Experience completion has no member-facing reward feedback** (named since Phase 11.4,
   unchanged) — reviewed again this phase and confirmed still safe (shows nothing, never
-  misleading), not built out.
+  misleading). **Not built out.**
+
+None of the above are described as fixed — they remain exactly as documented, since none of them
+was actually addressed by this verification pass (which was scoped only to `0034`/`0035`).
 
 ## 20. Release recommendation
 
+**Migrations `0034` and `0035` are now live, explicitly authorized and applied.** All Phase 11.5
+audit findings (§3–§17) remain valid and unchanged, since neither migration altered any of the
+systems those sections reviewed — `0034` only renamed a trigger, `0035` only added a new read-only
+diagnostic. The live reconciliation run (§18) found zero wallet drift, providing direct, current
+evidence (not just structural/code-level confidence) that the financial system's ledger-backed
+design is holding correctly in practice.
+
 **Recommend approval for production release, contingent on**:
 
-1. Explicit authorization to push migrations `0034` (trigger rename) and `0035` (reconciliation
-   diagnostic) — both are additive/cosmetic, zero behavioral risk, dry-run-verified.
+1. ~~Explicit authorization to push migrations `0034`/`0035`~~ — **done**; both are live and
+   verified.
 2. Owner review of `docs/KINGDOM_ECONOMY_RELEASE_CHECKLIST.md`, since several of its items
    (smoke-test accounts, owner acceptance testing, environment variables, Vercel configuration)
    require information or access this sandbox does not have.
