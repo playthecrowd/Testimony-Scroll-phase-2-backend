@@ -2,8 +2,17 @@
 
 Companion to `docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md` (read that first — this document assumes
 its terminology, schema, RLS design, and decision log, including the ten owner decisions of
-2026-07-18). Ten small, independently reviewable stages. **No stage here has been started or
-implemented** — this is planning only; Phase 10.1 begins only when explicitly instructed.
+2026-07-18). Ten small, independently reviewable stages.
+
+> **Phase 10.1 complete (2026-07-18)** — see `docs/PHASE10_1_AUDIT.md` for the full implementation
+> record. Per this stage's explicit instructions, its scope was widened beyond this plan's original
+> "schema only, no RPC functions yet" boundary to include all four registration/attendance RPCs
+> (`register_for_experience_occurrence`, `cancel_experience_registration`,
+> `promote_waitlist_registration`, `record_experience_walk_in`) — originally staged across 10.1,
+> 10.6, and 10.7 below. **10.6 and 10.7's own RPC-creation steps are now already done** by the time
+> those stages are reached; treat their "Migrations"/RPC bullets below as already satisfied and
+> focus those stages on the UI/service-layer work they still own. Stages 10.2–10.5, 10.8–10.10
+> remain not started, exactly as originally planned.
 
 Each stage should, when actually executed, follow this repo's established phase discipline: run
 `npm run lint` / `npx tsc --noEmit` / `npm run build` / `npm test` before considering the stage
