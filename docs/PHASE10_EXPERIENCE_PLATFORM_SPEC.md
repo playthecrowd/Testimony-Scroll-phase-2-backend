@@ -1,8 +1,18 @@
 # Phase 10A — Experience Platform: Repository Discovery, Product Specification & Technical Design
 
-Date: 2026-07-18. This is a **design document only**. No migrations, services, components, or
-routes were created in Phase 10A. All recommendations below are proposals for review; nothing is
-final until approved and implemented stage-by-stage per `docs/PHASE10_IMPLEMENTATION_PLAN.md`.
+Date: 2026-07-18, updated 2026-07-18 with owner-approved product decisions. This is a **design
+document only**. No migrations, services, components, or routes were created in Phase 10A. Every
+recommendation in this document has now been **reviewed and approved by the product owner**
+(decisions recorded inline throughout and consolidated in the Decision Log). Implementation begins
+in Phase 10.1 per `docs/PHASE10_IMPLEMENTATION_PLAN.md`.
+
+> **Owner decisions, 2026-07-18** — this revision incorporates ten explicit owner decisions
+> covering terminology, roles, church selection, discovery scope, walk-in attendance, a future
+> Experience Templates concept, recurrence, capacity/waitlist, attendance/completion, and
+> archival. Each is folded into its relevant section below and cross-referenced from the Decision
+> Log. Nothing in this revision changes the underlying schema design from the original Phase 10A
+> draft except one addition: a `registration_source` column and a third RPC
+> (`record_experience_walk_in`) to satisfy the refined walk-in-attendance decision (§19).
 
 ## 1. Executive summary
 
@@ -31,13 +41,14 @@ Complete advances `current_stage` only to `experienced`, never further" — i.e.
 was already designed assuming something would eventually *complete* that stage. Phase 10's
 Experience system is very likely exactly that something.
 
-The recommendation (detailed in §21/decision log) is: keep "Experience" as the **product-facing**
-term throughout (matches this phase's brief), but give every new **database table**, **TypeScript
-type**, and **service module** a distinguishing prefix (`church_experience*` / `ChurchExperience*`)
-so nothing collides with the existing catalog — mirroring this codebase's own established
-"Published" prefix convention (used repeatedly in Phases 6–7 for the same reason). The
-`experience-builder` (lesson-creation) naming collision is a **product/UX decision**, not a code
-one — flagged for the owner in §29/§30, not resolved unilaterally here.
+**Owner decision (1 of 10, 2026-07-18):** approved exactly as recommended. User-facing name stays
+"Experience"; every new database table, TypeScript type, and service module is prefixed
+`church_experience*`/`ChurchExperience*`, mirroring this codebase's established "Published" prefix
+convention (Phases 6–7). The existing, unrelated `public.experiences` catalog table is untouched.
+`/experience-builder` (lesson creation) is **not renamed in Phase 10** and remains unchanged unless
+a separate, later UX-cleanup phase is explicitly approved. The product-facing naming collision
+(a Host will see both "Build Experience" in the nav and a new "Experiences" section) is recorded
+as **known, accepted technical debt** — not an open question — see §2/§30.
 
 ## 2. Repository audit — Experience-adjacent code
 
@@ -58,7 +69,7 @@ registration, capacity, waitlist, or check-in concept exists anywhere in this re
 | `lib/lessonAuth.ts`'s `hasChurchEditAccess(role)` | UX-layer mirror of `is_church_manager` | Reusable pattern for server actions' fast-fail check (RLS is still the real gate). |
 | `lib/adminAuth.ts` (`requirePlatformAdmin`, `getPlatformAdminGate`) | Shared admin gate | Reusable if/when a platform-wide Experience moderation surface is ever needed (not in Phase 10's scope). |
 | `lib/lessonThumbnail.ts`, `lib/lessonDocument.ts`, `lib/utils.ts`'s `sanitizeFileName` | Storage upload pipeline | Directly reusable pattern for an Experience cover-image upload (same shape: sanitize filename, church/entity-scoped Storage path, `next.config.ts`'s already-whitelisted Supabase Storage `remotePattern`). |
-| `getMyHostChurches()` (`services/supabase/churches.ts`) + the `churches[0]` convention | Every `/host-dashboard/*` page, `/experience-builder`, `/events/host` | The established (imperfect, acknowledged) single-church-selection pattern — see §4/§29 for how Phase 10 should follow it without making the multi-church problem worse. |
+| `getMyHostChurches()` (`services/supabase/churches.ts`) + the `churches[0]` convention | Every `/host-dashboard/*` page, `/experience-builder`, `/events/host` | The established (imperfect, acknowledged) single-church-selection pattern — see the call-site table below and §30 for how Phase 10 follows it without making the multi-church problem worse. |
 | `tests/rlsChurchIsolation.test.ts` | Static per-migration RLS-policy-text parser, 79 tests | Reusable test harness shape — new Experience tables should get equivalent entries, not a new test file pattern. |
 
 ### What is mock/demo-only (no real backing)
@@ -73,8 +84,10 @@ registration, capacity, waitlist, or check-in concept exists anywhere in this re
 - **`public.ministries`** (migration `0001`) has no owner/leader concept whatsoever — just
   `id, church_id, name`. There is no "ministry leader" role anywhere in the schema or app.
   `church_memberships.role` is a hard `CHECK (role in ('member', 'host', 'admin'))` — three values,
-  nothing else. A "ministry leader" role does not exist today and is out of scope to invent in
-  Phase 10 (§4).
+  nothing else. **Owner decision (2 of 10, 2026-07-18): confirmed** — no new ministry-leader role
+  is added in Phase 10; hosts/admins manage Experiences for their authorized church, same as every
+  other church-owned content type. `church_experiences.ministry_id` (§10) reuses the *existing*
+  `ministries` table exactly as-is (`on delete set null`) — no ministries-system change of any kind.
 - **No timezone field exists anywhere in the schema** — not on `churches`, not on `lessons.date`
   (a bare `date`, no time-of-day at all), not on `events.starts_at/ends_at` (`timestamptz`, UTC
   under the hood, but no IANA zone name stored to know how to *display* it correctly for
@@ -83,9 +96,32 @@ registration, capacity, waitlist, or check-in concept exists anywhere in this re
 - **Multi-church hosts are already a known, documented gap** (`docs/PHASE1_AUDIT.md`): every
   `/host-dashboard/*` page (and `/experience-builder`, `/events/host`) calls `getMyHostChurches()`
   (which correctly returns *every* church a host manages) and then just takes `churches[0]`.
-  Fixing this globally is out of scope for Phase 10, but Phase 10's new code must not add a
-  *fourth* independent occurrence of this same shortcut in a way that makes a future fix harder
-  (§4, §29).
+  **Owner decision (3 of 10, 2026-07-18): confirmed** — Phase 10 may inherit this same UI
+  convention at the page-entry-point layer, but every new Experience service/RPC function must take
+  an explicit `church_id` parameter and independently validate the caller is authorized for it
+  (via `private.is_church_manager(church_id)`), never assume "the current host's only church"
+  internally. Multi-church *selection UI* is explicitly not built in Phase 10. Every existing
+  `churches[0]` call site is enumerated below, as required documentation of inherited technical
+  debt — Phase 10 does not add a new one beyond the page-layer pattern already used by every one
+  of these:
+
+  | File | Context |
+  |---|---|
+  | `app/host-dashboard/page.tsx` | Host Dashboard home — church stats/lesson list |
+  | `app/host-dashboard/church-profile/page.tsx` | Church profile edit form |
+  | `app/host-dashboard/members/page.tsx` | Member roster/invites |
+  | `app/host-dashboard/lesson-requests/page.tsx` | Lesson request review queue |
+  | `app/host-dashboard/testimonies/page.tsx` | Testimony review queue |
+  | `app/experience-builder/page.tsx` | Lesson-builder list (unrelated "Experience," see §4) |
+  | `app/experience-builder/ExperienceBuilderForm.tsx` | Lesson create/edit form's church context |
+  | `app/lessons/[lessonId]/LessonDetailClient.tsx` | "Can this viewer manage this lesson's thumbnail" check |
+  | `app/events/host/page.tsx` | Host-an-Event request form's church context |
+  | `app/request-lesson/RequestLessonForm.tsx` | Church picker defaults to `churches[0]` (member-facing, not host-facing, but same shortcut) |
+
+  Phase 10's new host pages (`/host-dashboard/experiences/*`) will follow this exact same
+  page-layer pattern — an eleventh, not a fourth, occurrence of it — while keeping every
+  underlying service/RPC function `church_id`-explicit so a future multi-church switcher changes
+  only these page-entry-points, never the Experience data layer itself.
 
 ### Naming/schema conflicts to actively avoid
 
@@ -95,7 +131,7 @@ registration, capacity, waitlist, or check-in concept exists anywhere in this re
    already exists in `types/index.ts` and means the catalog-tag shape.
 3. Do not add a file at `services/supabase/experiences.ts` — already taken.
 4. Do not confuse `/experience-builder` (lesson creation) with the new Experience feature's routes
-   in either code or user-facing copy without a clear disambiguating label (§6, §29).
+   in either code or user-facing copy without a clear disambiguating label (§4, §30).
 
 ### Technical debt noted, not fixed here (out of scope for Phase 10A)
 
@@ -118,7 +154,7 @@ that members **register** for, **attend**, and **complete**.
 | Occurrence | One scheduled instance of an Experience | No collision. |
 | Registration | A member's request to attend an occurrence | No collision. |
 | Experience catalog / catalog tag | The **existing**, unrelated `public.experiences` table | Never call this an "Experience" without the word "catalog" in this document, to keep the two apart. |
-| Build Experience / Experience Builder | The **existing** lesson-creation tool and its nav label | Flagged as an unresolved product-naming question (§29), not renamed in Phase 10. |
+| Build Experience / Experience Builder | The **existing** lesson-creation tool and its nav label | **Owner decision (1 of 10): not renamed in Phase 10**, left exactly as-is unless a separate future UX-cleanup phase is approved. The resulting product-facing ambiguity is recorded as accepted technical debt (§2, §30). |
 
 ## 5. User roles (as they exist today — no new role added)
 
@@ -133,8 +169,8 @@ CHECK (role in ('member','host','admin'))`:
    either) — Phase 10 follows the same convention; there is no finer-grained host-vs-admin split
    anywhere in this codebase to inherit.
 4. **Ministry leader** — **does not exist**. No role, no table linking a profile to a ministry as
-   its leader. Explicitly out of scope to invent in Phase 10 (§29) — ministry-tagging an Experience
-   is available to any church host/admin, same as ministry-tagging a lesson today.
+   its leader. **Owner decision (2 of 10, 2026-07-18): confirmed out of scope** — ministry-tagging
+   an Experience is available to any church host/admin, same as ministry-tagging a lesson today.
 5. **Member** — `church_memberships.role = 'member'`, or no membership row at all (a signed-in
    user with no church).
 6. **Signed-out visitor** — no session.
@@ -169,10 +205,10 @@ Reusable, church-owned. See proposed table `church_experiences`, §10.
 
 ### B. Experience occurrence
 
-A scheduled instance. **Recommendation: separate objects, not one merged table** (see decision
-log §30 — this mirrors the existing `lessons` vs. `lesson_hosts` split and `events`' own
-simplicity is exactly *because* it never needed recurring/multiple scheduled instances of the same
-definition; Phase 10 explicitly does).
+A scheduled instance. **Recommendation: separate objects, not one merged table**, approved by the
+owner as-is (see the Decision Log, entry 1) — this mirrors the existing `lessons` vs.
+`lesson_hosts` split, and `events`' own simplicity is exactly *because* it never needed
+recurring/multiple scheduled instances of the same definition; Phase 10 explicitly does.
 
 ### C. Lesson relationships
 
@@ -188,6 +224,13 @@ exactly as suggested in the brief: `pending | confirmed | waitlisted | cancelled
 attendance `not_recorded | attended | absent | excused`; completion `not_started | completed` —
 **`disputed`/`revoked` deliberately omitted from v1** (adding a CHECK-constraint value later is a
 one-line additive migration; no reason to carry unused states now — "do not overcomplicate v1").
+
+**Owner decision (5 of 10, 2026-07-18) — walk-in attendance refinement:** every registration row
+also carries a `registration_source` column (`'self' | 'host_walk_in'`, default `'self'`) so a
+host-recorded walk-in is distinguishable from a member's own advance registration in reporting and
+in the registrant list UI, without inventing a second table or a separate "attendee" concept. See
+§19 for the full walk-in creation flow (a third `SECURITY DEFINER` RPC, church-scoped and
+membership-validated, never anonymous).
 
 ### E. Journey connection
 
@@ -220,18 +263,28 @@ formal check-in).
 registrations start at `pending` and a host must move them to `confirmed`/`rejected`; if false,
 registrations that pass capacity go straight to `confirmed` (or `waitlisted` if full).
 
-## 8. Signed-out workflow
+## 8. Signed-out workflow and discovery scope
 
-**Recommendation: signed-out visitors see nothing** — no public Experience discovery in Phase 10.
-Reasoning: `visibility = 'public'` is explicitly marked "future-compatible" in the brief itself,
-`church_only`/`invited_only` are the only two visibilities Phase 10 actually needs to serve real
-church members, and there is no precedent anywhere in this app for anonymous-visible,
-per-church-scoped content that isn't already fully public by definition (churches/lessons list are
-public because *all* published lessons are meant to be discoverable; Experiences are explicitly
-church-internal discipleship activities, not marketing content). `/experiences` for a signed-out
-visitor should behave like `/dashboard`/`/my-journey` do today: redirect to `/login` (or show a
-sign-in prompt), not a 404 and not a public list. `visibility = 'public'` and cross-church
-discovery are explicitly future work (§21).
+**Owner decision (4 of 10, 2026-07-18): confirmed church-scoped only.** Members may discover
+published Experiences and view scheduled, non-cancelled occurrences **only** for a church they
+are an authorized member of. Explicitly **not implemented in Phase 10**:
+
+- Public (anonymous) discovery.
+- Cross-church discovery.
+- Anonymous browsing of any kind.
+- A global Experience search spanning multiple churches.
+- Any shared "Experience marketplace" concept.
+
+Signed-out visitors receive the **existing** sign-in/access-required experience — `/experiences`
+behaves like `/dashboard`/`/my-journey` do today: redirect to `/login` (or show a sign-in prompt),
+never a public list, never a 404. Reasoning (unchanged from the original recommendation):
+`visibility = 'public'` is explicitly marked "future-compatible" in the brief itself,
+`church_only`/`invited_only` are the only two visibilities Phase 10 actually needs, and there is no
+precedent anywhere in this app for anonymous-visible, per-church-scoped content that isn't already
+fully public by definition (churches/lessons are public because *all* published lessons are meant
+to be discoverable; Experiences are explicitly church-internal discipleship activities, not
+marketing content). `visibility = 'public'` and any cross-church discovery remain schema-ready but
+unused, explicitly future work (§21, §26).
 
 ## 9. Timezone design
 
@@ -373,6 +426,10 @@ create table public.church_experience_registrations (
   occurrence_id uuid not null references public.church_experience_occurrences (id) on delete cascade,
   profile_id uuid not null references public.profiles (id) on delete cascade,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'waitlisted', 'cancelled', 'rejected')),
+  -- 'host_walk_in' rows are created by record_experience_walk_in() (SS19), never by the member
+  -- themselves -- distinguishes advance self-registration from a host recording someone who
+  -- showed up unregistered. Owner decision 5 of 10, 2026-07-18.
+  registration_source text not null default 'self' check (registration_source in ('self', 'host_walk_in')),
   waitlist_position integer,
   attendance_status text not null default 'not_recorded' check (attendance_status in ('not_recorded', 'attended', 'absent', 'excused')),
   completion_status text not null default 'not_started' check (completion_status in ('not_started', 'completed')),
@@ -517,10 +574,11 @@ create policy "church_experience_registrations_select_managed"
     )
   );
 
--- Direct INSERT is NOT granted -- registration/cancellation go through SECURITY DEFINER RPCs
--- (§14, §18) so capacity/waitlist logic is atomic and can't be bypassed by a raw insert. Hosts'
--- write access (approve/reject/attendance/completion) is a normal UPDATE policy, since those
--- actions don't have the same race condition.
+-- Direct INSERT is NOT granted -- registration/cancellation/walk-in creation all go through three
+-- SECURITY DEFINER RPCs (§19) so capacity/waitlist/membership-authorization logic is atomic and
+-- can't be bypassed by a raw insert (including the host-recorded walk-in path, owner decision 5).
+-- Hosts' write access (approve/reject/attendance/completion) is a normal UPDATE policy, since
+-- those actions don't have the same race condition.
 create policy "church_experience_registrations_update_managed"
   on public.church_experience_registrations for update
   to authenticated
@@ -615,7 +673,7 @@ for a one-click action adds friction with no benefit.
 | `/host-dashboard/experiences/[experienceId]/attendance` | Attendance/completion recording for a selected occurrence | Host/admin | Registrant table with attendance/completion toggles + bulk action. |
 
 Every host page follows the existing `getMyHostChurches()` → `churches[0]` convention at the page
-boundary (§4/§29) — **not** a new pattern — while every service function underneath takes an
+boundary (§2, §30) — **not** a new pattern — while every service function underneath takes an
 explicit `churchId`/`experienceId` parameter, never assuming "the current host's only church," so
 a future multi-church switcher only has to change the page-level selection, not any Experience
 service function's signature.
@@ -637,9 +695,10 @@ recurrence merely because it is technically possible").
 ## 19. Capacity and waitlist rules
 
 **Capacity enforcement must happen server-side inside a transaction, never client-side and never
-as a naive check-then-insert.** Recommendation: two `SECURITY DEFINER` RPC functions, matching
-this codebase's existing `accept_church_invite` (migration `0011`) pattern for "a mutation with a
-race condition that a plain RLS-gated INSERT/UPDATE can't safely express":
+as a naive check-then-insert.** Recommendation, **approved by the owner (decision 8 of 10,
+2026-07-18)**: three `SECURITY DEFINER` RPC functions, matching this codebase's existing
+`accept_church_invite` (migration `0011`) pattern for "a mutation with a race condition that a
+plain RLS-gated INSERT/UPDATE can't safely express":
 
 - **`register_for_experience_occurrence(p_occurrence_id uuid)`** — locks the occurrence row
   (`select ... for update`), re-validates `status = 'scheduled'` and the registration window
@@ -662,14 +721,30 @@ race condition that a plain RLS-gated INSERT/UPDATE can't safely express":
   UI treats a `cancelled`-occurrence's registrations as inert (no attendance/completion action
   available) — never auto-transitioned to `registrations.status = 'cancelled'`, since that would
   destroy the historical "who was actually signed up when it got cancelled" fact.
-- **Walk-in/unregistered attendance**: v1 does **not** support marking attendance for someone with
-  no registration row — the brief's rule list mentions it but a walk-in-attendance feature implies
-  either a lightweight ad-hoc registration row (created by the host, `status = 'confirmed'`,
-  `registered_at = now()`) or a separate walk-in concept; recommend the former (host can add a
-  registration on the attendance screen, same table, no new concept) — flagged as v1-in-scope-but-
-  minimal, not deferred, since it's just "host creates a registration row on someone else's
-  behalf," which the existing RLS write policy (host/admin of that church) already permits without
-  any new policy.
+- **Walk-in attendance — owner decision (5 of 10, 2026-07-18), refined and approved:** a third
+  `SECURITY DEFINER` RPC, **`record_experience_walk_in(p_occurrence_id uuid, p_profile_id uuid,
+  p_attendance_status text default 'attended')`**, locks the occurrence row (same lock as the
+  other two RPCs), then:
+  1. Verifies the caller is `private.is_church_manager` for the occurrence's `church_id` —
+     church-scoped and server-authorized, never a bare RLS insert.
+  2. Verifies `p_profile_id` actually has a `church_memberships` row for that same church — **a
+     walk-in can never bypass church membership**; there is no anonymous-attendee path.
+  3. Raises a clear exception if a registration for `(occurrence_id, profile_id)` already exists
+     (directing the host to the normal attendance screen instead of creating a duplicate) — the
+     `unique(occurrence_id, profile_id)` constraint is the hard backstop either way.
+  4. Inserts one row: `status = 'confirmed'`, `registration_source = 'host_walk_in'`,
+     `attendance_status = p_attendance_status` (default `'attended'`), `completion_status =
+     'not_started'` (a host still finalizes completion separately, same as any other registration).
+  5. The whole check-then-insert happens inside the RPC's single transaction — atomic, matching
+     the other two RPCs' locking discipline.
+
+  **Capacity note**: a walk-in is a physical/logical reality the host is recording after the fact
+  — the RPC does **not** reject a walk-in for being "over capacity" (turning away someone already
+  present doesn't make product sense), but the host-facing UI should surface a visible "over
+  capacity" indicator when a walk-in pushes `confirmed` count past the occurrence's `capacity`, so
+  the fact is visible in reporting (§21) without blocking the action. This is a minor
+  implementation-detail judgment call, not an architectural fork — flagged for awareness, not
+  requiring further owner sign-off before Phase 10.7 builds it (§30).
 
 ## 20. Data retention and auditability
 
@@ -747,7 +822,38 @@ feature should follow the exact same honest-constraint pattern: a `payment_statu
 constrained to values that are actually reachable without live Square credentials, widened only
 once real credentials exist (same as Phase 8's documented approach). Not built in Phase 10.
 
-## 26. Testing strategy
+## 26. Future: Experience Templates
+
+**Owner decision (6 of 10, 2026-07-18): documented as a future concept only — no
+`experience_templates` table, and no code, is created in Phase 10.** A future template system may
+allow:
+
+- Reusable Experience "blueprints" a church can instantiate into their own `church_experiences`
+  row (copy-on-create, not a live reference — so a church's copy can diverge freely afterward).
+- Platform-provided templates (e.g., a starter "Community Service Project" template every church
+  can use), authored by a platform admin, not tied to any one church.
+- Church-customized copies of either a platform template or another church's template (if sharing
+  is ever enabled — see below).
+- AI-generated Experience suggestions through ChatGPT (§23) — e.g., "generate a draft Experience
+  from this lesson's topic" — populating a template-like draft a host then reviews and publishes,
+  never auto-published.
+- Optional sharing of a church's own Experience as a template for other churches to copy from —
+  this is the *only* cross-church-adjacent concept anywhere in this document, and even then it is
+  explicitly a future **copy** mechanism, not the live cross-church discovery ruled out in §8;
+  copying a template does not grant any ongoing visibility into the source church's data.
+
+**Why not now**: Phase 10 church Experiences must remain owned by a specific church (per this same
+decision and consistent with §8's church-scoped-only discovery) — a templates concept necessarily
+introduces platform-wide, potentially-null-`church_id` content, which is exactly the kind of
+speculative schema work this phase's brief warns against ("avoid adding speculative columns that
+are not necessary; document likely extension points instead"). A `church_experiences.church_id
+not null` constraint (§10) is incompatible with a template row that isn't owned by any church —
+so a future template table would be genuinely separate from `church_experiences`, not a variant of
+it (e.g., a `church_experience_templates` table with nullable `source_church_id` and a "copy into
+my church" action that inserts a fresh `church_experiences` row) — a clean, additive migration
+whenever that phase is approved, requiring no changes to anything built in Phase 10.
+
+## 27. Testing strategy
 
 | Area | Test type |
 |---|---|
@@ -760,7 +866,7 @@ once real credentials exist (same as Phase 8's documented approach). Not built i
 | Logged-out behavior (`/experiences` redirects to login) | Manual QA (dev server, HTTP-level, same limitation Phase 9.5 hit — no browser automation tool in this environment). |
 | Church isolation, capacity, waitlist, cancellation, attendance end-to-end | **Manual QA / future browser automation** — explicitly deferred until either credentials or a browser tool exist in-session. |
 
-## 27. Migration strategy
+## 28. Migration strategy
 
 One migration per stage of `docs/PHASE10_IMPLEMENTATION_PLAN.md` (matching this repo's existing
 one-migration-per-phase convention — never one giant migration), sequential numbering continuing
@@ -768,7 +874,7 @@ from `0021_admin_completion.sql` → `0022_church_experiences.sql`, `0023_...`, 
 is additive only (new tables/columns), consistent with "never remove migrations" and "create new
 sequential migrations for schema changes."
 
-## 28. Rollback considerations
+## 29. Rollback considerations
 
 Every new table is independent of existing tables except for foreign keys *into* `churches`,
 `ministries`, `lessons`, `profiles` (never the reverse) — so rolling back Phase 10 entirely (should
@@ -776,48 +882,62 @@ that ever be needed) means dropping four new tables and one new column
 (`churches.timezone`), with zero impact on any existing table's data or behavior. No existing
 table's column is altered, renamed, or dropped at any point in this design.
 
-## 29. Risks and unresolved decisions requiring owner approval
+## 30. Risks — resolved by owner decision, and remaining implementation-detail notes
 
-1. **The "Experience" naming collision with `/experience-builder` (lesson creation)** — this spec
-   resolves the *code-level* collision (distinct table/type names) but the *product-facing*
-   collision (a Host will see both "Build Experience" in the nav and a new "Experiences" section)
-   is unresolved and needs an explicit product decision: leave both, rename one, or add
-   disambiguating copy (e.g., "Lessons" instead of "Build Experience" someday). **Not decided
-   here.**
-2. **Ministry leader role** — confirmed not to exist; Phase 10 proceeds without it (host/admin
-   only). If the product actually needs finer-grained ministry-level ownership, that's a
-   `church_memberships`-adjacent schema change bigger than Phase 10's scope.
-3. **Multi-church hosts** — Phase 10 follows the existing `churches[0]` convention rather than
-   fixing it, per explicit instruction that multi-church switching is a later phase. Confirm this
-   is acceptable for a brand-new feature to inherit rather than being the first to fix it.
-4. **Public/cross-church Experience discovery** — deliberately deferred (`visibility = 'public'`
-   is schema-ready but unused in v1). Confirm no immediate product need before Phase 10 ships
-   without it.
-5. **Walk-in attendance** — recommended as "host creates a registration row," not a distinct
-   concept; confirm this matches the intended UX before Phase 10.7 builds the attendance screen.
+All five risks originally raised in Phase 10A are now **resolved** by the ten owner decisions of
+2026-07-18:
 
-## 30. Recommended implementation sequence
+| # | Original risk | Resolution |
+|---|---|---|
+| 1 | "Experience" naming collision with `/experience-builder` | **Resolved (decision 1)** — leave `/experience-builder` unchanged in Phase 10; product-facing ambiguity recorded as accepted technical debt, revisited only in a separate, later, explicitly-approved UX-cleanup phase. |
+| 2 | Ministry leader role absent | **Resolved (decision 2)** — confirmed out of scope; host/admin manage Experiences, `ministry_id` reuses the existing `ministries` table as a plain tag. |
+| 3 | Multi-church `churches[0]` convention | **Resolved (decision 3)** — inherited at the page layer (documented call-site list, §2), never hardcoded inside a service/RPC function. |
+| 4 | Public/cross-church discovery | **Resolved (decision 4)** — explicitly out of scope for v1: no public discovery, no cross-church discovery, no anonymous browsing, no global search, no marketplace. |
+| 5 | Walk-in attendance shape | **Resolved (decision 5)** — a dedicated `record_experience_walk_in` RPC with a `registration_source` column, church-membership-validated, atomic. |
+
+No product-architecture-level decision remains open. Two **implementation-detail** notes are
+flagged for awareness (not requiring further owner sign-off before Phase 10 begins) — either
+would be a small, localized change if the owner later wants it handled differently:
+
+- **Walk-in vs. capacity** (§19): a walk-in is allowed to exceed an occurrence's capacity rather
+  than being rejected, with a visible "over capacity" indicator in the host UI/reporting. Revisit
+  only if the product actually wants hard capacity enforcement even for walk-ins.
+- **`experience_templates` future shape** (§26): sketched as a separate future table
+  (`church_experience_templates`, nullable `source_church_id`), not a variant of
+  `church_experiences` — confirm this shape when that future phase is actually scoped.
+
+## 31. Recommended implementation sequence
 
 See `docs/PHASE10_IMPLEMENTATION_PLAN.md` for the full stage breakdown (10.1–10.10).
 
-## 31. Explicit out-of-scope list (Phase 10)
+## 32. Explicit out-of-scope list (Phase 10)
 
-- Credits, badges, rewards (schema or logic).
-- Any OpenAI/ChatGPT API call.
-- Square/payment processing of any kind.
-- Public, cross-church Experience discovery (`visibility = 'public'` unused).
-- Recurrence beyond individually-created occurrences (Option B/C).
+**Approved scope boundaries, per the ten owner decisions of 2026-07-18:**
+
+- Credits, badges, rewards (schema or logic) — future extension point only (§24).
+- Any OpenAI/ChatGPT API call — future extension point only (§23).
+- Square/payment processing of any kind — future extension point only (§25).
+- Public discovery, cross-church discovery, anonymous browsing, global Experience search, or any
+  shared Experience marketplace (`visibility = 'public'` schema-ready but unused) — decision 4.
+- An `experience_templates`/`church_experience_templates` table or any template code — future
+  extension point, documented only (§26) — decision 6.
+- Recurrence beyond individually-created occurrences (Option B/C) — decision 7.
 - Real notification delivery (email/push) for any Experience event.
-- Any write to `lesson_journeys` (Phase 12's job).
+- Any write to `lesson_journeys` (Phase 12's job) — decision 9.
 - Rebuilding the mock `experienced`/`applied`/`added-to-story` Journey pages.
-- A "ministry leader" role.
-- Multi-church host switching.
+- A "ministry leader" role or any new `ministries`-system schema — decision 2.
+- Multi-church host switching UI — decision 3.
 - Fixing the pre-existing, unrelated `LessonCard.tsx` orphaned-file issue (Phase 9.5 finding).
 
 ## Documentation files created or updated
 
-- **Created**: `docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md` (this file).
-- **Created**: `docs/PHASE10_IMPLEMENTATION_PLAN.md`.
+- **Created** (Phase 10A, 2026-07-18): `docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md` (this file).
+- **Created** (Phase 10A, 2026-07-18): `docs/PHASE10_IMPLEMENTATION_PLAN.md`.
+- **Updated** (2026-07-18, same day): both files, to incorporate ten owner-approved product
+  decisions (terminology, ministry-leader role, church selection, discovery scope, walk-in
+  attendance, Experience Templates, recurrence, capacity/waitlist, attendance/completion,
+  archival) — no schema, service, component, or route code was added in this update; both files
+  remain design documents only.
 - **Not created** (none exist yet, and per Step 14's instruction not to invent extensive new docs
   beyond these two): `PROJECT_ROADMAP.md`, `PRODUCT_SPEC.md`, `ARCHITECTURE.md`, `CHANGELOG.md`.
   Recommend creating these as *living* documents once Phase 10 implementation actually begins
@@ -825,9 +945,14 @@ See `docs/PHASE10_IMPLEMENTATION_PLAN.md` for the full stage breakdown (10.1–1
   benefit from being written after Phase 10.1's migration lands, not before.
 - Recorded here per Step 14: **ChatGPT will be the platform's AI provider**, integrated through a
   centralized, server-side-only AI service layer in a later phase (§23). No OpenAI code exists or
-  was added in Phase 10A.
+  was added in Phase 10A or this update.
 
 ## Decision log
+
+**All 13 entries below were reviewed and approved by the product owner on 2026-07-18.** Entries
+1–11 are the original Phase 10A recommendations, approved as written; entries 12–13 are new,
+added to record the owner's refinements to the walk-in-attendance design and the future
+Experience Templates concept.
 
 | # | Decision | Alternatives considered | Recommendation | Reasoning | Future consequences |
 |---|---|---|---|---|---|
@@ -837,13 +962,16 @@ See `docs/PHASE10_IMPLEMENTATION_PLAN.md` for the full stage breakdown (10.1–1
 | 4 | Capacity enforcement: **SECURITY DEFINER RPC with row lock**, not a CHECK constraint or client-side check | Client-side count-then-insert; a `CHECK` constraint; a `BEFORE INSERT` trigger without locking | RPC with `select ... for update` | A `CHECK` constraint cannot count sibling rows. A trigger without an explicit lock has the same race condition as client-side checking (two concurrent transactions can both pass the count check before either commits). This repo already has exactly this pattern (`accept_church_invite`, migration `0011`) for a different race-prone mutation. | Registration/cancellation must go through the RPC, not a raw table insert — RLS deliberately does not grant direct `insert` on registrations (§13) to enforce this at the permission level, not just by convention. |
 | 5 | Waitlist strategy: **FIFO by `waitlist_position`, promoted atomically inside the same cancellation transaction** | Manual host-triggered promotion; lottery/random selection | Automatic FIFO | Simplest deterministic rule that satisfies "do not overcomplicate v1"; matches the intuitive expectation of a waitlist. | Real notification of the promoted member is deferred (§22) — until real notifications exist, a promoted member only discovers their new status by revisiting `/my-experiences`, a known, accepted v1 limitation. |
 | 6 | Recurrence scope: **Option A (manual occurrences only)** for v1 | Option B (simple weekly/biweekly/monthly generation); Option C (full RRULE) | Option A | Brief explicitly warns against building recurrence "merely because it is technically possible"; no recurrence infrastructure (cron/scheduled functions) exists anywhere in this repo to support B or C safely yet. | Option B is a reasonable, cheap follow-up (generate N individual rows at creation time, no live rule evaluation) once v1 has real usage data; C is not recommended even then. |
-| 7 | Timezone storage: **UTC `timestamptz` + explicit IANA `timezone` text column per occurrence**, plus a new `churches.timezone` default | Store local wall-clock time + offset only; store only on the Experience, not per-occurrence | `timestamptz` + per-occurrence IANA name | No timezone field exists anywhere in this schema today (verified); an offset-only column can't handle daylight saving correctly, an IANA name can. Per-occurrence (not per-Experience) storage protects historical display accuracy if a church's default ever changes. | First timezone-aware feature in this codebase — the display helper built here (§9/§26) becomes the template for any future scheduling feature. |
+| 7 | Timezone storage: **UTC `timestamptz` + explicit IANA `timezone` text column per occurrence**, plus a new `churches.timezone` default | Store local wall-clock time + offset only; store only on the Experience, not per-occurrence | `timestamptz` + per-occurrence IANA name | No timezone field exists anywhere in this schema today (verified); an offset-only column can't handle daylight saving correctly, an IANA name can. Per-occurrence (not per-Experience) storage protects historical display accuracy if a church's default ever changes. | First timezone-aware feature in this codebase — the display helper built here (§9/§27) becomes the template for any future scheduling feature. |
 | 8 | Attendance vs. completion: **two independent status columns**, not one | Single "completed" boolean inferred from attendance | Separate | Brief explicitly lists both vocabularies; a self-guided Experience can be "completed" with no formal attendance concept at all (`completion_method = 'self_attested'`), so conflating them would misrepresent self-guided completions as attendance records that never happened. | Directly enables the `completion_method` column's two branches (§7/E) without special-casing self-guided Experiences elsewhere in the schema. |
 | 9 | Self-guided Experiences: **self-attested completion via `completion_method` column on the Experience**, not inferred from `format` | Infer completion method from `format = 'self_guided'` automatically | Explicit column | A church might want an in-person gathering to also be self-attested (e.g., a prayer walk with no check-in table) — `format` and `completion_method` are orthogonal concerns in practice. | Host UI must surface `completion_method` as its own field on the Experience form, not derive it silently from `format`. |
 | 10 | Archival, never hard-delete | Hard-delete archived Experiences/cancelled occurrences after some retention period | Soft-delete via `status` everywhere | Brief explicitly requires this; this schema already has zero precedent for hard-deleting any content table (`lessons`, `testimonies`, `events` all use status columns, never row deletion, for exactly this reason — Journey/reporting/audit history). | Every future reporting/credit/audit feature can rely on historical rows always existing, never having been silently removed. |
 | 11 | Single-church-host convention: **followed, not fixed** | Build real multi-church selection into Phase 10 now | Follow existing `churches[0]` pattern at the page layer only | Brief explicitly says multi-church switching is a later phase and Phase 10 "must not hardcode `churches[0]` into new architecture" — resolved by keeping the shortcut confined to the page component (matching every existing host page) while every Experience service function takes an explicit `churchId` parameter. | A future multi-church switcher changes only the page-level church selection; no Experience service/RPC signature needs to change. |
+| 12 | Walk-in attendance: **dedicated `record_experience_walk_in` RPC + `registration_source` column**, not a bare host-side insert | A plain host-authored INSERT via the existing RLS write policy (original Phase 10A draft's recommendation); a wholly separate "attendee" concept outside `church_experience_registrations` | Dedicated RPC + column | Owner decision 5 explicitly asked for atomicity, a source/method marker "if the schema can support this cleanly" (it does, via one column), and an explicit membership-authorization check — a bare INSERT satisfies none of these as precisely as a purpose-built RPC that mirrors the other two RPCs' locking/authorization discipline. | Every registration-creating path in the system (self-registration, cancellation/promotion, walk-in) now goes through exactly one of three RPCs, never a raw table write — a single, auditable set of entry points for all future reporting/credit features to reason about. |
+| 13 | Experience Templates: **documented as a future concept, no schema added** | Add a nullable `is_template`/`source_church_id` pair directly onto `church_experiences` now; build a minimal template table in Phase 10 | Documentation only | Owner decision 6 explicitly forbids creating an `experience_templates` table in Phase 10. A template needs a null-`church_id`-compatible shape that would weaken `church_experiences.church_id not null`'s current guarantee that every Experience is unambiguously church-owned — exactly the kind of speculative schema work the brief warns against. | A future template phase adds a genuinely separate table with its own nullable-ownership shape and a "copy into my church" action that inserts a normal `church_experiences` row — zero changes required to anything Phase 10 builds. |
 
 ---
 
-**Stop.** Phase 10A ends here. Do not begin Phase 10.1 implementation until this specification is
-reviewed and approved.
+**Approved.** All ten owner decisions of 2026-07-18 are incorporated above. This specification
+and `docs/PHASE10_IMPLEMENTATION_PLAN.md` are ready; Phase 10.1 implementation begins only when
+explicitly instructed, per this project's established phase-by-phase working style.

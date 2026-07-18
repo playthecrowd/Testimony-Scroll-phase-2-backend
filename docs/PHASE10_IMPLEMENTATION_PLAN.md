@@ -1,9 +1,9 @@
 # Phase 10 Implementation Plan — Experience Platform
 
 Companion to `docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md` (read that first — this document assumes
-its terminology, schema, RLS design, and decision log). Ten small, independently reviewable
-stages. **No stage here has been started or implemented as part of Phase 10A** — this is planning
-only.
+its terminology, schema, RLS design, and decision log, including the ten owner decisions of
+2026-07-18). Ten small, independently reviewable stages. **No stage here has been started or
+implemented** — this is planning only; Phase 10.1 begins only when explicitly instructed.
 
 Each stage should, when actually executed, follow this repo's established phase discipline: run
 `npm run lint` / `npx tsc --noEmit` / `npm run build` / `npm test` before considering the stage
@@ -18,8 +18,11 @@ user go-ahead before committing (per this project's established working style).
 
 - **Migrations**: `0022_church_experiences.sql` — all four tables
   (`church_experiences`, `church_experience_occurrences`, `church_experience_lessons`,
-  `church_experience_registrations`), `churches.timezone` column, all indexes, all RLS policies
-  from spec §13. No RPC functions yet (10.6 owns those, once the registration UI needs them).
+  `church_experience_registrations`, the latter including the owner-approved
+  `registration_source` column, spec §7/D), `churches.timezone` column, all indexes, all RLS
+  policies from spec §13. No RPC functions yet (10.6/10.7 own those, once the registration/
+  attendance UI needs them). No `experience_templates` table (owner decision 6 — future work,
+  documentation only, spec §26).
 - **Files likely affected**: `supabase/migrations/0022_church_experiences.sql` only.
 - **API/data functions**: none.
 - **Components**: none.
@@ -110,7 +113,7 @@ every later stage builds on.
   fields; timezone select defaults from `churches.timezone` per spec §9).
 - **Authorization**: same church-manager pattern as 10.3.
 - **Tests**: unit test for the timezone display helper (`tests/experienceTimezone.test.ts`, pure
-  function, no Supabase needed — spec §26).
+  function, no Supabase needed — spec §27).
 - **Manual QA**: schedule an occurrence, confirm displayed time matches the entered timezone,
   confirm DST-boundary dates display correctly (e.g., schedule one in March/November).
 - **Acceptance criteria**: occurrence CRUD works; cancelling sets `status='cancelled'` without
@@ -163,7 +166,7 @@ manages the registration list.
   registration/cancellation ownership; approve/reject actions use the standard
   church-manager check.
 - **Tests**: **integration tests against a real Supabase instance are the only way to meaningfully
-  verify capacity/waitlist/concurrency** (spec §26) — flag explicitly if unavailable in the
+  verify capacity/waitlist/concurrency** (spec §27) — flag explicitly if unavailable in the
   implementing session; static RLS tests only confirm the *permission* shape (no direct insert
   grant), not the RPC's runtime correctness.
 - **Manual QA**: register into an unlimited-capacity occurrence (confirmed immediately); register
@@ -177,33 +180,57 @@ manages the registration list.
 - **Rollback**: drop the two RPC functions; revert the action/page files. Existing registration
   rows (if any) are retained as historical data, not deleted.
 
-## Phase 10.7 — Attendance and completion
+## Phase 10.7 — Attendance, completion, and host-recorded walk-ins
 
-**Goal:** A host can record attendance and finalize completion; a self-guided Experience lets a
-member self-attest.
+**Goal:** A host can record attendance, finalize completion, and record a walk-in for an
+unregistered church member; a self-guided Experience lets a member self-attest.
 
 - **Files likely affected**: `app/host-dashboard/experiences/[experienceId]/attendance/page.tsx`
-  + `AttendanceList.tsx`, `app/host-dashboard/experiences/actions.ts` (add
-  `updateAttendanceAction`, `finalizeAttendanceAction`), `app/experiences/[experienceId]/actions.ts`
-  (add `selfAttestCompletionAction`, gated on `completion_method = 'self_attested'` and
-  `occurrence.starts_at` in the past).
-- **Migrations**: none (columns already exist from 10.1).
+  + `AttendanceList.tsx` (+ a "record walk-in" control, member picker scoped to the occurrence's
+  church roster), `app/host-dashboard/experiences/actions.ts` (add
+  `updateAttendanceAction`, `finalizeAttendanceAction`, `recordWalkInAction`),
+  `app/experiences/[experienceId]/actions.ts` (add `selfAttestCompletionAction`, gated on
+  `completion_method = 'self_attested'` and `occurrence.starts_at` in the past).
+- **Migrations**: `0024_church_experience_walk_ins.sql` — the `record_experience_walk_in(
+  p_occurrence_id uuid, p_profile_id uuid, p_attendance_status text default 'attended')`
+  `SECURITY DEFINER` RPC per spec §19 (owner decision 5/12): locks the occurrence row, verifies
+  the caller is `private.is_church_manager` for the occurrence's church, verifies `p_profile_id`
+  has a `church_memberships` row for that same church, raises a clear exception if a registration
+  already exists for that pair, then inserts one row with `registration_source = 'host_walk_in'`,
+  `status = 'confirmed'`, and the given attendance status.
 - **API/data functions**: `updateAttendanceStatus`, `updateCompletionStatus`,
-  `finalizeOccurrenceAttendance` (stamps `attendance_finalized_at`).
+  `finalizeOccurrenceAttendance` (stamps `attendance_finalized_at`), `recordWalkIn` (calls the
+  new RPC via `supabase.rpc(...)`).
 - **Components**: `AttendanceList.tsx` (per-registrant attendance/completion toggles + bulk
-  "mark all confirmed as attended").
-- **Authorization**: host/admin church-manager check for the host-facing actions; the
-  self-attest action checks `profile_id = auth.uid()` (already the RLS shape) plus the
-  `completion_method`/timing guard in the action itself (defense-in-depth, not relied on alone).
-- **Tests**: none new beyond existing RLS coverage.
+  "mark all confirmed as attended" + a walk-in entry row that visibly flags
+  `registration_source = 'host_walk_in'` rows and surfaces an "over capacity" indicator per spec
+  §19 if a walk-in pushes confirmed count past the occurrence's capacity).
+- **Authorization**: host/admin church-manager check for the host-facing actions (both the normal
+  ones and `recordWalkInAction`, which additionally relies on the RPC's own internal
+  membership-authorization check per owner decision 5 — "do not allow walk-ins to bypass church
+  membership or authorization rules"); the self-attest action checks `profile_id = auth.uid()`
+  (already the RLS shape) plus the `completion_method`/timing guard in the action itself
+  (defense-in-depth, not relied on alone).
+- **Tests**: extend `tests/rlsChurchIsolation.test.ts` to confirm `church_experience_registrations`
+  still has no direct authenticated `insert` grant even after this stage (the walk-in RPC is
+  `SECURITY DEFINER`, bypassing RLS *inside* the function body only, never via a client-facing
+  grant) — mirrors 10.1's original assertion, re-verified here since it's easy for a later change
+  to accidentally widen a grant.
 - **Manual QA**: mark attendance for a `host_marked` Experience; self-attest completion for a
-  `self_guided` one before/after `starts_at` (confirm it's blocked before); confirm walk-in
-  registration-creation-by-host (spec §19) works via the same attendance screen.
+  `self_guided` one before/after `starts_at` (confirm it's blocked before); record a walk-in for a
+  church member with no prior registration (confirm it succeeds, is marked `host_walk_in`, and a
+  second attempt for the same person is rejected with a clear error, not a raw constraint
+  violation); attempt a walk-in for a profile with no membership in that church (confirm it's
+  rejected).
 - **Acceptance criteria**: attendance/completion states update correctly and match spec §7/E's
-  rules; no write to `lesson_journeys` occurs anywhere in this stage's code.
+  rules; walk-ins satisfy every rule in owner decision 5; no write to `lesson_journeys` occurs
+  anywhere in this stage's code.
 - **Dependencies**: 10.1–10.6.
-- **Rollback**: delete the new route/component/action code; attendance/completion columns simply
-  stay at their default values.
+- **Rollback**: drop the `record_experience_walk_in` RPC; delete the new route/component/action
+  code; attendance/completion columns simply stay at their default values. Any walk-in
+  registrations already created remain valid historical rows (they're ordinary
+  `church_experience_registrations` rows, distinguished only by `registration_source`) — rolling
+  back the RPC does not orphan or corrupt them.
 
 ## Phase 10.8 — Minimal Journey integration point (design only, per spec §7/E)
 
