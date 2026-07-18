@@ -6,10 +6,14 @@ registration/promotion, refunds on member and church cancellation). No Points/XP
 Leaderboards/Rewards/Square, and no new UI/page routes — those remain later Phase 11 stages.
 
 Migrations `0029`–`0031`, written and dry-run-verified against the linked Supabase project
-(`ytnftubajizhuylhmsib`). **Per an explicit decision this phase** (this repo has exactly one linked
-Supabase project — there is no separate development project distinct from the one every prior
-phase has used — the owner chose to hold off on any live push until that is separately confirmed),
-none of migrations `0027`–`0031` have been pushed live yet. See "Manual verification" below.
+(`ytnftubajizhuylhmsib`). At the time this phase's implementation was first committed, none of
+migrations `0027`–`0031` had been pushed live — the owner chose to hold off on any live push until
+that was separately confirmed. **That confirmation has since been given explicitly, and migrations
+`0027`–`0031` are now live on the linked project.** See §11 "Database deployment verification"
+below for the full push and live-verification record. §9 ("Manual verification") is left
+unmodified below as the accurate record of what this phase's *implementation* commit (`de71257`)
+could verify at that time; §11 documents the separate, later, explicitly-authorized deployment
+step.
 
 ## 1. Wallet workflows
 
@@ -223,8 +227,8 @@ deferred pending the owner's separate confirmation.
 
 ## 10. Known limitations
 
-- **Migrations not yet pushed live** (see above) — the most consequential limitation this phase.
-  Until pushed, none of this phase's behavior can be exercised against a real database.
+- ~~Migrations not yet pushed live~~ — **resolved**: migrations `0027`–`0031` were pushed to the
+  linked project on explicit owner authorization; see §11.
 - **Host UI does not yet collect `defaultCreditCost`/`creditCost`.** The service layer, action
   layer, and validation all support it; `ExperienceForm.tsx`/`OccurrenceForm.tsx` were deliberately
   left unchanged since Phase 11.2's brief explicitly excludes UI work. Both fields were made
@@ -244,3 +248,106 @@ deferred pending the owner's separate confirmation.
   Phase 11.5.
 - **`event_spend`** remains unimplementable — `events` still has no attendance/registration model
   (unchanged finding from the Phase 11A audit); nothing in Phase 11.2 depended on it.
+
+## 11. Database deployment verification
+
+Performed after explicit owner authorization to push migrations `0027`–`0031` to the linked
+Supabase project — **this repo has exactly one linked project (`ytnftubajizhuylhmsib`); there is no
+separate development database distinct from the one every prior phase (1 through 11.1) has already
+used.** This section records that the same real, shared database was updated, on explicit
+instruction, and exactly what was verified afterward.
+
+**Pre-push verification**: `Production` branch confirmed, working tree clean, commits `d69c928`
+(Phase 11.1) and `de71257` (Phase 11.2) both present in `git log`.
+
+**Dry-run result**: `npx supabase db push --dry-run` listed exactly the five expected migrations
+(`0027_credit_wallets_ledger.sql` through `0031_experience_credit_costs.sql`) and no others.
+
+**Actual push result**: `npx supabase db push` applied all five migrations in order without error
+("Applying migration ...` × 5, then "Finished supabase db push.").
+
+**Applied migration list** (`npx supabase migration list`, run post-push): local and remote now
+match exactly for every migration `0001` through `0031` — no gaps, no unexpected entries.
+
+**Table verification** (`information_schema.columns`): `member_wallets`, `church_wallets`,
+`credit_ledger_entries`, and `credit_requests` all exist live with exactly the column set/
+nullability designed in §1–§2 above. `church_experiences.default_credit_cost` and
+`church_experience_occurrences.credit_cost` both exist, nullable integer.
+
+**Constraint and index verification** (`pg_constraint`, `pg_indexes`): every CHECK constraint
+designed this phase and last (`member_wallets_current_balance_check`,
+`church_wallets_current_balance_check`, `credit_ledger_entries_amount_check`,
+`credit_ledger_entries_exactly_one_wallet`, `credit_ledger_entries_status_check`,
+`credit_ledger_entries_transaction_type_check`, `credit_requests_requested_amount_check`,
+`credit_requests_status_check`, `church_experiences_default_credit_cost_check`,
+`church_experience_occurrences_credit_cost_check`) confirmed present with the exact definition
+written in the migration source. All designed indexes confirmed present, including the partial
+unique index `credit_ledger_entries_idempotency_key_key` (`where idempotency_key is not null`) and
+the unique wallet-per-owner indexes (`member_wallets_profile_id_key`,
+`church_wallets_church_id_key`).
+
+**RLS and policy verification** (`pg_class.relrowsecurity`, `pg_policies`): RLS enabled on all four
+new tables. Every policy on all four is `SELECT`-only — confirmed there is **no** INSERT/UPDATE/
+DELETE policy anywhere on `member_wallets`, `church_wallets`, `credit_ledger_entries`, or
+`credit_requests`, meaning direct client financial writes are blocked by RLS regardless of any
+table-level grant.
+
+**RPC and permission verification** (`pg_proc`, `information_schema.routine_privileges`): all 12
+public RPCs (`create_member_wallet`, `create_church_wallet`, `grant_credits`, `transfer_credits`,
+`refund_credits`, `reverse_credit_transaction`, `get_wallet_balance`, `get_wallet_history`,
+`submit_credit_request`, `cancel_credit_request`, `approve_credit_request`,
+`decline_credit_request`) plus both `private`-schema helpers (`apply_refund`,
+`promote_next_waitlisted`) confirmed live with `security definer` and `search_path=""` locked.
+`private.apply_refund` confirmed to have **no** EXECUTE grant to `authenticated` or `anon` — only
+`postgres` (the function owner) — confirming it is genuinely unreachable except from another
+`SECURITY DEFINER` function, exactly as designed. The 12 public RPCs each show an EXECUTE grant to
+both `anon` and `authenticated`, the same project-wide default-privilege convention already
+documented since Phase 10.1/10.4 — harmless because every RPC's own first check rejects
+`auth.uid() is null`, confirmed live in the smoke test below.
+
+**Trigger verification** (`pg_trigger`): `charge_credits_on_registration_confirmation_trigger`
+(on `church_experience_registrations`) and
+`refund_registrations_on_occurrence_cancellation_trigger` (on
+`church_experience_occurrences`) both confirmed present and enabled (`tgenabled = 'O'`).
+
+**Live smoke-test results** (all fully reversible; no persistent data change):
+
+1. `select auth.uid();` via the raw database connection returns `null` (expected — this connection
+   carries no user JWT), establishing the baseline for the next two tests.
+2. `select public.create_member_wallet();` raised `P0001: You must be signed in.` from line 6 of
+   the live function body — confirms the auth guard is enforced by the actual deployed function,
+   not just its source text.
+3. `select public.submit_credit_request(...);` raised the identical `P0001: You must be signed in.`
+   guard from its own live function body.
+4. `insert into credit_ledger_entries (amount, transaction_type, description) values (10,
+   'platform_grant', ...);` (omitting both wallet columns) was rejected with `23514: ... violates
+   check constraint "credit_ledger_entries_exactly_one_wallet"` — confirmed via the constraint's
+   own reported failing-row detail. The statement never committed (a CHECK violation aborts the
+   statement outright; Postgres never partially writes a row), confirmed by a before/after row
+   count of `0` across all four new tables.
+5. `insert into church_wallets (church_id, current_balance) values (<a real existing church id>,
+   -50);` was rejected with `23514: ... violates check constraint
+   "church_wallets_current_balance_check"` — confirmed live, same all-or-nothing guarantee, no
+   commit.
+
+No real member or church balance was created, modified, or referenced by any of these tests beyond
+one real church's `id` being used (read-only) as a valid foreign-key target for test 5 — the
+`INSERT` itself never succeeded, so that church's own `church_wallets` row (if any) was never
+touched.
+
+**Final lint/typecheck/test/build results** (re-run after the push, unchanged from before it since
+no application code changed in this step): 0 lint errors, 15 known warnings, clean typecheck,
+192/192 tests passing, successful build.
+
+## Confirmation
+
+- Migrations `0027`–`0031` are now live on the linked Supabase project.
+- No unexpected migration was applied — the pushed set matched the dry-run's list exactly.
+- Direct client financial writes remain blocked — confirmed live via `pg_policies` (SELECT-only on
+  all four new tables) and via the smoke tests' CHECK-constraint rejections.
+- All balance changes remain ledger-backed — no application code or schema change in this step
+  altered that design; it was verified structurally in Phase 11.1/11.2 and now confirmed live via
+  the table/constraint/RPC checks above.
+- Work remains on `Production`; nothing was merged into `main`; the application itself was not
+  deployed (this step only ran database migrations against the already-linked project, via the
+  Supabase CLI, not `vercel deploy` or any build/release action).
