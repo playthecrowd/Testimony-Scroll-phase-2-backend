@@ -8,9 +8,13 @@ Square, or new UI/page routes — those remain later Phase 11 stages, per this p
 given this time).
 
 Migrations `0032`–`0033`, written and dry-run-verified against the linked Supabase project
-(`ytnftubajizhuylhmsib`). **Not pushed live in this step** — following the same pattern established
-in Phase 11.1/11.2, an actual `supabase db push` is treated as its own explicitly-authorized action,
-not assumed.
+(`ytnftubajizhuylhmsib`). At the time this phase's implementation was first committed, they had not
+been pushed live — the owner chose to hold off until that was separately confirmed. **That
+confirmation has since been given explicitly, and migrations `0032`–`0033` are now live on the
+linked project**, alongside a fresh migration-status audit confirming `0027`–`0031` were already
+live from the prior Phase 11.2 verification step. See §11 "Database deployment verification" below
+for the full record. The rest of this document (§1–§10) is left as the accurate record of what
+this phase's *implementation* commit (`f13ec98`) covered at that time.
 
 ## 1. Schema
 
@@ -200,13 +204,15 @@ caught it) — confirming the audit's concern was well-founded, not hypothetical
 
 ## 10. Known limitations
 
-- **Not pushed live** — migrations `0032`/`0033` are written and dry-run-verified only; a live
-  push requires the same separate, explicit authorization every Phase 11 database change has
-  required since Phase 11.1.
+- ~~Not pushed live~~ — **resolved**: migrations `0032`/`0033` were pushed to the linked project on
+  explicit owner authorization; see §11.
 - **`xp_reward_ceiling` (300) is a first, unvalidated guess** — the Phase 11A spec explicitly named
   a required step (spot-check real production `lessons.xp_reward` values, spec §33) before setting
-  this number; that spot-check has not been performed. Recommend revisiting this value once live
-  data can actually be queried (i.e., once these migrations are pushed).
+  this number; that spot-check has still not been performed even now that live data could be
+  queried. Recommend doing so before this value is relied on for real awards.
+- **A `create trigger` identifier was silently truncated by Postgres's 63-byte limit** — see §11;
+  the trigger is fully functional under its truncated name, but the migration source's declared
+  name no longer matches what a live `pg_trigger` query returns.
 - **No admin RPC exists yet for a manual badge award or revocation** (spec §19's "manual admin
   adjustments") — this phase built the automatic system only; manual admin tooling is a reasonable
   fit for Phase 11.4's UI/workflow stage instead, since it's inherently an admin-facing action with
@@ -220,3 +226,105 @@ caught it) — confirming the audit's concern was well-founded, not hypothetical
   per-lesson or per-experience score concept, only one cumulative total per member.
 - **No UI consumes any of this yet** — `/badges`, `/leaderboard`, and `/rewards` still show the old
   mock data (or don't exist) until Phase 11.4 replaces them, per the standing roadmap.
+
+## 11. Database deployment verification
+
+Performed on explicit owner authorization, as a dedicated migration-status audit before Phase 11.4.
+**This repo has exactly one linked Supabase project (`ytnftubajizhuylhmsib`); there is no separate
+development database. This push modified that same real, shared project every prior phase has
+used.**
+
+**Pre-push state**: `Production` branch, clean working tree, commits `f13ec98` (Phase 11.3),
+`de71257` (Phase 11.2), and `d69c928` (Phase 11.1) all confirmed present in `git log`.
+
+**Exact pending migration list**: `npx supabase migration list` showed `0001`–`0031` with matching
+local/remote entries (already live, from the Phase 11.2 verification step) and `0032`/`0033` with
+an empty remote entry (pending). `npx supabase db push --dry-run` confirmed the same: **only**
+`0032_progression_schema.sql` and `0033_progression_award_rpcs.sql` were pending — `0027`–`0031`
+were explicitly *not* in the pending list, contrary to what an assumption (rather than a check)
+might have concluded.
+
+**Safety-review findings**: a full grep of both pending migration files for `drop `, `truncate`,
+`delete from`, and unsafe `alter ... type`/`drop` statements found none — every statement in both
+files is purely additive (`create table`/`index`/`trigger`/`policy`/`view`/`function`,
+`alter table ... enable row level security`, `grant`/`revoke`, `insert`). No existing table is
+altered or has its data touched. Seed `insert` statements have no `on conflict` guard, but this
+matches this repo's own established convention for one-time schema-creation seeds (e.g. `0022`)
+and is safe here specifically because Supabase's migration tracking guarantees each file runs
+exactly once — this is not a claim that the inserts are safely re-runnable outside that guarantee.
+Dependency order is correct: `0032` creates every table `0033`'s functions/triggers/views reference,
+before `0033` runs.
+
+**Dry-run result**: clean, listing exactly the two expected migrations, nothing unexpected.
+
+**Push result**: both migrations applied successfully. One **NOTICE** (not an error) was raised:
+`identifier "award_progression_on_testimony_kingdom_scroll_publication_trigger" will be truncated
+to "award_progression_on_testimony_kingdom_scroll_publication_trigg"` — Postgres's 63-byte
+identifier limit silently truncated this one trigger name. Verified live: the trigger exists under
+its truncated name, is attached to the correct table (`testimonies`), and is enabled
+(`tgenabled = 'O'`) — it is fully functional; only the *name* differs from what the migration
+source declares. This is a real, cosmetic naming-hygiene defect introduced in Phase 11.3, harmless
+to behavior, and not fixed in this verification-only step (renaming a live trigger is its own
+schema change, out of scope for a verification pass) — recommended as a small follow-up migration
+if exact-name clarity in `pg_trigger` ever becomes operationally important.
+
+**Exact applied migrations**: `0032_progression_schema.sql`, `0033_progression_award_rpcs.sql`.
+Post-push, `npx supabase migration list` confirmed all of `0001`–`0033` now match local and remote
+exactly.
+
+**Wallet and credit verification** (re-confirmed unaffected by this push, not re-derived from
+scratch — full detail already on record in `docs/PHASE11_2_AUDIT.md` §11): `member_wallets`,
+`church_wallets`, `credit_ledger_entries`, `credit_requests` all present (4/4); all 12 wallet/
+credit RPCs present; both credit-related triggers (`charge_credits_on_registration_confirmation_
+trigger`, `refund_registrations_on_occurrence_cancellation_trigger`) present; both Experience/
+occurrence credit-cost columns present.
+
+**Progression verification** (newly pushed, verified in full):
+
+- All six tables (`progression_award_rules`, `progression_level_thresholds`,
+  `member_progression_summaries`, `progression_award_log`, `badge_definitions`,
+  `member_badge_awards`) confirmed live with the exact designed column set.
+- Both leaderboard views (`leaderboard_global`, `leaderboard_my_church`) confirmed live, selecting
+  only `profile_id`/`full_name`/`points_total`/`xp_total`/`current_level`/`rank` (+`church_id` on
+  the church-scoped view) — **no `email` column anywhere in either view**.
+- All five seeded v1 badges confirmed present with the correct `category`/`requirement_type`/
+  `related_event_type` (including `kingdom-scroll-contributor` as the one `trophy`-category row).
+- All five seeded `progression_award_rules` confirmed present with the correct amounts, including
+  `lesson_studied`'s `xp_reward_ceiling = 300`.
+- Both duplicate-award unique constraints confirmed live:
+  `progression_award_log_member_id_event_type_source_row_id_key` and
+  `member_badge_awards_member_id_badge_id_key`.
+- All six progression functions (`award_progression_event` plus the five trigger functions)
+  confirmed `security definer` with `search_path=""` locked.
+- All five progression triggers confirmed present and enabled (`tgenabled = 'O'`), attached to
+  their correct tables (`lesson_journeys`, `church_experience_registrations`, `testimonies` ×3) —
+  including the one with the truncated name, noted above.
+
+**RLS and permission verification**:
+
+- RLS enabled on all six progression tables.
+- `member_progression_summaries`, `progression_award_log`, `member_badge_awards`: **SELECT-only**
+  policies — no INSERT/UPDATE/DELETE policy exists on any of the three, confirming direct client
+  progression writes are blocked regardless of any table grant; every write is trigger-only.
+- `progression_award_rules`, `progression_level_thresholds`, `badge_definitions`: public
+  `SELECT` (members need to see these catalogs) plus an admin-only `ALL` policy gated directly on
+  `profiles.is_platform_admin` — this is the intentional, documented exception (an admin manages
+  these definitions), not a gap.
+- `private.award_progression_event` confirmed to have **no** EXECUTE grant to `authenticated` or
+  `anon` — only `postgres` (the function owner) — matching `private.apply_refund`/`private.
+  promote_next_waitlisted`'s exact trust model.
+
+**Final lint/typecheck/test/build results** (re-run after the push; unchanged, since no application
+code changed in this step): 0 lint errors, 15 known warnings, clean typecheck, 224/224 tests
+passing, successful build.
+
+## Confirmation
+
+- Only the expected migrations (`0032`, `0033`) were applied — `0027`–`0031` were already live from
+  the prior Phase 11.2 verification step, confirmed rather than assumed.
+- The linked Supabase project (`ytnftubajizhuylhmsib`) — the repository's only linked project, the
+  same one every prior phase has used — was modified with explicit owner approval.
+- No application deployment occurred (this step ran database migrations via the Supabase CLI only,
+  never `vercel deploy` or any build/release action).
+- Work remains on `Production`; nothing was merged into `main`.
+- Phase 11.4 was not started.
