@@ -79,12 +79,17 @@ begin
   -- Resolve the display name once, here, from the real profile -- never at read time (see the
   -- display_name column comment above for why).
   select full_name, email into v_full_name, v_email from public.profiles where id = auth.uid();
-  new.display_name := case new.identity_display
-    when 'full_name' then coalesce(nullif(btrim(v_full_name), ''), split_part(v_email, '@', 1))
+  -- Searched CASE (not "case new.identity_display when ... then"): a simple CASE's WHEN clause
+  -- accepts exactly one comparison value in PostgreSQL, not a comma-separated list -- the
+  -- previous "when 'first_name', 'username' then" was invalid syntax (42601), caught when
+  -- `supabase db push` tried to apply this migration. `in (...)` is the correct way to share one
+  -- branch across both values.
+  new.display_name := case
+    when new.identity_display = 'full_name' then coalesce(nullif(btrim(v_full_name), ''), split_part(v_email, '@', 1))
     -- 'username' falls back to the same first-name behavior as first_name: no username feature
     -- exists anywhere in this app yet (confirmed across every prior phase's audit) -- this is an
     -- honest simplification, not a silent misfeature, until a real username field exists.
-    when 'first_name', 'username' then coalesce(nullif(split_part(btrim(coalesce(v_full_name, '')), ' ', 1), ''), split_part(v_email, '@', 1))
+    when new.identity_display in ('first_name', 'username') then coalesce(nullif(split_part(btrim(coalesce(v_full_name, '')), ' ', 1), ''), split_part(v_email, '@', 1))
     else 'A Kingdom Member'
   end;
 
