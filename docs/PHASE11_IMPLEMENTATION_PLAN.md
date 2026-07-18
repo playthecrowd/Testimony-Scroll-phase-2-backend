@@ -5,12 +5,14 @@ controlled number of milestones, each committed and reported separately on `Prod
 this project's standing one-phase-one-commit, audit-then-implement discipline (Phases 1–10.4).
 
 **All seven Phase 11 owner decisions (spec §34) are now approved — see spec §35 entries 11–17 for
-the resolved decision log.** Phase 11.1 (wallet/ledger/RLS/RPC foundation) and Phase 11.2 (wallet
-workflows, credit requests, Experience credit charging/refunds) are both implemented — see
-`docs/PHASE11_1_AUDIT.md` and `docs/PHASE11_2_AUDIT.md`. Migrations `0027`–`0031` are written and
-dry-run-verified but **not yet pushed to the linked Supabase project** (this repo has exactly one
-linked project, with no separate development database — pushing is being treated as its own,
-separately-confirmed action rather than assumed). Phase 11.3 has not begun.
+the resolved decision log.** Phase 11.1 (wallet/ledger/RLS/RPC foundation), Phase 11.2 (wallet
+workflows, credit requests, Experience credit charging/refunds), and Phase 11.3 (Points/XP/Levels/
+Badges/Trophies/Leaderboards) are all implemented — see `docs/PHASE11_1_AUDIT.md`,
+`docs/PHASE11_2_AUDIT.md`, and `docs/PHASE11_3_AUDIT.md`. Migrations `0027`–`0031` were pushed to
+the linked Supabase project on explicit authorization (see `docs/PHASE11_2_AUDIT.md` §11);
+migrations `0032`–`0033` (Phase 11.3) are written and dry-run-verified but **not yet pushed** —
+each live push remains its own, separately-confirmed action, never assumed. Phase 11.4 has not
+begun.
 
 ## Phase 11.1 — Database, ledger, RLS, and RPC foundation
 

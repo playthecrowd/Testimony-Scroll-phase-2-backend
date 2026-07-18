@@ -800,3 +800,92 @@ export interface CreditRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 11.3 (docs/PHASE11_3_AUDIT.md) -- Points/XP/Levels/Badges/Trophies, mapped from
+// migrations 0032/0033. ProgressionEventType is a fixed, server-side-only enum -- never an open
+// rule engine (spec SS11/SS12).
+export type ProgressionEventType =
+  | "lesson_studied"
+  | "experience_completed"
+  | "testimony_submitted"
+  | "testimony_church_approved"
+  | "testimony_kingdom_scroll_published";
+
+export interface ProgressionAwardRule {
+  id: string;
+  eventType: ProgressionEventType;
+  pointsAmount: number;
+  xpAmount: number;
+  xpRewardCeiling: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProgressionLevelThreshold {
+  id: string;
+  level: number;
+  minXp: number;
+  createdAt: string;
+}
+
+export interface MemberProgressionSummary {
+  id: string;
+  profileId: string;
+  pointsTotal: number;
+  xpTotal: number;
+  currentLevel: number;
+  leaderboardOptOut: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BadgeCategory = "achievement" | "trophy";
+export type BadgeRequirementType = "event_count" | "single_event" | "threshold";
+
+export interface BadgeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  category: BadgeCategory;
+  requirementType: BadgeRequirementType;
+  relatedEventType: string | null;
+  threshold: number | null;
+  isActive: boolean;
+  isHiddenUntilEarned: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberBadgeAward {
+  id: string;
+  memberId: string;
+  badgeId: string;
+  awardSource: string;
+  relatedLessonId: string | null;
+  relatedExperienceId: string | null;
+  relatedTestimonyId: string | null;
+  awardedAt: string;
+  awardedBy: string | null;
+  revokedAt: string | null;
+  revocationReason: string | null;
+}
+
+export type LeaderboardScope = "global" | "my_church";
+
+// Named ProgressionLeaderboardEntry, not LeaderboardEntry -- this file already has a
+// pre-Supabase mock LeaderboardEntry (services/questService.ts's quest-score shape); this is the
+// real, Supabase-backed Points-ranked entry and must never collide with that unrelated type
+// (spec SS2d.2).
+export interface ProgressionLeaderboardEntry {
+  profileId: string;
+  fullName: string | null;
+  pointsTotal: number;
+  xpTotal: number;
+  currentLevel: number;
+  rank: number;
+  churchId?: string;
+}
