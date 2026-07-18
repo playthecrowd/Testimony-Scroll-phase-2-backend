@@ -5,17 +5,18 @@ controlled number of milestones, each committed and reported separately on `Prod
 this project's standing one-phase-one-commit, audit-then-implement discipline (Phases 1–10.4).
 
 **All seven Phase 11 owner decisions (spec §34) are now approved — see spec §35 entries 11–17 for
-the resolved decision log.** Phase 11.1 (wallet/ledger/RLS/RPC foundation), Phase 11.2 (wallet
-workflows, credit requests, Experience credit charging/refunds), Phase 11.3 (Points/XP/Levels/
-Badges/Trophies/Leaderboards), and Phase 11.4 (real progression UI — dashboard, badges,
-leaderboard, XP/Points presentation, completion feedback, replacing the retired mock/localStorage
-surfaces) are all implemented — see `docs/PHASE11_1_AUDIT.md` through `docs/PHASE11_4_AUDIT.md`.
-Migrations `0027`–`0033` are all live on the linked Supabase project (see
-`docs/PHASE11_2_AUDIT.md` §11 and `docs/PHASE11_3_AUDIT.md` §11); Phase 11.4 required no new
-migration. Phase 11.4's own handoff notes (`docs/PHASE11_4_AUDIT.md` §19) name candidates for
-Phase 11.5, including wallet/credit-request member UI (Phase 11.1/11.2's service/RPC layer remains
-unused by any page), admin progression tooling, and retiring the remaining out-of-scope mock pages
-(`/profile`, the 3D-quest "experienced" stage). Phase 11.5 has not begun.
+the resolved decision log.** Phases 11.1 through 11.5 are all complete —
+wallet/ledger/RLS/RPC foundation (11.1), wallet workflows/credit requests/Experience charging
+(11.2), Points/XP/Levels/Badges/Trophies/Leaderboards (11.3), real progression UI (11.4), and final
+stabilization/QA/production-readiness (11.5) — see `docs/PHASE11_1_AUDIT.md` through
+`docs/PHASE11_5_AUDIT.md`, plus `docs/KINGDOM_ECONOMY_RELEASE_CHECKLIST.md` for the release gate.
+Migrations `0027`–`0033` are live; `0034` (a cosmetic trigger-name fix) and `0035` (a read-only
+wallet/ledger reconciliation diagnostic) are written and dry-run-verified but **intentionally not
+yet pushed**, awaiting their own separate authorization like every prior live database change.
+Phase 11.5's own audit (§20) recommends the system for production release, contingent on the
+release checklist's owner-side items (real environment/Vercel verification, smoke-test accounts,
+owner acceptance testing) rather than any known code or database defect. The Kingdom Economy &
+Progression phase (Phase 11) is functionally complete; no Phase 11.6 has been scoped.
 
 ## Phase 11.1 — Database, ledger, RLS, and RPC foundation
 

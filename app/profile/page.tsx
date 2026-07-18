@@ -5,21 +5,27 @@ import { User, Mail, Church as ChurchIcon, Award, Map, Feather } from "lucide-re
 import { useSession } from "@/context/SessionContext";
 import { getChurchById } from "@/data/churches";
 import { getUserJourneys } from "@/services/journeyService";
-import { getUserBadges } from "@/services/badgeService";
 import { getUserTestimonies } from "@/services/testimonyService";
 import { StatPill } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 
+// Phase 11.5 (docs/PHASE11_5_AUDIT.md SS11): this page's "Journeys"/"Testimonies" stats still come
+// from the pre-Supabase mock layer (its whole identity model does -- session.user itself is real,
+// but everything queried from it here is not; see docs/PHASE11_4_AUDIT.md SS2/SS18 for why a full
+// migration of this page is deliberately deferred rather than attempted piecemeal). The one stat
+// this page used to show that overlaps with the REAL Kingdom Economy system --  "Badges Earned" --
+// was removed here specifically, because it could show a different number than the real one on
+// /dashboard and /badges, which is exactly the "contradictory real and mock progression values"
+// this phase's brief calls out. A link to the real /badges page replaces it instead.
 export default function ProfilePage() {
   const { session, ready } = useSession();
   const counts =
     ready && session.isLoggedIn
       ? {
           journeys: getUserJourneys(session.user.id).length,
-          badges: getUserBadges(session.user.id).length,
           testimonies: getUserTestimonies(session.user.id).length,
         }
-      : { journeys: 0, badges: 0, testimonies: 0 };
+      : { journeys: 0, testimonies: 0 };
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
@@ -57,8 +63,8 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         <StatPill icon={Map} value={counts.journeys} label="Active Journeys" />
-        <StatPill icon={Award} value={counts.badges} label="Badges Earned" />
         <StatPill icon={Feather} value={counts.testimonies} label="Testimonies" />
+        <StatPill icon={Award} value="View" label="Badges Earned" href="/badges" />
       </div>
 
       <div className="qk-card p-5">

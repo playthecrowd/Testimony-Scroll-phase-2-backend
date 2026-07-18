@@ -221,7 +221,19 @@ test("all five progression triggers are attached to the correct table and event"
   assert.match(sql, /create trigger award_progression_on_experience_completion_trigger\s*\n\s*after update on public\.church_experience_registrations/);
   assert.match(sql, /create trigger award_progression_on_testimony_submitted_trigger\s*\n\s*after insert on public\.testimonies/);
   assert.match(sql, /create trigger award_progression_on_testimony_church_approval_trigger\s*\n\s*after update on public\.testimonies/);
+  // This fifth trigger's ORIGINAL (0033) creation statement still literally reads this longer
+  // name in the migration source -- Postgres silently truncated it to 63 bytes at creation time
+  // (a harmless, purely cosmetic defect), and 0034 later renamed the live trigger to a shorter,
+  // exact name. 0033's own historical source text is immutable and unchanged either way; see the
+  // dedicated 0034 rename test below for the name that's actually live today.
   assert.match(sql, /create trigger award_progression_on_testimony_kingdom_scroll_publication_trigger\s*\n\s*after update on public\.testimonies/);
+});
+
+test("0034 renames the one trigger whose original name exceeded Postgres's 63-byte identifier limit, to a short, exact name that fits", () => {
+  const renameMatch = sql.match(/alter trigger "award_progression_on_testimony_kingdom_scroll_publication_trigg"\s*\n\s*on public\.testimonies\s*\n\s*rename to "([^"]+)";/);
+  assert.ok(renameMatch, "Expected 0034's corrective rename statement, targeting the exact truncated name Postgres actually created");
+  const newName = renameMatch![1];
+  assert.ok(newName.length <= 63, `New trigger name "${newName}" (${newName.length} chars) must fit within Postgres's 63-byte identifier limit`);
 });
 
 // ---------------------------------------------------------------------------
