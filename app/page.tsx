@@ -7,16 +7,27 @@ import { FeaturedEventBanner } from "@/components/layout/FeaturedEventBanner";
 import { FeaturedScrollStrip } from "@/components/layout/FeaturedScrollStrip";
 import { getAllLessons } from "@/services/lessonService";
 import { getApprovedTestimonies } from "@/services/testimonyService";
-import { getAllBadges } from "@/services/badgeService";
 import { photo } from "@/lib/images";
 import { backgrounds } from "@/data/backgrounds";
 import { Church, Compass, HelpCircle, Box, Award, ScrollText, ArrowRight, Heart, Clock } from "lucide-react";
 import Link from "next/link";
 
+// Anonymous-visitor marketing preview only -- names three of the real, currently-seeded v1 badge
+// catalog (Phase 11.3, badge_definitions) so this teaser stays accurate. Not a live query: an
+// anonymous visitor's Supabase session authenticates as the `anon` role, and badge_definitions'
+// RLS is scoped `to authenticated` only, so a live read here would just return zero rows for a
+// signed-out visitor anyway. A short static list avoids both that dead end and the mock catalog
+// this used to show (data/badges.ts's six retired journey-stage badge names).
+const HOMEPAGE_BADGE_PREVIEW = [
+  { slug: "first-lesson-completed", name: "First Lesson Completed" },
+  { slug: "first-experience-completed", name: "First Experience Completed" },
+  { slug: "kingdom-scroll-contributor", name: "Kingdom Scroll Contributor" },
+];
+
 export default function HomePage() {
   const lessons = getAllLessons().slice(0, 1);
   const testimonies = getApprovedTestimonies().slice(0, 3);
-  const badges = getAllBadges().slice(0, 3);
+  const badges = HOMEPAGE_BADGE_PREVIEW;
   const featuredLesson = lessons[0];
 
   return (
@@ -150,11 +161,11 @@ export default function HomePage() {
         <SectionCard title="Badges & Achievements" action="View Badges" actionHref="/badges" icon={Award}>
           <div className="grid grid-cols-3 gap-2">
             {badges.map((b) => (
-              <div key={b.id} className="qk-card p-2 flex flex-col items-center text-center">
+              <div key={b.slug} className="qk-card p-2 flex flex-col items-center text-center">
                 <div className="w-9 h-9 rounded-full bg-accent-blue/15 border border-accent-blue/40 flex items-center justify-center mb-1">
                   <Award size={15} className="text-accent-blue-light" />
                 </div>
-                <span className="text-[11px] text-foreground leading-tight">{b.name.replace(" Badge", "")}</span>
+                <span className="text-[11px] text-foreground leading-tight">{b.name}</span>
               </div>
             ))}
           </div>

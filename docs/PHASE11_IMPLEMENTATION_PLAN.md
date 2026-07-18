@@ -6,13 +6,16 @@ this project's standing one-phase-one-commit, audit-then-implement discipline (P
 
 **All seven Phase 11 owner decisions (spec §34) are now approved — see spec §35 entries 11–17 for
 the resolved decision log.** Phase 11.1 (wallet/ledger/RLS/RPC foundation), Phase 11.2 (wallet
-workflows, credit requests, Experience credit charging/refunds), and Phase 11.3 (Points/XP/Levels/
-Badges/Trophies/Leaderboards) are all implemented — see `docs/PHASE11_1_AUDIT.md`,
-`docs/PHASE11_2_AUDIT.md`, and `docs/PHASE11_3_AUDIT.md`. Migrations `0027`–`0031` were pushed to
-the linked Supabase project on explicit authorization (see `docs/PHASE11_2_AUDIT.md` §11);
-migrations `0032`–`0033` (Phase 11.3) are written and dry-run-verified but **not yet pushed** —
-each live push remains its own, separately-confirmed action, never assumed. Phase 11.4 has not
-begun.
+workflows, credit requests, Experience credit charging/refunds), Phase 11.3 (Points/XP/Levels/
+Badges/Trophies/Leaderboards), and Phase 11.4 (real progression UI — dashboard, badges,
+leaderboard, XP/Points presentation, completion feedback, replacing the retired mock/localStorage
+surfaces) are all implemented — see `docs/PHASE11_1_AUDIT.md` through `docs/PHASE11_4_AUDIT.md`.
+Migrations `0027`–`0033` are all live on the linked Supabase project (see
+`docs/PHASE11_2_AUDIT.md` §11 and `docs/PHASE11_3_AUDIT.md` §11); Phase 11.4 required no new
+migration. Phase 11.4's own handoff notes (`docs/PHASE11_4_AUDIT.md` §19) name candidates for
+Phase 11.5, including wallet/credit-request member UI (Phase 11.1/11.2's service/RPC layer remains
+unused by any page), admin progression tooling, and retiring the remaining out-of-scope mock pages
+(`/profile`, the 3D-quest "experienced" stage). Phase 11.5 has not begun.
 
 ## Phase 11.1 — Database, ledger, RLS, and RPC foundation
 

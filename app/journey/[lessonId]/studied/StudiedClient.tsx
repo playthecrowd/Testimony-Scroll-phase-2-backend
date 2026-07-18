@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setChecklistItemCompletion, touchLastOpened, markStudiedComplete } from "@/services/supabase/journeys";
+import { getMyProgressionAwardForSourceRow, getMyBadgeAwards } from "@/services/supabase/progression";
 import { getApplicableChecklistItems, ChecklistItemKey } from "@/lib/journeyChecklist";
 import { getYouTubeEmbedUrl } from "@/lib/videoEmbed";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
@@ -43,6 +44,7 @@ export function StudiedClient({
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState("");
+  const [awardFeedback, setAwardFeedback] = useState<{ points: number; xp: number; badgeEarned: boolean } | null>(null);
   const [exiting, setExiting] = useState(false);
   const [exitMessage, setExitMessage] = useState("");
   const [tab, setTab] = useState<string>("Overview");
@@ -181,6 +183,26 @@ export function StudiedClient({
       const supabase = createClient();
       const updated = await markStudiedComplete(supabase, journey.id);
       setJourney(updated);
+
+      // Phase 11.4: real, non-predictive completion feedback -- reads the exact award this
+      // specific completion produced from progression_award_log (never guessed or computed
+      // client-side), plus whether it also earned the "First Lesson Completed" badge. If the
+      // award rule was inactive or something else prevented an award, this is simply null and no
+      // feedback banner shows -- never a fabricated "you earned X" message.
+      try {
+        const award = await getMyProgressionAwardForSourceRow(supabase, journey.id);
+        if (award) {
+          const badges = await getMyBadgeAwards(supabase);
+          const badgeEarned = badges.some((b) => b.awardSource === "lesson_studied" && b.relatedLessonId === lesson.id);
+          setAwardFeedback({ points: award.pointsAwarded, xp: award.xpAwarded, badgeEarned });
+        }
+      } catch (awardErr) {
+        // Feedback is a nice-to-have, not the source of truth for whether the stage completed --
+        // the completion itself already succeeded above, so a failure here is logged, not surfaced
+        // as an error to the member.
+        console.error("[StudiedClient] Failed to load completion award feedback:", awardErr);
+      }
+
       router.refresh();
     } catch (err) {
       console.error("[StudiedClient] Failed to mark Studied complete:", err);
@@ -436,6 +458,21 @@ export function StudiedClient({
               {completedCount} of {totalCount} items complete
             </p>
           </div>
+
+          {awardFeedback && (awardFeedback.points > 0 || awardFeedback.xp > 0) && (
+            <div className="qk-card p-4 qk-glow-gold" role="status">
+              <p className="text-sm font-semibold text-foreground mb-1">Progress earned!</p>
+              <p className="text-xs text-muted">
+                {awardFeedback.points > 0 && <span className="text-accent-gold font-medium">+{awardFeedback.points} Points </span>}
+                {awardFeedback.xp > 0 && <span className="text-accent-blue-light font-medium">+{awardFeedback.xp} XP</span>}
+              </p>
+              {awardFeedback.badgeEarned && (
+                <p className="text-xs text-accent-gold font-medium mt-2">
+                  New Badge Earned: First Lesson Completed! <Link href="/badges" className="underline">View Badges</Link>
+                </p>
+              )}
+            </div>
+          )}
 
           {isStudiedComplete && (
             <div className="qk-card p-4 qk-glow-blue">
