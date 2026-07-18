@@ -723,3 +723,59 @@ export interface ChurchExperienceRegistration {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 11.1 (docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md, docs/PHASE11_1_AUDIT.md) -- Kingdom
+// Economy wallet/ledger types, mapped from migrations 0027/0028. Deliberately named
+// MemberWallet/ChurchWallet/CreditLedgerEntry (not "Wallet"/"LedgerEntry") to avoid any collision
+// with this file's pre-existing mock Badge/UserBadge/Journey interfaces from the Phase-1
+// prototype layer (see docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md SS2d.2).
+
+export interface MemberWallet {
+  id: string;
+  profileId: string;
+  currentBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChurchWallet {
+  id: string;
+  churchId: string;
+  currentBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreditTransactionType =
+  | "platform_grant"
+  | "church_grant"
+  | "member_request_approved"
+  | "purchase"
+  | "experience_spend"
+  | "event_spend"
+  | "refund"
+  | "promotional_credit"
+  | "administrator_adjustment"
+  | "reversal";
+
+export type CreditLedgerEntryStatus = "pending" | "completed" | "failed" | "reversed";
+
+export interface CreditLedgerEntry {
+  id: string;
+  memberWalletId: string | null;
+  churchWalletId: string | null;
+  amount: number;
+  transactionType: CreditTransactionType;
+  status: CreditLedgerEntryStatus;
+  idempotencyKey: string | null;
+  relatedChurchId: string | null;
+  relatedMemberId: string | null;
+  relatedExperienceId: string | null;
+  relatedOccurrenceId: string | null;
+  description: string;
+  metadata: Record<string, unknown> | null;
+  createdBy: string | null;
+  createdAt: string;
+  reversesEntryId: string | null;
+  reversedByEntryId: string | null;
+}
