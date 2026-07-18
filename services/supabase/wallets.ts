@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ChurchWallet, CreditLedgerEntry, CreditTransactionType, MemberWallet } from "@/types";
+import { ChurchWallet, CreditLedgerEntry, CreditRequest, CreditTransactionType, MemberWallet } from "@/types";
 
 // Phase 11.1 (docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md, docs/PHASE11_1_AUDIT.md) -- typed
 // service layer over the wallet/ledger schema landed in migrations 0027/0028. No UI, page, or
@@ -207,4 +207,97 @@ export async function getWalletHistory(
   });
   if (error) throw error;
   return (data ?? []).map(mapCreditLedgerEntry);
+}
+
+// ---------------------------------------------------------------------------
+// Credit requests (Phase 11.2, docs/PHASE11_2_AUDIT.md) -- the member-to-church request workflow
+// from migrations 0029/0030. Reads rely on RLS (credit_requests_select_own /
+// credit_requests_select_managed); every status transition is an RPC.
+// ---------------------------------------------------------------------------
+
+const CREDIT_REQUEST_SELECT = `
+  id, requested_by, church_id, requested_amount, related_experience_id, reason, status,
+  decline_reason, resolved_by, resolved_at, created_at, updated_at
+`;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapCreditRequest(row: any): CreditRequest {
+  return {
+    id: row.id,
+    requestedBy: row.requested_by,
+    churchId: row.church_id,
+    requestedAmount: row.requested_amount,
+    relatedExperienceId: row.related_experience_id,
+    reason: row.reason,
+    status: row.status,
+    declineReason: row.decline_reason,
+    resolvedBy: row.resolved_by,
+    resolvedAt: row.resolved_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getMyCreditRequests(supabase: SupabaseClient): Promise<CreditRequest[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("credit_requests")
+    .select(CREDIT_REQUEST_SELECT)
+    .eq("requested_by", user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapCreditRequest);
+}
+
+export async function getCreditRequestsForChurch(supabase: SupabaseClient, churchId: string): Promise<CreditRequest[]> {
+  const { data, error } = await supabase
+    .from("credit_requests")
+    .select(CREDIT_REQUEST_SELECT)
+    .eq("church_id", churchId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(mapCreditRequest);
+}
+
+export interface SubmitCreditRequestInput {
+  churchId: string;
+  requestedAmount: number;
+  relatedExperienceId?: string;
+  reason?: string;
+}
+
+export async function submitCreditRequest(supabase: SupabaseClient, input: SubmitCreditRequestInput): Promise<CreditRequest> {
+  const { data, error } = await supabase.rpc("submit_credit_request", {
+    p_church_id: input.churchId,
+    p_requested_amount: input.requestedAmount,
+    p_related_experience_id: input.relatedExperienceId ?? null,
+    p_reason: input.reason ?? null,
+  });
+  if (error) throw error;
+  return mapCreditRequest(data);
+}
+
+export async function cancelCreditRequest(supabase: SupabaseClient, requestId: string): Promise<CreditRequest> {
+  const { data, error } = await supabase.rpc("cancel_credit_request", { p_request_id: requestId });
+  if (error) throw error;
+  return mapCreditRequest(data);
+}
+
+export async function approveCreditRequest(supabase: SupabaseClient, requestId: string): Promise<CreditRequest> {
+  const { data, error } = await supabase.rpc("approve_credit_request", { p_request_id: requestId });
+  if (error) throw error;
+  return mapCreditRequest(data);
+}
+
+export async function declineCreditRequest(supabase: SupabaseClient, requestId: string, reason?: string): Promise<CreditRequest> {
+  const { data, error } = await supabase.rpc("decline_credit_request", {
+    p_request_id: requestId,
+    p_reason: reason ?? null,
+  });
+  if (error) throw error;
+  return mapCreditRequest(data);
 }

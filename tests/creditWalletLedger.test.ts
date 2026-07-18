@@ -37,11 +37,15 @@ function policiesOn(table: string): string[] {
   return policyChunks.filter((c) => re.test(c));
 }
 
-function functionBody(name: string, args: string): string {
-  const re = new RegExp(`create or replace function public\\.${name}\\(${args}\\)[\\s\\S]*?\\$\\$;`);
-  const m = sql.match(re);
-  assert.ok(m, `Expected public.${name}(${args}) to be defined`);
-  return m![0];
+// Returns the LAST definition of a function in migration order -- refund_credits and
+// cancel_experience_registration are both legitimately redefined by a later Phase 11.2 migration
+// (0030/0031) via `create or replace function`; a plain non-global match() would silently return
+// the first (superseded) definition instead of the one actually live.
+function functionBody(name: string, args: string, schema = "public"): string {
+  const re = new RegExp(`create or replace function ${schema}\\.${name}\\(${args}\\)[\\s\\S]*?\\$\\$;`, "g");
+  const matches = sql.match(re);
+  assert.ok(matches && matches.length > 0, `Expected ${schema}.${name}(${args}) to be defined`);
+  return matches![matches!.length - 1];
 }
 
 // ---------------------------------------------------------------------------
@@ -178,8 +182,10 @@ test("every wallet-mutating RPC locks the wallet row(s) it touches with for upda
   assert.match(transfer, /where church_id = p_from_church_id for update/, "Must lock the church wallet before checking its balance");
   assert.match(transfer, /where profile_id = p_to_member_id for update/);
 
-  const refund = functionBody("refund_credits", "p_ledger_entry_id uuid, p_description text default null");
-  assert.match(refund, /where id = p_ledger_entry_id for update/, "Must lock the original ledger entry to prevent a concurrent double-refund");
+  // refund_credits (redefined in 0030) delegates its actual locking/mutation to private.apply_refund
+  // -- see the Phase 11.2 test file (tests/creditRequestsAndExperienceCredits.test.ts) for that.
+  const applyRefund = functionBody("apply_refund", "p_ledger_entry_id uuid, p_description text", "private");
+  assert.match(applyRefund, /where id = p_ledger_entry_id for update/, "Must lock the original ledger entry to prevent a concurrent double-refund");
 
   const reverse = functionBody("reverse_credit_transaction", "p_ledger_entry_id uuid, p_reason text");
   assert.match(reverse, /where id = p_ledger_entry_id for update/);
@@ -220,15 +226,20 @@ test("member_wallets/church_wallets current_balance CHECK constraint prevents a 
 // Refunds and reversals
 // ---------------------------------------------------------------------------
 
-test("refund_credits credits back the exact opposite of the original entry's amount and links the two rows bidirectionally", () => {
-  const body = functionBody("refund_credits", "p_ledger_entry_id uuid, p_description text default null");
+// This logic moved from refund_credits into private.apply_refund when 0030 redefined refund_credits
+// to delegate rather than duplicate it (see tests/creditRequestsAndExperienceCredits.test.ts for
+// the redefinition itself) -- these two tests were updated accordingly, not deleted, since the
+// underlying guarantee (exact-opposite refund amount, bidirectional linking, no double-acting)
+// still matters and is still enforced, just in the shared helper now.
+test("private.apply_refund credits back the exact opposite of the original entry's amount and links the two rows bidirectionally", () => {
+  const body = functionBody("apply_refund", "p_ledger_entry_id uuid, p_description text", "private");
   assert.match(body, /v_refund_amount := -v_original\.amount;/);
   assert.match(body, /reverses_entry_id/, "The new refund row must record which entry it reverses");
   assert.match(body, /update public\.credit_ledger_entries set reversed_by_entry_id = v_entry\.id where id = v_original\.id;/, "The original entry must be updated to point forward at the new refund row");
 });
 
-test("refund_credits refuses to act twice on the same original entry -- a retry is a safe no-op returning the existing refund", () => {
-  const body = functionBody("refund_credits", "p_ledger_entry_id uuid, p_description text default null");
+test("private.apply_refund refuses to act twice on the same original entry -- a retry is a safe no-op returning the existing refund", () => {
+  const body = functionBody("apply_refund", "p_ledger_entry_id uuid, p_description text", "private");
   assert.match(body, /if v_original\.reversed_by_entry_id is not null then/);
 });
 

@@ -160,6 +160,10 @@ export interface CreateExperienceActionInput extends ValidateExperienceInput {
   registrationRequired: boolean;
   approvalRequired: boolean;
   defaultDurationMinutes: number | null;
+  // Optional: no existing host UI collects this yet (Phase 11.2 is service/RPC-layer only, per its
+  // explicit "no UI" scope) -- defaults to null (free) when omitted, exactly like an Experience
+  // created before this phase existed.
+  defaultCreditCost?: number | null;
 }
 
 export async function createExperienceAction(input: CreateExperienceActionInput): Promise<ActionResult<{ id: string }>> {
@@ -202,6 +206,7 @@ export async function createExperienceAction(input: CreateExperienceActionInput)
       defaultCapacity: input.defaultCapacity ?? null,
       defaultDurationMinutes: input.defaultDurationMinutes ?? null,
       completionMethod: input.completionMethod,
+      defaultCreditCost: input.defaultCreditCost ?? null,
     });
 
     revalidatePath("/host-dashboard/experiences");
@@ -233,6 +238,7 @@ export async function updateExperienceAction(input: UpdateExperienceActionInput)
       completionMethod: input.completionMethod ?? authorized.experience.completionMethod,
       ministryId: input.ministryId ?? authorized.experience.ministryId,
       defaultCapacity: input.defaultCapacity ?? authorized.experience.defaultCapacity,
+      defaultCreditCost: input.defaultCreditCost ?? authorized.experience.defaultCreditCost,
     };
     const fieldErrors = validateExperienceInput(merged);
     if (Object.keys(fieldErrors).length > 0) return { error: Object.values(fieldErrors)[0] };
@@ -262,6 +268,7 @@ export async function updateExperienceAction(input: UpdateExperienceActionInput)
       defaultCapacity: input.defaultCapacity,
       defaultDurationMinutes: input.defaultDurationMinutes,
       completionMethod: input.completionMethod,
+      defaultCreditCost: input.defaultCreditCost,
     });
 
     revalidatePath("/host-dashboard/experiences");
@@ -315,6 +322,9 @@ export interface CreateOccurrenceActionInput {
   onlineUrl: string | null;
   hostContactName: string | null;
   hostContactEmail: string | null;
+  // Optional for the same reason as CreateExperienceActionInput.defaultCreditCost -- no existing
+  // host UI collects this yet; defaults to null (use the Experience's own default) when omitted.
+  creditCost?: number | null;
 }
 
 export async function createOccurrenceAction(input: CreateOccurrenceActionInput): Promise<ActionResult<{ id: string }>> {
@@ -350,6 +360,7 @@ export async function createOccurrenceAction(input: CreateOccurrenceActionInput)
       onlineUrl: input.onlineUrl,
       hostContactName: input.hostContactName,
       hostContactEmail: input.hostContactEmail,
+      creditCost: input.creditCost ?? null,
     });
 
     revalidatePath(`/host-dashboard/experiences/${input.experienceId}`);
@@ -383,6 +394,7 @@ export async function updateOccurrenceAction(input: UpdateOccurrenceActionInput)
       locationName: input.locationName !== undefined ? input.locationName : occurrence.locationName,
       onlineUrl: input.onlineUrl !== undefined ? input.onlineUrl : occurrence.onlineUrl,
       capacity: input.capacity !== undefined ? input.capacity : occurrence.capacity,
+      creditCost: input.creditCost !== undefined ? input.creditCost : occurrence.creditCost,
     });
     if (Object.keys(fieldErrors).length > 0) return { error: Object.values(fieldErrors)[0] };
 
@@ -397,6 +409,7 @@ export async function updateOccurrenceAction(input: UpdateOccurrenceActionInput)
       onlineUrl: input.onlineUrl,
       hostContactName: input.hostContactName,
       hostContactEmail: input.hostContactEmail,
+      creditCost: input.creditCost,
     });
 
     revalidatePath(`/host-dashboard/experiences/${occurrence.experienceId}`);

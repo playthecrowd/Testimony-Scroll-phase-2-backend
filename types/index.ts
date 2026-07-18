@@ -657,6 +657,7 @@ export interface ChurchExperience {
   defaultCapacity: number | null;
   defaultDurationMinutes: number | null;
   completionMethod: ChurchExperienceCompletionMethod;
+  defaultCreditCost: number | null;
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -683,6 +684,7 @@ export interface ChurchExperienceOccurrence {
   cancellationReason: string | null;
   checkInEnabled: boolean;
   attendanceFinalizedAt: string | null;
+  creditCost: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -778,4 +780,23 @@ export interface CreditLedgerEntry {
   createdAt: string;
   reversesEntryId: string | null;
   reversedByEntryId: string | null;
+}
+
+// Phase 11.2 (docs/PHASE11_2_AUDIT.md) -- the member-to-church credit request workflow, mapped
+// from migration 0029.
+export type CreditRequestStatus = "submitted" | "under_review" | "approved" | "declined" | "cancelled" | "fulfilled";
+
+export interface CreditRequest {
+  id: string;
+  requestedBy: string;
+  churchId: string;
+  requestedAmount: number;
+  relatedExperienceId: string | null;
+  reason: string | null;
+  status: CreditRequestStatus;
+  declineReason: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }

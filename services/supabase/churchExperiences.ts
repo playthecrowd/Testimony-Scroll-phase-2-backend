@@ -32,7 +32,8 @@ const CHURCH_EXPERIENCE_SELECT = `
   custom_type_label, format, location_name, address_line1, city, region, country, online_url,
   cover_image_url, age_guidance, accessibility_notes, preparation_instructions, what_to_bring,
   status, visibility, registration_required, approval_required, default_capacity,
-  default_duration_minutes, completion_method, created_at, updated_at, published_at, archived_at
+  default_duration_minutes, completion_method, default_credit_cost, created_at, updated_at,
+  published_at, archived_at
 `;
 
 const CHURCH_EXPERIENCE_LESSON_SELECT =
@@ -69,6 +70,7 @@ export function mapChurchExperience(row: any): ChurchExperience {
     defaultCapacity: row.default_capacity,
     defaultDurationMinutes: row.default_duration_minutes,
     completionMethod: row.completion_method,
+    defaultCreditCost: row.default_credit_cost,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -153,6 +155,7 @@ export interface CreateExperienceInput {
   defaultCapacity: number | null;
   defaultDurationMinutes: number | null;
   completionMethod: ChurchExperienceCompletionMethod;
+  defaultCreditCost: number | null;
 }
 
 // Always inserts as status='draft' (the column default) -- publishing is a separate, explicit
@@ -193,6 +196,7 @@ export async function createExperience(supabase: SupabaseClient, input: CreateEx
       default_capacity: input.defaultCapacity,
       default_duration_minutes: input.defaultDurationMinutes,
       completion_method: input.completionMethod,
+      default_credit_cost: input.defaultCreditCost,
     })
     .select(CHURCH_EXPERIENCE_SELECT)
     .single();
@@ -235,6 +239,7 @@ function toUpdatePayload(input: UpdateExperienceInput): Record<string, any> {
   if (input.defaultCapacity !== undefined) payload.default_capacity = input.defaultCapacity;
   if (input.defaultDurationMinutes !== undefined) payload.default_duration_minutes = input.defaultDurationMinutes;
   if (input.completionMethod !== undefined) payload.completion_method = input.completionMethod;
+  if (input.defaultCreditCost !== undefined) payload.default_credit_cost = input.defaultCreditCost;
   return payload;
 }
 
@@ -307,7 +312,7 @@ const CHURCH_EXPERIENCE_OCCURRENCE_SELECT = `
   id, experience_id, church_id, starts_at, ends_at, timezone, registration_opens_at,
   registration_closes_at, capacity, location_name, online_url, host_contact_name,
   host_contact_email, status, cancellation_reason, check_in_enabled, attendance_finalized_at,
-  created_at, updated_at
+  credit_cost, created_at, updated_at
 `;
 
 const CHURCH_EXPERIENCE_REGISTRATION_SELECT = `
@@ -336,6 +341,7 @@ export function mapChurchExperienceOccurrence(row: any): ChurchExperienceOccurre
     cancellationReason: row.cancellation_reason,
     checkInEnabled: row.check_in_enabled,
     attendanceFinalizedAt: row.attendance_finalized_at,
+    creditCost: row.credit_cost,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -406,6 +412,7 @@ export interface CreateOccurrenceInput {
   onlineUrl: string | null;
   hostContactName: string | null;
   hostContactEmail: string | null;
+  creditCost: number | null;
 }
 
 export async function createOccurrence(supabase: SupabaseClient, input: CreateOccurrenceInput): Promise<ChurchExperienceOccurrence> {
@@ -424,6 +431,7 @@ export async function createOccurrence(supabase: SupabaseClient, input: CreateOc
       online_url: input.onlineUrl,
       host_contact_name: input.hostContactName,
       host_contact_email: input.hostContactEmail,
+      credit_cost: input.creditCost,
     })
     .select(CHURCH_EXPERIENCE_OCCURRENCE_SELECT)
     .single();
@@ -450,6 +458,7 @@ function toOccurrenceUpdatePayload(input: UpdateOccurrenceInput): Record<string,
   if (input.onlineUrl !== undefined) payload.online_url = input.onlineUrl;
   if (input.hostContactName !== undefined) payload.host_contact_name = input.hostContactName;
   if (input.hostContactEmail !== undefined) payload.host_contact_email = input.hostContactEmail;
+  if (input.creditCost !== undefined) payload.credit_cost = input.creditCost;
   if (input.status !== undefined) payload.status = input.status;
   return payload;
 }

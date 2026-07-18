@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { registerForOccurrence, cancelRegistration } from "@/services/supabase/churchExperiences";
+import { registerForOccurrence, cancelRegistration, getOccurrenceById, getExperienceById } from "@/services/supabase/churchExperiences";
+import { getMyMemberWallet } from "@/services/supabase/wallets";
+import { calculateExperienceCreditCost, hasSufficientBalanceForCost } from "@/lib/experienceCredits";
 import { ChurchExperienceRegistration } from "@/types";
 
 // Member-facing registration/cancellation actions (Phase 10.3, checkpoint 5). Both are thin
@@ -64,5 +66,46 @@ export async function cancelMyRegistrationAction(registrationId: string): Promis
     return { ok: true, registration };
   } catch (err) {
     return { error: safeErrorMessage(err, "Couldn't cancel this registration. Please try again.") };
+  }
+}
+
+// Phase 11.2: read-only preview of what registering for this occurrence would cost and whether
+// the signed-in member can currently afford it -- a UX convenience only. The database's own
+// charge_credits_on_registration_confirmation trigger (0031) remains the sole authority on the
+// actual charge; this never decides whether a registration is allowed, it only lets a future UI
+// show "this costs N credits" (and, once /credit-requests exists, offer that path) before the
+// member commits.
+export interface ExperienceCreditPreview {
+  cost: number | null;
+  balance: number;
+  sufficient: boolean;
+}
+
+export interface ExperienceCreditPreviewResult {
+  error?: string;
+  ok?: boolean;
+  preview?: ExperienceCreditPreview;
+}
+
+export async function getExperienceCreditPreviewAction(occurrenceId: string): Promise<ExperienceCreditPreviewResult> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "You must be signed in." };
+
+    const occurrence = await getOccurrenceById(supabase, occurrenceId);
+    if (!occurrence) return { error: "That occurrence could not be found." };
+    const experience = await getExperienceById(supabase, occurrence.experienceId);
+    if (!experience) return { error: "The parent Experience could not be found." };
+
+    const cost = calculateExperienceCreditCost(experience, occurrence);
+    const wallet = await getMyMemberWallet(supabase);
+    const balance = wallet?.currentBalance ?? 0;
+
+    return { ok: true, preview: { cost, balance, sufficient: hasSufficientBalanceForCost(balance, cost) } };
+  } catch (err) {
+    return { error: safeErrorMessage(err, "Couldn't check the credit cost for this occurrence. Please try again.") };
   }
 }

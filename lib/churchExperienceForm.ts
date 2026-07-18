@@ -53,6 +53,7 @@ export interface ValidateExperienceInput {
   status?: ChurchExperienceStatus;
   ministryId?: string | null;
   defaultCapacity?: number | null;
+  defaultCreditCost?: number | null;
 }
 
 export function validateExperienceInput(input: ValidateExperienceInput): Record<string, string> {
@@ -76,6 +77,10 @@ export function validateExperienceInput(input: ValidateExperienceInput): Record<
     errors.defaultCapacity = "Default capacity must be empty (unlimited) or a positive whole number.";
   }
 
+  if (input.defaultCreditCost != null && (!Number.isInteger(input.defaultCreditCost) || input.defaultCreditCost <= 0)) {
+    errors.defaultCreditCost = "Default credit cost must be empty (free) or a positive whole number.";
+  }
+
   return errors;
 }
 
@@ -94,6 +99,7 @@ export interface ValidateOccurrenceInput {
   locationName: string | null;
   onlineUrl: string | null;
   capacity: number | null;
+  creditCost?: number | null;
 }
 
 export function validateOccurrenceInput(input: ValidateOccurrenceInput): Record<string, string> {
@@ -114,6 +120,10 @@ export function validateOccurrenceInput(input: ValidateOccurrenceInput): Record<
 
   if (input.capacity != null && (!Number.isInteger(input.capacity) || input.capacity <= 0)) {
     errors.capacity = "Capacity must be empty (unlimited) or a positive whole number.";
+  }
+
+  if (input.creditCost != null && (!Number.isInteger(input.creditCost) || input.creditCost <= 0)) {
+    errors.creditCost = "Credit cost must be empty (free) or a positive whole number.";
   }
 
   const effectiveLocation = input.locationName ?? input.experienceLocationName;
