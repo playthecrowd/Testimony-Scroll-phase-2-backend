@@ -11,8 +11,11 @@ its terminology, schema, RLS design, and decision log, including the ten owner d
 > `promote_waitlist_registration`, `record_experience_walk_in`) — originally staged across 10.1,
 > 10.6, and 10.7 below. **10.6 and 10.7's own RPC-creation steps are now already done** by the time
 > those stages are reached; treat their "Migrations"/RPC bullets below as already satisfied and
-> focus those stages on the UI/service-layer work they still own. Stages 10.2–10.5, 10.8–10.10
-> remain not started, exactly as originally planned.
+> focus those stages on the UI/service-layer work they still own.
+>
+> **Phase 10.2 complete (2026-07-18)** — see `docs/PHASE10_2_AUDIT.md`. Implemented exactly as
+> scoped below: `services/supabase/churchExperiences.ts`, no UI. Stages 10.3–10.10 remain not
+> started.
 
 Each stage should, when actually executed, follow this repo's established phase discipline: run
 `npm run lint` / `npx tsc --noEmit` / `npm run build` / `npm test` before considering the stage
