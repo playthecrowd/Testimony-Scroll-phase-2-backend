@@ -189,15 +189,28 @@ All 94 tests pass (79 pre-existing + 15 new).
 
 ## Known limitations
 
-- **No live Supabase project exists in this environment** (confirmed — no `.env.local`, only
-  `.env.example`), so none of the following could be exercised against a real database in this
-  session: actual migration application, RPC execution, concurrency/race-condition behavior,
+- **Update (2026-07-18, post-deployment)**: a live Supabase project became linked partway through
+  Phase 10.3, and migrations `0001`–`0026` (including this phase's `0022`–`0024`) are now
+  successfully deployed and verified live — see `docs/PHASE10_3_AUDIT.md` §21 for the full
+  verification results (all tables/RLS/RPCs confirmed present and correctly shaped). One
+  documentation correction from that live check: this table's own migration comment says "no
+  INSERT grant is given" for `church_experience_registrations` — that's imprecise. Live inspection
+  shows `authenticated` actually holds the full default privilege set (INSERT/DELETE/etc.) on this
+  table, same as every other table in this project (a project-wide Supabase default-privileges
+  configuration, not something this migration controls). The real reason direct inserts are
+  blocked is that **no INSERT policy exists at all** — confirmed live — and Postgres RLS denies any
+  command with no matching policy regardless of the underlying grant. Functionally this is exactly
+  as secure as intended; only the migration comment's stated *mechanism* was imprecise. Not edited
+  in the migration itself, since it's now deployed and immutable.
+- The paragraph below described this file's original, pre-deployment state and is kept for
+  history: **no live Supabase project existed in this environment** (confirmed — no `.env.local`,
+  only `.env.example`), so none of the following could be exercised against a real database in
+  that session: actual migration application, RPC execution, concurrency/race-condition behavior,
   capacity/waitlist correctness under real simultaneous requests, or RLS cross-church isolation
-  with real signed-in users. All of the above is **code-reviewed and statically tested only** —
-  the exact same limitation every prior phase (1 through 9.5) has documented for real-Supabase-
-  backed work. Recommend running the manual/integration QA already specified in spec §27 once
-  live credentials are available, before any of these RPCs are exposed through UI in a later
-  phase.
+  with real signed-in users. All of the above was **code-reviewed and statically tested only** at
+  the time — the same limitation every prior phase (1 through 9.5) documented for real-Supabase-
+  backed work. Recommend running the manual/integration QA already specified in spec §27 with a
+  real signed-in session, now that the schema itself is live.
 - **`church_experiences.registration_required` is not yet enforced anywhere.** It exists as a
   schema field (per spec §10) but no RPC checks it — a `false` value currently has no behavioral
   effect. This is intentional for Phase 10.1 (an unenforced UI-hint field is a documented, minor,

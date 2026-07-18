@@ -10,6 +10,7 @@ import {
   Clapperboard,
   CalendarHeart,
   Building2,
+  HeartHandshake,
 } from "lucide-react";
 
 // Single source of truth for the "is this link Host-only" question, consulted by both Sidebar
@@ -26,10 +27,15 @@ export interface AppNavLink {
 
 // Events moved earlier in every nav surface per Part 18 #1 ("move Events to a more visible
 // location") -- previously last in both sidebars and second-to-last in the top nav.
+// "Experiences" (Phase 10.3, church-scheduled discipleship activities) is a deliberately distinct
+// label from the existing "Build Experience" (lesson creation, host-only) -- the two concepts'
+// naming overlap is documented, accepted technical debt (docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md
+// SS2/SS30), not resolved by renaming either one here.
 export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/my-journey", label: "My Journey", icon: Map },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
+  { href: "/experiences", label: "Experiences", icon: HeartHandshake },
   { href: "/events", label: "Events", icon: CalendarHeart },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
@@ -41,6 +47,7 @@ export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
+  { href: "/host-dashboard/experiences", label: "Experiences", icon: HeartHandshake, hostOnly: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/events", label: "Events", icon: CalendarHeart },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },

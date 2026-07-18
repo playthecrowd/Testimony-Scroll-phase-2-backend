@@ -483,6 +483,37 @@ test("church_experience_registrations enforces one registration per (occurrence,
   assert.match(tableMatch![0], /unique \(occurrence_id, profile_id\)/);
 });
 
+// Phase 10.3: resolves the ownership-reassignment edge case flagged in docs/PHASE10_2_AUDIT.md.
+test("church_experiences ownership fields (church_id, created_by) are protected from reassignment by a dedicated trigger", () => {
+  const fnMatch = sql.match(/create or replace function public\.protect_church_experience_ownership\(\)[\s\S]*?\$\$;/);
+  assert.ok(fnMatch, "Expected public.protect_church_experience_ownership to be defined");
+  const body = fnMatch![0];
+  assert.match(body, /security definer/i);
+  assert.match(body, /new\.church_id is distinct from old\.church_id/);
+  assert.match(body, /new\.created_by is distinct from old\.created_by/);
+
+  const triggerMatch = sql.match(/create trigger protect_church_experience_ownership_trigger\s+before update on public\.church_experiences[\s\S]*?;/);
+  assert.ok(triggerMatch, "Expected protect_church_experience_ownership_trigger to be attached to church_experiences");
+});
+
+// Phase 10.3, checkpoint 9: the one narrow, idempotent Journey integration point. See the
+// migration's own header comment for the corrected understanding of markStudiedComplete's
+// existing behavior that this design is based on.
+test("sync_journey_on_experience_completion only fires on the not_started -> completed transition and is SECURITY DEFINER", () => {
+  const fnMatch = sql.match(/create or replace function public\.sync_journey_on_experience_completion\(\)[\s\S]*?\$\$;/);
+  assert.ok(fnMatch, "Expected public.sync_journey_on_experience_completion to be defined");
+  const body = fnMatch![0];
+  assert.match(body, /security definer/i);
+  assert.match(body, /new\.completion_status <> 'completed' or old\.completion_status is not distinct from 'completed'/, "Must guard against re-firing on a repeated 'completed' save -- this is what makes it idempotent");
+  assert.match(body, /relationship = 'required'/, "Must only advance the journey for required lesson links, not merely recommended ones");
+  assert.match(body, /current_stage = 'experienced'/, "Must only advance a journey sitting exactly at 'experienced', never skip stages");
+  assert.match(body, /studied_completed_at is not null/, "Must require a real studied completion already on record");
+  assert.match(body, /set current_stage = 'applied'/, "Must advance to 'applied', not re-derive 'experienced' (already handled by markStudiedComplete)");
+
+  const triggerMatch = sql.match(/create trigger sync_journey_on_experience_completion_trigger\s+after update on public\.church_experience_registrations[\s\S]*?;/);
+  assert.ok(triggerMatch, "Expected sync_journey_on_experience_completion_trigger to be attached to church_experience_registrations");
+});
+
 // Phase 9 (docs/PHASE9_AUDIT.md): admin_moderation_log is a new, entirely admin-only table -- no
 // church dimension, no public visibility, ever. It's written by lib/adminAuditLog.ts's
 // logAdminAction() from every existing status-changing admin action.

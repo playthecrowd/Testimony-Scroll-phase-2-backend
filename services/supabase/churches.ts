@@ -86,6 +86,26 @@ export async function getMyHostChurches(supabase: SupabaseClient): Promise<Publi
     .map(mapChurch);
 }
 
+// Every church the signed-in user belongs to, any role -- used by member-facing Experience
+// discovery (Phase 10.3), which is church-scoped for any member, not just hosts/admins.
+export async function getMyChurches(supabase: SupabaseClient): Promise<PublishedChurch[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("church_memberships")
+    .select(`role, church:churches(${CHURCH_SELECT})`)
+    .eq("profile_id", user.id);
+  if (error) throw error;
+
+  return (data ?? [])
+    .map((row) => row.church)
+    .filter((c): c is NonNullable<typeof c> => !!c)
+    .map(mapChurch);
+}
+
 // Real, live count of every church_memberships row for a church (any role) -- churches.member_count
 // is a static seed/demo column, never updated as people actually join, so it can't be trusted for
 // the Host Dashboard header. RLS on church_memberships only lets this count the caller's own rows

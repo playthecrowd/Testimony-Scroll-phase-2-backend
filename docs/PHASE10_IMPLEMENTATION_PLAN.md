@@ -14,8 +14,26 @@ its terminology, schema, RLS design, and decision log, including the ten owner d
 > focus those stages on the UI/service-layer work they still own.
 >
 > **Phase 10.2 complete (2026-07-18)** — see `docs/PHASE10_2_AUDIT.md`. Implemented exactly as
-> scoped below: `services/supabase/churchExperiences.ts`, no UI. Stages 10.3–10.10 remain not
-> started.
+> scoped below: `services/supabase/churchExperiences.ts`, no UI.
+>
+> **Phase 10.3 complete (2026-07-18)** — see `docs/PHASE10_3_AUDIT.md`. Per this stage's explicit
+> instructions, it combined the *remaining* unfinished portions of 10.2 (server actions/
+> orchestration), 10.3 (host UI), 10.4 (member discovery/registration), and 10.5 (attendance/
+> Journey integration) into one milestone. **Stages 10.3–10.8 below are now fully superseded** —
+> their goals are all met by `docs/PHASE10_3_AUDIT.md`'s file/route/workflow lists, including the
+> Journey integration (10.8), which landed with one important correction to this plan's original
+> assumption: it's the `experienced → applied` transition that Phase 10 now drives, not
+> `studied → experienced` (already handled elsewhere, unconditionally, since Phase 5 — see
+> `docs/PHASE10_3_AUDIT.md` §11 for the full explanation). Only **10.9 (reporting) and 10.10
+> (final tests/QA/docs/stabilization)** remain meaningfully not-yet-done as their own stages,
+> though the participation-summary reporting called for in 10.9 is already partially covered by
+> `getExperienceSummaries`/`getParticipationCountsForOccurrences` and the host detail page's
+> Participation Summary panel.
+>
+> **Migration numbering note**: migrations `0001`–`0026` (including this plan's own `0022`–`0026`)
+> were deployed to the linked Supabase project on 2026-07-18 and are now treated as immutable. Any
+> further schema change from any future stage of this plan must start a new migration at `0027`,
+> never edit an applied one.
 
 Each stage should, when actually executed, follow this repo's established phase discipline: run
 `npm run lint` / `npx tsc --noEmit` / `npm run build` / `npm test` before considering the stage
