@@ -11,7 +11,7 @@ const TESTIMONY_SELECT = `
   id, church_id, primary_lesson_id, supporting_lesson_ids, title, topic, scripture, written_testimony,
   video_url, audio_url, visibility, identity_display, display_name, suggested_character,
   story_generation_permission, future_episode_permission, voice_likeness_permission,
-  church_status, platform_status, created_at, updated_at,
+  church_status, platform_status, featured, created_at, updated_at,
   church:churches(name),
   primary_lesson:lessons(title, slug)
 `;
@@ -41,6 +41,7 @@ function mapTestimony(row: any): PublishedTestimony {
     voiceLikenessPermission: row.voice_likeness_permission,
     churchStatus: row.church_status,
     platformStatus: row.platform_status,
+    featured: row.featured,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -168,6 +169,11 @@ export async function updateTestimonyPlatformStatus(
   status: TestimonyPlatformStatus
 ): Promise<void> {
   const { error } = await supabase.from("testimonies").update({ platform_status: status }).eq("id", testimonyId);
+  if (error) throw error;
+}
+
+export async function updateTestimonyFeatured(supabase: SupabaseClient, testimonyId: string, featured: boolean): Promise<void> {
+  const { error } = await supabase.from("testimonies").update({ featured }).eq("id", testimonyId);
   if (error) throw error;
 }
 

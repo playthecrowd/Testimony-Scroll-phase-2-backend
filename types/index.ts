@@ -388,6 +388,7 @@ export interface PublishedLesson {
   xpReward: number | null;
   status: "draft" | "published";
   contributorsCount: number;
+  featured: boolean;
   createdAt: string;
   updatedAt: string;
   church: PublishedChurch;
@@ -489,6 +490,7 @@ export interface PublishedTestimony {
   voiceLikenessPermission: boolean;
   churchStatus: TestimonyChurchStatus;
   platformStatus: TestimonyPlatformStatus;
+  featured: boolean;
   createdAt: string;
   updatedAt: string;
 }

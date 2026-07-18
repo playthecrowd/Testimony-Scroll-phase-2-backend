@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { requirePlatformAdmin } from "@/lib/adminAuth";
+import { logAdminAction } from "@/lib/adminAuditLog";
 import { updateLessonRequestStatus } from "@/services/supabase/lessonRequests";
 import { LessonRequestStatus } from "@/types";
 
@@ -25,6 +26,7 @@ export async function updatePublicLessonRequestStatusAction(
     if (authError) return { error: authError };
 
     await updateLessonRequestStatus(supabase, requestId, status);
+    await logAdminAction(supabase, { action: `lesson_request_${status}`, entityType: "lesson_request", entityId: requestId });
     revalidatePath("/admin/lesson-requests");
     revalidatePath("/lesson-requests");
     return {};

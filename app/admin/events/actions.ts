@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { requirePlatformAdmin } from "@/lib/adminAuth";
+import { logAdminAction } from "@/lib/adminAuditLog";
 import { updateEventStatus, updateEventFeatured } from "@/services/supabase/events";
 import { EventStatus } from "@/types";
 
@@ -20,6 +21,7 @@ export async function updateEventStatusAction(id: string, status: EventStatus): 
     if (authError) return { error: authError };
 
     await updateEventStatus(supabase, id, status);
+    await logAdminAction(supabase, { action: `event_${status}`, entityType: "event", entityId: id });
     revalidateEventPaths(id);
     return {};
   } catch (err) {
@@ -36,6 +38,7 @@ export async function updateEventFeaturedAction(id: string, featured: boolean): 
     if (authError) return { error: authError };
 
     await updateEventFeatured(supabase, id, featured);
+    await logAdminAction(supabase, { action: featured ? "event_featured" : "event_unfeatured", entityType: "event", entityId: id });
     revalidateEventPaths(id);
     return {};
   } catch (err) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookMarked } from "lucide-react";
+import { ArrowRight, BookMarked, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
@@ -68,6 +68,32 @@ export default async function KingdomScrollPage() {
           Read the Full Story <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
         </span>
       </Link>
+
+      {!loadError && testimonies.some((t) => t.featured) && (
+        <div className="mt-6">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Star size={15} className="text-accent-blue-light" fill="currentColor" />
+            <h2 className="text-sm font-semibold text-foreground">Featured Testimonies</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {testimonies
+              .filter((t) => t.featured)
+              .map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/kingdom-scroll/${t.id}`}
+                  className="qk-card p-4 flex flex-col gap-2 hover:border-accent-blue-light transition-colors"
+                >
+                  <p className="text-sm font-semibold text-foreground line-clamp-2">{t.title}</p>
+                  <p className="text-xs text-muted line-clamp-3">{t.writtenTestimony}</p>
+                  <p className="text-[11px] text-muted mt-auto pt-2">
+                    {t.displayName || "A Kingdom Member"} · {t.churchName || "Quest for the Kingdom"}
+                  </p>
+                </Link>
+              ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6">
         {loadError ? <ErrorState message={loadError} /> : <KingdomScrollList testimonies={testimonies} />}

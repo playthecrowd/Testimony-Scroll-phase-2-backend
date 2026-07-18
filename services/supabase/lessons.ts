@@ -9,7 +9,7 @@ const EXPERIENCE_FIELDS = "id, name, description, preview_image_url";
 const LESSON_SELECT = `
   id, slug, title, short_description, about_text, topic, subject, ministry_category,
   date, duration_label, lesson_type, primary_scripture, supporting_scriptures, tags,
-  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, created_at, updated_at,
+  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, featured, created_at, updated_at,
   church:churches(${CHURCH_FIELDS}),
   speaker:speakers(id, name, avatar_url, bio),
   media:lesson_media(id, media_type, url, content, title, sort_order),
@@ -43,6 +43,7 @@ function mapLesson(row: any): PublishedLesson {
     xpReward: row.xp_reward,
     status: row.status,
     contributorsCount: row.contributors_count ?? 0,
+    featured: row.featured ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     church: mapChurch(row.church),
@@ -96,6 +97,11 @@ export async function addLessonMediaItem(
   url: string
 ): Promise<void> {
   const { error } = await supabase.from("lesson_media").insert({ lesson_id: lessonId, media_type: mediaType, url });
+  if (error) throw error;
+}
+
+export async function updateLessonFeatured(supabase: SupabaseClient, lessonId: string, featured: boolean): Promise<void> {
+  const { error } = await supabase.from("lessons").update({ featured }).eq("id", lessonId);
   if (error) throw error;
 }
 

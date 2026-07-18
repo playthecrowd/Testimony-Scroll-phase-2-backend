@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { requirePlatformAdmin } from "@/lib/adminAuth";
+import { logAdminAction } from "@/lib/adminAuditLog";
 import {
   createEpisode,
   updateEpisode,
@@ -72,6 +73,7 @@ export async function updateEpisodeStatusAction(id: string, status: PublishedEpi
     if (authError) return { error: authError };
 
     await updateEpisodeStatus(supabase, id, status);
+    await logAdminAction(supabase, { action: `episode_${status}`, entityType: "episode", entityId: id });
     revalidateEpisodePaths(id);
     return {};
   } catch (err) {

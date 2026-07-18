@@ -69,6 +69,8 @@ export default function LessonsPage() {
     };
   }, []);
 
+  const featured = useMemo(() => lessons.filter((l) => l.featured), [lessons]);
+
   const speakers = useMemo(() => {
     const map = new Map<string, string>();
     lessons.forEach((l) => {
@@ -105,6 +107,20 @@ export default function LessonsPage() {
               Request a Lesson
             </LinkButton>
           </div>
+
+          {!loading && !error && featured.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Star size={15} className="text-accent-blue-light" fill="currentColor" />
+                <h2 className="text-sm font-semibold text-foreground">Featured Lessons</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                {featured.map((l) => (
+                  <PublishedLessonCard key={l.id} lesson={l} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="qk-card p-4 mb-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <FilterField label="Church">

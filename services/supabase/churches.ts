@@ -43,6 +43,21 @@ export async function getPublishedChurches(supabase: SupabaseClient): Promise<Pu
   return (data ?? []).map(mapChurch);
 }
 
+// Admin-facing (Phase 9, docs/PHASE9_AUDIT.md): deliberately no .eq("status", ...) filter, same
+// "let RLS decide" pattern as getManagedLessonsByChurch -- churches_select_published_or_managed
+// already returns every church (draft or published) to a platform admin caller, and only
+// published ones to anyone else.
+export async function getAllChurchesForAdmin(supabase: SupabaseClient): Promise<PublishedChurch[]> {
+  const { data, error } = await supabase.from("churches").select(CHURCH_SELECT).order("name");
+  if (error) throw error;
+  return (data ?? []).map(mapChurch);
+}
+
+export async function updateChurchVerified(supabase: SupabaseClient, churchId: string, verified: boolean): Promise<void> {
+  const { error } = await supabase.from("churches").update({ verified }).eq("id", churchId);
+  if (error) throw error;
+}
+
 export async function getPublishedChurch(supabase: SupabaseClient, slugOrId: string): Promise<PublishedChurch | null> {
   let query = supabase.from("churches").select(CHURCH_SELECT).eq("status", "published");
   query = UUID_RE.test(slugOrId) ? query.or(`slug.eq.${slugOrId},id.eq.${slugOrId}`) : query.eq("slug", slugOrId);

@@ -338,3 +338,45 @@ test("events.payment_status can never be 'paid' -- no Square integration exists 
   assert.ok(tableMatch, "Expected the events table definition");
   assert.match(tableMatch![0], /payment_status text not null default 'not_applicable' check \(payment_status in \('not_applicable', 'pending'\)\)/);
 });
+
+// Phase 9 (docs/PHASE9_AUDIT.md): admin_moderation_log is a new, entirely admin-only table -- no
+// church dimension, no public visibility, ever. It's written by lib/adminAuditLog.ts's
+// logAdminAction() from every existing status-changing admin action.
+test("admin_moderation_log has no bare using(true) policy", () => {
+  for (const chunk of policiesOn("admin_moderation_log")) {
+    assert.doesNotMatch(
+      chunk,
+      /using\s*\(\s*true\s*\)/i,
+      "A policy on public.admin_moderation_log uses using(true) -- this is an internal audit trail and must never be broadcast"
+    );
+  }
+});
+
+test("admin_moderation_log's SELECT and INSERT policies both check profiles.is_platform_admin directly", () => {
+  const selectPolicy = policiesOn("admin_moderation_log").find((c) => /for select/i.test(c));
+  const insertPolicy = policiesOn("admin_moderation_log").find((c) => /for insert/i.test(c));
+  assert.ok(selectPolicy, "Expected a SELECT policy on admin_moderation_log");
+  assert.ok(insertPolicy, "Expected an INSERT policy on admin_moderation_log");
+  assert.match(selectPolicy!, /is_platform_admin/);
+  assert.match(insertPolicy!, /is_platform_admin/);
+});
+
+test("admin_moderation_log's INSERT policy pins actor_id to the caller, not arbitrary client input", () => {
+  const insertPolicy = policiesOn("admin_moderation_log").find((c) => /for insert/i.test(c));
+  assert.ok(insertPolicy, "Expected an INSERT policy on admin_moderation_log");
+  assert.match(insertPolicy!, /actor_id\s*=\s*auth\.uid\(\)/);
+});
+
+// Phase 9: lessons.featured / testimonies.featured are new columns on already church-scoped
+// tables -- the row-level policy (private.is_church_manager, tested above via
+// CHURCH_SCOPED_TABLES/the dedicated testimonies tests) still governs who can write them; this
+// just confirms the column-level grant exists so an admin's UPDATE isn't blocked at the column
+// privilege layer before RLS is even evaluated.
+test("lessons.featured and testimonies.featured columns exist with a column-level UPDATE grant to authenticated", () => {
+  const lessonsTable = sql.match(/alter table public\.lessons add column if not exists featured boolean/);
+  const testimoniesTable = sql.match(/alter table public\.testimonies add column if not exists featured boolean/);
+  assert.ok(lessonsTable, "Expected lessons.featured column to be added");
+  assert.ok(testimoniesTable, "Expected testimonies.featured column to be added");
+  assert.match(sql, /grant update \(featured\) on public\.lessons to authenticated/);
+  assert.match(sql, /grant update \(featured\) on public\.testimonies to authenticated/);
+});
