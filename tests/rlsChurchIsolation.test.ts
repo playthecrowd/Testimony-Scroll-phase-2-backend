@@ -514,6 +514,34 @@ test("sync_journey_on_experience_completion only fires on the not_started -> com
   assert.ok(triggerMatch, "Expected sync_journey_on_experience_completion_trigger to be attached to church_experience_registrations");
 });
 
+// Phase 10.4: the generic CHURCH_SCOPED_TABLES loop above only confirms these three tables have
+// *some* is_church_manager-gated policy -- it doesn't confirm a member (non-manager) can actually
+// see a published Experience at their own church, or is blocked from a draft/other-church one.
+// These three tests pin down that specific "published-or-managed" SELECT shape directly.
+test("church_experiences' SELECT policy allows a member to see only published Experiences at their own church, in addition to a manager seeing all", () => {
+  const selectPolicy = policiesOn("church_experiences").find((c) => /for select|^create policy [^\s]+\s+on public\.church_experiences\s*$/im.test(c) || /using/i.test(c));
+  assert.ok(selectPolicy, "Expected a SELECT-capable policy on church_experiences");
+  assert.match(selectPolicy!, /status = 'published'/, "Must require published status for the non-manager branch");
+  assert.match(selectPolicy!, /church_memberships/, "Must require real church membership for the non-manager branch");
+  assert.match(selectPolicy!, /private\.is_church_manager/, "Must still let a manager see all statuses");
+});
+
+test("church_experience_occurrences' SELECT policy follows the parent Experience's published-or-managed visibility", () => {
+  const selectPolicy = policiesOn("church_experience_occurrences").find((c) => /select_follows_experience/i.test(c));
+  assert.ok(selectPolicy, "Expected church_experience_occurrences_select_follows_experience");
+  assert.match(selectPolicy!, /status = 'published'/);
+  assert.match(selectPolicy!, /church_memberships/);
+  assert.match(selectPolicy!, /private\.is_church_manager/);
+});
+
+test("church_experience_lessons' SELECT policy follows the parent Experience's published-or-managed visibility, or a separately-published lesson", () => {
+  const selectPolicy = policiesOn("church_experience_lessons").find((c) => /select_follows_parents/i.test(c));
+  assert.ok(selectPolicy, "Expected church_experience_lessons_select_follows_parents");
+  assert.match(selectPolicy!, /status = 'published'/);
+  assert.match(selectPolicy!, /private\.is_church_manager/);
+  assert.match(selectPolicy!, /l\.status = 'published'/, "Must also allow visibility via the linked lesson itself being published (e.g. from the public lesson catalog)");
+});
+
 // Phase 9 (docs/PHASE9_AUDIT.md): admin_moderation_log is a new, entirely admin-only table -- no
 // church dimension, no public visibility, ever. It's written by lib/adminAuditLog.ts's
 // logAdminAction() from every existing status-changing admin action.

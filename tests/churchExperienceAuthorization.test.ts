@@ -92,3 +92,23 @@ test("walk-ins and attendance/completion actions are all church-manager-gated, n
     assert.match(fnMatch![0], /getAuthorized(Occurrence|Registration)\(/, `${fnName} must call a shared church-manager authorization guard`);
   }
 });
+
+// Phase 10.4 perf finding: the member Experience detail page used to call
+// getMyRegistrationForOccurrence once per occurrence (Promise.all over a .map), firing one query
+// per occurrence instead of a single batched query. Guards against that N+1 shape regressing.
+test("getMyRegistrationsForOccurrences batches with a single .in() query, not one query per occurrence id", () => {
+  const servicePath = path.join(REPO_ROOT, "services", "supabase", "churchExperiences.ts");
+  const source = readFileSync(servicePath, "utf8");
+  const fnMatch = source.match(/export async function getMyRegistrationsForOccurrences[\s\S]*?\n}\n/);
+  assert.ok(fnMatch, "Expected getMyRegistrationsForOccurrences to be defined");
+  assert.match(fnMatch![0], /\.in\(\s*["']occurrence_id["']\s*,\s*occurrenceIds\s*\)/, "Must fetch all occurrences' registrations in a single .in() query");
+
+  assert.doesNotMatch(source, /getMyRegistrationForOccurrence\b/, "The old per-occurrence function should be fully removed, not left as dead code alongside its batched replacement");
+});
+
+test("the member Experience detail page uses the batched registrations lookup, not a per-occurrence loop", () => {
+  const pagePath = path.join(REPO_ROOT, "app", "experiences", "[experienceId]", "page.tsx");
+  const source = readFileSync(pagePath, "utf8");
+  assert.match(source, /getMyRegistrationsForOccurrences\(/);
+  assert.doesNotMatch(source, /occurrences\.map\(\s*\(?o\)?\s*=>\s*getMyRegistrationForOccurrence/, "Must not reintroduce a per-occurrence Promise.all loop");
+});

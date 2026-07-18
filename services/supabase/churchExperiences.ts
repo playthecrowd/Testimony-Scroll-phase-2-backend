@@ -739,23 +739,33 @@ export async function getParticipationCountsForOccurrences(
   return counts;
 }
 
-// The caller's own registration for one occurrence, if any -- relies entirely on
-// church_experience_registrations_select_own (a member can only ever see their own row this way).
-// Used by the member Experience detail page to decide Register vs. "You're confirmed"/waitlisted/
-// cancelled per occurrence.
-export async function getMyRegistrationForOccurrence(supabase: SupabaseClient, occurrenceId: string): Promise<ChurchExperienceRegistration | null> {
+// The caller's own registrations across a set of occurrences, if any -- relies entirely on
+// church_experience_registrations_select_own (a member can only ever see their own rows this
+// way). One batched query for however many occurrences an Experience has, rather than one query
+// per occurrence (Phase 10.4 perf finding on the member Experience detail page).
+export async function getMyRegistrationsForOccurrences(
+  supabase: SupabaseClient,
+  occurrenceIds: string[]
+): Promise<Map<string, ChurchExperienceRegistration | null>> {
+  const result = new Map<string, ChurchExperienceRegistration | null>();
+  if (occurrenceIds.length === 0) return result;
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) return result;
 
   const { data, error } = await supabase
     .from("church_experience_registrations")
     .select(CHURCH_EXPERIENCE_REGISTRATION_SELECT)
-    .eq("occurrence_id", occurrenceId)
+    .in("occurrence_id", occurrenceIds)
     .eq("profile_id", user.id)
-    .neq("status", "cancelled")
-    .maybeSingle();
+    .neq("status", "cancelled");
   if (error) throw error;
-  return data ? mapChurchExperienceRegistration(data) : null;
+
+  for (const row of data ?? []) {
+    const mapped = mapChurchExperienceRegistration(row);
+    result.set(mapped.occurrenceId, mapped);
+  }
+  return result;
 }

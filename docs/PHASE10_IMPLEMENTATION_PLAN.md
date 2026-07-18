@@ -342,3 +342,18 @@ new feature work.
   complete and await explicit go-ahead ("yes"/"comit") before starting the next, exactly like
   Phases 1–9 and 9.5 were run.
 - **Branch**: all ten stages happen on `Production`; nothing merges to `main` at any stage.
+
+## Status note — Phase 10.4 (post-10.3 finalization)
+
+Phases 10.1, 10.2, and 10.3 (which combined and superseded most of this plan's individually-staged
+10.4–10.9 checkpoints — see `docs/PHASE10_3_AUDIT.md` section 1 for exactly which internal
+checkpoints were folded together) are complete and committed (`4271f3c`, `306e901`/`d4ad6dd`,
+`1fa44c5`). A follow-up **Phase 10.4 "Combined Experience Platform Finalization"** pass — not a
+new stage in this plan's original numbering, but a verification/regression/security/performance
+pass over the already-shipped work — is documented in full in `docs/PHASE10_4_AUDIT.md`, with its
+completion checklist in `docs/PHASE10_FINAL_RELEASE_CHECKLIST.md`. It found and fixed one real
+defect (an N+1 query pattern on the member Experience detail page) and confirmed everything else
+in this plan's original stage list (RLS, RPCs, ownership protection, Journey integration,
+authorization) already matches the live database exactly. Migrations remain immutable at
+`0001`–`0026` per the binding instruction recorded in `docs/PHASE10_4_AUDIT.md` section 2; no new
+migration was needed this phase.

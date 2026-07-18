@@ -6,7 +6,7 @@ import { SupabaseConfigError } from "@/lib/supabase/env";
 import {
   getExperienceById,
   getUpcomingOccurrencesForMember,
-  getMyRegistrationForOccurrence,
+  getMyRegistrationsForOccurrences,
 } from "@/services/supabase/churchExperiences";
 import { ErrorState, EmptyState } from "@/components/ui/AsyncState";
 import { ChurchExperience, ChurchExperienceOccurrence, ChurchExperienceRegistration } from "@/types";
@@ -25,7 +25,7 @@ export default async function MemberExperienceDetailPage({ params }: { params: P
 
   let experience: ChurchExperience | null = null;
   let occurrences: ChurchExperienceOccurrence[] = [];
-  const myRegistrations = new Map<string, ChurchExperienceRegistration | null>();
+  let myRegistrations = new Map<string, ChurchExperienceRegistration | null>();
   let configError: SupabaseConfigError | null = null;
   let loadFailed = false;
 
@@ -40,8 +40,7 @@ export default async function MemberExperienceDetailPage({ params }: { params: P
     experience = await getExperienceById(supabase, experienceId);
     if (experience && experience.status === "published") {
       occurrences = await getUpcomingOccurrencesForMember(supabase, experienceId);
-      const registrations = await Promise.all(occurrences.map((o) => getMyRegistrationForOccurrence(supabase, o.id)));
-      occurrences.forEach((o, i) => myRegistrations.set(o.id, registrations[i]));
+      myRegistrations = await getMyRegistrationsForOccurrences(supabase, occurrences.map((o) => o.id));
     } else if (experience && experience.status !== "published") {
       // A host previewing their own draft is handled by the host detail page, not this one --
       // members never see draft/archived content here regardless of RLS visibility to a manager.
