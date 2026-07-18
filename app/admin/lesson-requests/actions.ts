@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { requirePlatformAdmin } from "@/lib/adminAuth";
 import { updateLessonRequestStatus } from "@/services/supabase/lessonRequests";
 import { LessonRequestStatus } from "@/types";
 
@@ -20,14 +21,8 @@ export async function updatePublicLessonRequestStatusAction(
 
   try {
     const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { error: "You must be signed in as a platform administrator." };
-
-    const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", user.id).maybeSingle();
-    if (!profile?.is_platform_admin) return { error: "You are not authorized to moderate lesson requests." };
+    const authError = await requirePlatformAdmin(supabase);
+    if (authError) return { error: authError };
 
     await updateLessonRequestStatus(supabase, requestId, status);
     revalidatePath("/admin/lesson-requests");

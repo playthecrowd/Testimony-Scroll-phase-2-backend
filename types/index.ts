@@ -492,3 +492,73 @@ export interface PublishedTestimony {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 7 (docs/PHASE7_AUDIT.md): public.characters / public.episodes. "Published" prefix for
+// consistency with PublishedLesson/PublishedChurch/PublishedTestimony -- PublishedEpisode also
+// specifically avoids colliding with the mock Episode type defined earlier in this file.
+export interface PublishedCharacter {
+  id: string;
+  name: string;
+  role: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  quote: string | null;
+  quoteSource: string | null;
+  isKeyCharacter: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CharacterRelatedEpisode {
+  id: string;
+  title: string;
+  episodeNumber: number;
+  season: number;
+}
+
+export interface CharacterRelatedTestimony {
+  id: string;
+  title: string;
+  note: string | null;
+}
+
+export interface PublishedCharacterWithRelations extends PublishedCharacter {
+  episodes: CharacterRelatedEpisode[];
+  testimonies: CharacterRelatedTestimony[];
+}
+
+export type PublishedEpisodeStatus = "draft" | "published";
+
+export interface EpisodeCharacterLink {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  roleNote: string | null;
+}
+
+export interface EpisodeLessonLink {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+export interface PublishedEpisode {
+  id: string;
+  season: number;
+  episodeNumber: number;
+  title: string;
+  description: string | null;
+  durationLabel: string | null;
+  topic: string | null;
+  scripture: string | null;
+  thumbnailUrl: string | null;
+  quote: string | null;
+  quoteSource: string | null;
+  status: PublishedEpisodeStatus;
+  featured: boolean;
+  releaseDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  characters: EpisodeCharacterLink[];
+  lessons: EpisodeLessonLink[];
+}

@@ -244,3 +244,55 @@ test("testimony_likes can only be inserted for an already fully-approved public 
   assert.match(insertPolicy!, /church_status\s*=\s*'approved'/);
   assert.match(insertPolicy!, /platform_status\s*=\s*'approved'/);
 });
+
+// Phase 7 (docs/PHASE7_AUDIT.md): characters/episodes are the first platform-wide,
+// church-independent tables -- write access is a direct profiles.is_platform_admin check, not
+// private.is_church_manager (there's no church dimension here to reuse it against).
+const PLATFORM_ADMIN_WRITE_TABLES = ["characters", "episodes", "episode_characters", "episode_lessons", "character_testimonies"];
+
+test("characters is intentionally public-read (using(true)), same as speakers/ministries/experiences", () => {
+  const selectPolicies = policiesOn("characters").filter((c) => /for select/i.test(c));
+  assert.ok(selectPolicies.length > 0, "Expected a SELECT policy on characters");
+  assert.ok(selectPolicies.some((c) => /using\s*\(\s*true\s*\)/i.test(c)), "Expected characters' SELECT policy to be public");
+});
+
+test("episodes has no bare using(true) policy -- draft episodes are admin-only, published are public", () => {
+  for (const chunk of policiesOn("episodes")) {
+    assert.doesNotMatch(chunk, /using\s*\(\s*true\s*\)/i, "A policy on public.episodes uses using(true) -- drafts must never be broadcast");
+  }
+});
+
+test("episodes' SELECT policy requires status='published' or a direct is_platform_admin check", () => {
+  const selectPolicy = policiesOn("episodes").find((c) => /episodes_select_published_or_admin/i.test(c));
+  assert.ok(selectPolicy, "Expected an episodes_select_published_or_admin policy");
+  assert.match(selectPolicy!, /status\s*=\s*'published'/);
+  assert.match(selectPolicy!, /is_platform_admin/);
+});
+
+test("every platform-admin-only table's write policy checks profiles.is_platform_admin directly", () => {
+  for (const table of PLATFORM_ADMIN_WRITE_TABLES) {
+    const writePolicies = policiesOn(table).filter((c) => /for all/i.test(c));
+    assert.ok(writePolicies.length > 0, `Expected an admin write policy on public.${table}`);
+    for (const chunk of writePolicies) {
+      assert.match(chunk, /is_platform_admin/, `Write policy on ${table} must check is_platform_admin`);
+      assert.doesNotMatch(chunk, /using\s*\(\s*true\s*\)/i, `Write policy on ${table} must not be using(true)`);
+    }
+  }
+});
+
+test("episode_characters and episode_lessons SELECT policies follow their parent episode's visibility", () => {
+  for (const table of ["episode_characters", "episode_lessons"]) {
+    const selectPolicy = policiesOn(table).find((c) => /for select/i.test(c));
+    assert.ok(selectPolicy, `Expected a SELECT policy on ${table}`);
+    assert.match(selectPolicy!, /status\s*=\s*'published'/, `${table}'s SELECT policy must check the parent episode's published status`);
+    assert.doesNotMatch(selectPolicy!, /using\s*\(\s*true\s*\)/i);
+  }
+});
+
+test("character_testimonies only surfaces a testimony that is still fully approved at read time", () => {
+  const selectPolicy = policiesOn("character_testimonies").find((c) => /for select/i.test(c));
+  assert.ok(selectPolicy, "Expected a SELECT policy on character_testimonies");
+  assert.match(selectPolicy!, /visibility\s*=\s*'public'/);
+  assert.match(selectPolicy!, /church_status\s*=\s*'approved'/);
+  assert.match(selectPolicy!, /platform_status\s*=\s*'approved'/);
+});

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { requirePlatformAdmin } from "@/lib/adminAuth";
 import { updateTestimonyPlatformStatus } from "@/services/supabase/testimonies";
 import { TestimonyPlatformStatus } from "@/types";
 
@@ -12,14 +13,8 @@ export async function updatePlatformTestimonyStatusAction(
 ): Promise<{ error?: string }> {
   try {
     const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { error: "You must be signed in as a platform administrator." };
-
-    const { data: profile } = await supabase.from("profiles").select("is_platform_admin").eq("id", user.id).maybeSingle();
-    if (!profile?.is_platform_admin) return { error: "You are not authorized to moderate testimonies." };
+    const authError = await requirePlatformAdmin(supabase);
+    if (authError) return { error: authError };
 
     await updateTestimonyPlatformStatus(supabase, testimonyId, status);
     revalidatePath("/admin/testimonies");
