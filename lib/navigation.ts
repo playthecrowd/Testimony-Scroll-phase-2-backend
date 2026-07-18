@@ -24,15 +24,17 @@ export interface AppNavLink {
   hostOnly?: boolean;
 }
 
+// Events moved earlier in every nav surface per Part 18 #1 ("move Events to a more visible
+// location") -- previously last in both sidebars and second-to-last in the top nav.
 export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/my-journey", label: "My Journey", icon: Map },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
+  { href: "/events", label: "Events", icon: CalendarHeart },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
-  { href: "/events", label: "Events", icon: CalendarHeart },
 ];
 
 export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
@@ -40,11 +42,11 @@ export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
+  { href: "/events", label: "Events", icon: CalendarHeart },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
-  { href: "/events", label: "Events", icon: CalendarHeart },
 ];
 
 export const TOPBAR_LINKS: AppNavLink[] = [
@@ -52,9 +54,9 @@ export const TOPBAR_LINKS: AppNavLink[] = [
   { href: "/lessons", label: "Explore" },
   { href: "/churches", label: "Churches" },
   { href: "/lessons", label: "Lessons" },
+  { href: "/events", label: "Events" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/kingdom-scroll", label: "Kingdom Scroll" },
-  { href: "/events", label: "Events" },
   { href: "/about", label: "About" },
 ];
 

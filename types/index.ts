@@ -562,3 +562,40 @@ export interface PublishedEpisode {
   characters: EpisodeCharacterLink[];
   lessons: EpisodeLessonLink[];
 }
+
+// Phase 8 (docs/PHASE8_AUDIT.md): public.events. Real Square payment is deliberately not
+// modeled beyond an honest placeholder -- paymentStatus can only ever be "not_applicable" or
+// "pending", never "paid" (no code path exists that could ever set that, since no Square
+// integration exists in this environment).
+export type EventCategory = "pop_up_virtual" | "pop_up_physical" | "ticketed" | "game_day" | "church_hosted" | "kingdom_scroll";
+export type EventFormat = "virtual" | "physical";
+export type EventPaymentStatus = "not_applicable" | "pending";
+export type EventStatus = "submitted" | "under_review" | "approved" | "published" | "declined";
+
+export interface PublishedEvent {
+  id: string;
+  churchId: string | null;
+  churchName: string | null;
+  title: string;
+  description: string | null;
+  category: EventCategory;
+  format: EventFormat;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  imageUrl: string | null;
+  requestingOrg: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  expectedAttendance: number | null;
+  requestedExperience: string | null;
+  equipmentNotes: string | null;
+  notes: string | null;
+  requiresPayment: boolean;
+  priceCents: number | null;
+  paymentStatus: EventPaymentStatus;
+  status: EventStatus;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

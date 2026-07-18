@@ -296,3 +296,45 @@ test("character_testimonies only surfaces a testimony that is still fully approv
   assert.match(selectPolicy!, /church_status\s*=\s*'approved'/);
   assert.match(selectPolicy!, /platform_status\s*=\s*'approved'/);
 });
+
+// Phase 8 (docs/PHASE8_AUDIT.md): events reuses the private.is_church_manager pattern for
+// church-directed requests + platform-wide admin access (same shape as lesson_requests/
+// testimonies), but status changes are admin-only (not is_church_manager) -- a church cannot
+// self-approve or self-publish its own event request; only a platform admin can.
+test("events has no bare using(true) policy -- public visibility is published-only", () => {
+  for (const chunk of policiesOn("events")) {
+    assert.doesNotMatch(chunk, /using\s*\(\s*true\s*\)/i, "A policy on public.events uses using(true) -- unpublished events must never be broadcast");
+  }
+});
+
+test("events' public SELECT policy requires status='published'", () => {
+  const publicPolicy = policiesOn("events").find((c) => /events_select_published/i.test(c));
+  assert.ok(publicPolicy, "Expected an events_select_published policy");
+  assert.match(publicPolicy!, /status\s*=\s*'published'/);
+});
+
+test("events' manager policy reuses private.is_church_manager for both church-directed and platform-wide (admin) read access", () => {
+  const managedPolicies = policiesOn("events").filter((c) => /private\.is_church_manager/.test(c));
+  assert.ok(managedPolicies.length > 0, "Expected at least one events policy gated by private.is_church_manager");
+});
+
+test("events' UPDATE policy is admin-only, not private.is_church_manager -- a church cannot self-approve its own event", () => {
+  const updatePolicy = policiesOn("events").find((c) => /for update/i.test(c));
+  assert.ok(updatePolicy, "Expected an UPDATE policy on events");
+  assert.doesNotMatch(updatePolicy!, /private\.is_church_manager/, "events UPDATE must not let a church self-approve/self-publish its own request");
+  assert.match(updatePolicy!, /is_platform_admin/);
+});
+
+test("events self-service insert always starts at status='submitted' with an honest payment_status", () => {
+  const insertPolicy = policiesOn("events").find((c) => /for insert/i.test(c));
+  assert.ok(insertPolicy, "Expected an INSERT policy on events");
+  assert.match(insertPolicy!, /requested_by\s*=\s*auth\.uid\(\)/);
+  assert.match(insertPolicy!, /status\s*=\s*'submitted'/);
+  assert.match(insertPolicy!, /payment_status in \('not_applicable', 'pending'\)/);
+});
+
+test("events.payment_status can never be 'paid' -- no Square integration exists to ever set it", () => {
+  const tableMatch = sql.match(/create table public\.events \([\s\S]*?\);/);
+  assert.ok(tableMatch, "Expected the events table definition");
+  assert.match(tableMatch![0], /payment_status text not null default 'not_applicable' check \(payment_status in \('not_applicable', 'pending'\)\)/);
+});
