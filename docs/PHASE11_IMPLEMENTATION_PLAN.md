@@ -3,7 +3,10 @@
 Companion to `docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md`. This plan sequences implementation into a
 controlled number of milestones, each committed and reported separately on `Production`, matching
 this project's standing one-phase-one-commit, audit-then-implement discipline (Phases 1–10.4).
-**No implementation work begins until this plan and the spec are reviewed and approved.**
+
+**All seven Phase 11 owner decisions (spec §34) are now approved — see spec §35 entries 11–17 for
+the resolved decision log.** Phase 11.1 is unblocked. Implementation has not yet begun; it starts
+only on the next explicit instruction.
 
 ## Phase 11.1 — Database, ledger, RLS, and RPC foundation
 
@@ -14,9 +17,9 @@ this project's standing one-phase-one-commit, audit-then-implement discipline (P
   it.
 - Structural tests extending `tests/rlsChurchIsolation.test.ts` (new table policies) and a new
   `tests/creditLedger*.test.ts` (RPC shape assertions), matching Phase 10's testing precedent.
-- Resolves owner decisions §34.1 (points/XP equal-or-independent — affects nothing at this stage,
-  but should be confirmed before 11.3) and §34.4 (ledger owner-reference shape — must be decided
-  before writing the first migration).
+- Owner decisions §34.1 (Points/XP kept independent) and §34.4 (ledger owner-reference shape: two
+  explicit nullable FK columns, `member_wallet_id`/`church_wallet_id`, with a CHECK enforcing
+  exactly one populated) are both approved and drive this migration's exact DDL from the start.
 - Acceptance: 0 lint errors, clean typecheck, all tests passing, successful build, live-DB
   verification of RLS/RPC shape (mirroring `docs/PHASE10_4_AUDIT.md` §2's verification method).
 
@@ -26,8 +29,11 @@ this project's standing one-phase-one-commit, audit-then-implement discipline (P
 - `church_experiences`/`church_experience_occurrences` gain nullable `credit_cost` columns; extend
   `register_for_experience_occurrence` and `promote_waitlist_registration` with the balance-check-
   and-deduct step (spec §9); cancellation-path refund logic (member and church cancellation).
-- Resolves owner decision §34.3 (refund cutoff) and §34.6 (church grant-limit enforcement) before
-  writing the relevant RPC logic.
+- Owner decisions §34.3 (refund cutoff: full refund before `registration_closes_at`, falling back
+  to `starts_at` when null, no refund at/after; church cancellation always fully refunds
+  regardless) and §34.6 (church grant/approval capacity strictly bounded by the church wallet's
+  real balance, zero exceptions) are both approved and implemented exactly as specified, with every
+  cutoff/balance check performed server-side inside the relevant RPC.
 - Dependency: 11.1 must be complete (needs the ledger/wallet tables and locking pattern).
 - Tests: structural RPC tests, plus regression tests confirming the Experience RPCs still pass
   every existing Phase 10 assertion (no regression to registration/waitlist/walk-in behavior).
@@ -40,8 +46,11 @@ this project's standing one-phase-one-commit, audit-then-implement discipline (P
   spec §2a: `markStudiedComplete`, `sync_journey_on_experience_completion` (or its Experience-
   completion equivalent), testimony `church_status`/`platform_status` transitions, Kingdom Scroll
   publication.
-- Resolves owner decision §34.2 (`xp_reward` reuse) before implementing the Lesson-completed award
-  amount lookup.
+- Owner decision §34.2 is approved: the Lesson-completed award reads its base amount from that
+  lesson's own `xp_reward` column, clamped to a platform-configured ceiling
+  (`max_lesson_xp_award`) inside `award_progression_event` before crediting the member. Before
+  setting the exact ceiling value, spot-check real production `lessons.xp_reward` values (spec
+  §33) so the ceiling sits above legitimate existing values but still bounds them.
 - Leaderboard read model (views or summary-table queries) for Global/My Church/Lesson/Experience/
   All-time scopes (spec §17); Seasonal explicitly deferred.
 - Dependency: 11.1 complete; independent of 11.2 (progression doesn't require the credit-spend path
@@ -61,9 +70,10 @@ this project's standing one-phase-one-commit, audit-then-implement discipline (P
   `/host-dashboard/member-progress`.
 - Admin routes: `/admin/economy` (credit packages/grants/adjustments/reversals/audit as tabs),
   `/admin/rewards` (badge/trophy/reward-rule definitions, with badges as a tab per spec §29).
-- Resolves owner decision §34.5 (retire vs. slim down `/dashboard`) as part of this phase's own
-  scope, since it's the first phase where the real replacement screens actually exist to redirect
-  to.
+- Owner decision §34.5 is approved: `/dashboard` is retired outright in this phase (not kept as a
+  slimmed-down summary page), since this is the first phase where the real replacement screens
+  actually exist. `/badges` and `/leaderboard` are replaced in place at their existing routes, not
+  duplicated at new paths alongside the old mock pages.
 - Dependency: 11.1–11.3 complete (UI needs real data to render against).
 - Every screen follows the error/loading/empty-state and authorization-guard pattern audited in
   `docs/PHASE10_4_AUDIT.md` §7–9, applied to the new routes.

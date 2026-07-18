@@ -91,12 +91,9 @@ linked to it.
 ### 2d. Naming conflicts and schema-design hazards for Phase 11 to avoid
 
 1. **"XP" already means two different things.** `lessons.xp_reward` (real, host-set, per-lesson,
-   currently inert) vs. the Phase 11 brief's member-level cumulative XP (does not exist yet). Phase
-   11 must pick one of: (a) reuse `lessons.xp_reward` as the actual award amount when a lesson's
-   Studied stage completes, formalizing it as real progression input for the first time, or (b)
-   introduce an entirely separate award-definition mechanism and leave `xp_reward` as
-   host-facing display-only content metadata. §11/§12/§34 recommend (a) with an explicit decision
-   still owed to the product owner.
+   currently inert) vs. the Phase 11 brief's member-level cumulative XP (does not exist yet).
+   **Resolved (§34.2)**: reuse `lessons.xp_reward` as the Lesson-completed award's base amount,
+   clamped to a platform-configured ceiling at award time — see §12, §35 entry 12.
 2. **`types/index.ts` mixes two unrelated type universes** in one file: mock, pre-Supabase
    interfaces (`User`, `Lesson` with a mock shape, `Badge`, `UserBadge`, `Journey`,
    `JourneyStage`, `QuestResult`) alongside real DB-row-mapped types introduced in later phases
@@ -167,10 +164,10 @@ architecture-only pass.
   lifetime achievement score. Drives rankings and milestone displays. Never spent, never
   transferred.
 - **XP (member-level)**: a distinct progression value from Points, used only to compute **Level**.
-  May be numerically identical to Points per event in v1 (see §34 decision — the owner may approve
-  collapsing them), but modeled as its own column/ledger dimension from day one so they can diverge
-  later without a schema change. **Not** the same concept as `lessons.xp_reward` (§2d.1) unless the
-  owner explicitly approves reusing that column as the award amount.
+  **Resolved (§34.1)**: kept as its own independent column/ledger dimension, not numerically
+  aliased to Points, from day one. Its award amount for a Lesson-completed event **is** sourced from
+  `lessons.xp_reward` (§34.2), clamped to a platform-configured ceiling at award time — the only
+  case where the two concepts intentionally connect, and only through that server-side clamp.
 - **Level**: a derived value computed from cumulative XP against a fixed, versioned threshold table
   — never stored as the source of truth, always recomputed (or cached and reconciled) from XP.
 - **Badge**: a named, discrete achievement for a specific accomplishment (e.g. "First Lesson
@@ -245,10 +242,11 @@ needs. This avoids unnecessary abstraction per the brief's own instruction.
 Columns (conceptual, not final DDL — Phase 11A does not write migrations):
 
 - `id` (uuid pk)
-- `wallet_type` (`member` | `church`) + `wallet_id` (uuid) — or, equivalently, nullable
-  `member_wallet_id`/`church_wallet_id` with exactly one populated (see open decision, §34) —
-  either shape avoids a polymorphic *wallets* table while still letting one ledger table serve
-  both wallet kinds.
+- `member_wallet_id` (uuid, nullable) + `church_wallet_id` (uuid, nullable), each a real foreign
+  key to its own wallet table, with a `CHECK` constraint enforcing exactly one is non-null.
+  **Resolved (§34.4)**: two explicit nullable FK columns, not a generic `wallet_type`/`wallet_id`
+  pair — this lets each reference be enforced by a real foreign key against its specific table,
+  which a type-tagged generic column cannot be.
 - `amount` (integer, always positive) + `direction` (`credit` | `debit`) — signed amount stored
   as two explicit columns rather than a single signed integer, so a query can never silently
   misinterpret sign; the actual balance effect is `direction = 'credit' ? +amount : -amount`.
@@ -316,7 +314,7 @@ same-transaction pass-through into `fulfilled` (see below) — kept as its own v
 two-step approval-then-fulfillment workflow (e.g. a batch nightly disbursement) doesn't require a
 schema change.
 
-Decisions (recommended, pending owner sign-off — §34):
+Decisions (owner-approved — §34):
 
 - **Requested credits go directly to the member wallet**, not reserved for one Experience only.
   Rationale: matches how the rest of this app treats a credit as fungible access currency (§4), and
@@ -324,13 +322,13 @@ Decisions (recommended, pending owner sign-off — §34):
   rule at checkout time. A request still *names* the Experience that motivated it (for the host's
   review context and for reporting), but approval grants fungible balance.
 - **Unused granted credits remain available** for any future Experience/event at that member's
-  churches — not clawed back if unspent. A future refund/expiration policy (§35) is a separate,
-  explicitly-deferred decision.
-- **Churches have grant limits**: a church's total lifetime grant capacity is bounded by its own
-  wallet balance (§6) — a host literally cannot approve a request the church wallet can't cover,
-  enforced by the same balance-check-then-debit RPC pattern as a member's own spend.
-- **Requests do not expire automatically in v1** — an expiration policy is named as future work
-  (§35), not built now, to avoid speculative complexity the brief itself warns against.
+  churches — not clawed back if unspent.
+- **Churches have grant limits, strictly enforced (§34.6)**: a church's total grant/approval
+  capacity is bounded by its own wallet balance (§6), with zero exceptions — a host cannot approve
+  a request the church wallet can't cover, enforced by the same balance-check-then-debit RPC
+  pattern as a member's own spend.
+- **Requests do not expire automatically in v1 (§34.7)** — no documented reason yet exists to
+  justify the added complexity of an expiration policy.
 - **Reviewable by**: any profile with `church_memberships.role` satisfying
   `private.is_church_manager(church_id)` for the request's target church — identical authorization
   boundary to every other host-review workflow in this app (lesson requests, testimony church
@@ -366,10 +364,12 @@ consistent with how `default_capacity: null` already means "unlimited" in this s
   attend, and matches the brief's own suggested default. `promote_waitlist_registration` (existing
   RPC) is the natural point to add the balance check + deduction when a waitlist slot is promoted
   to confirmed.
-- **Member cancellation**: refund based on an approved policy — recommended default: full refund
-  if cancelled before the occurrence's `registration_closes_at` (or `starts_at` if unset), no
-  refund after, mirroring a conventional cancellation-window pattern; the exact cutoff is an owner
-  decision (§34).
+- **Member cancellation — approved final rule (§34.3)**: a full credit refund is issued when
+  cancellation occurs before the occurrence's `registration_closes_at`; if that column is `null`,
+  the cutoff falls back to `starts_at`; cancellation at or after the cutoff receives no
+  member-cancellation refund. The check is performed entirely server-side inside the cancellation
+  RPC, reading the occurrence's own stored timestamps directly — the client never computes or
+  authorizes the refund outcome.
 - **Church cancellation of the occurrence**: **full automatic refund**, no exceptions — the member
   did nothing wrong, so this is not a policy choice.
 - **No-show**: no refund (credit already spent to reserve the seat; attendance is a separate
@@ -394,8 +394,8 @@ the same locked, `SECURITY DEFINER` RPC transaction, exactly like every existing
 
 | Scenario | Refund? |
 |---|---|
-| Member cancels within the cancellation window | Full refund |
-| Member cancels after the window | No refund (owner-configurable exact cutoff, §34) |
+| Member cancels before `registration_closes_at` (or `starts_at` if that column is null) | Full refund |
+| Member cancels at or after that cutoff | No refund |
 | Church cancels the occurrence | Full refund, always |
 | No-show | No refund |
 | Waitlisted registration never promoted, member withdraws | No refund needed — nothing was ever charged |
@@ -420,13 +420,14 @@ point amount).
 
 Modeled as its own value, separate from Points (§4), computed by the same fixed event types and
 the same award-definitions table, but with its own award-amount column so the two can diverge
-per event type even if their initial values start out equal. The `lessons.xp_reward` naming
-conflict (§2d.1) is an explicit open decision (§34): either (a) the Lesson-completed award reads
-its XP amount from that lesson's own `xp_reward` column (formalizing it as real progression input
-for the first time), or (b) `xp_reward` remains inert display metadata and the award-definitions
-table supplies a flat, lesson-independent XP amount for "Lesson completed" instead. Recommendation:
-(a), because a host already sets this value intentionally per lesson and ignoring it would be a
-second, redundant "how much is this lesson worth" input for hosts to maintain.
+per event type even if their initial values start out equal. **Resolved (§34.2)**: the
+Lesson-completed award reads its base XP amount from that lesson's own `xp_reward` column
+(formalizing it as real progression input for the first time, since a host already sets this value
+intentionally per lesson), but the `award_progression_event` RPC clamps that value to a
+platform-configured ceiling (`max_lesson_xp_award` in `progression_award_rules`) before crediting
+the member — an unrestricted host-entered value can never translate into unlimited XP. The exact
+ceiling is set at Phase 11.3 implementation time, after a spot-check of real production
+`xp_reward` values (§33).
 
 ## 13. Levels
 
@@ -481,9 +482,9 @@ which would be speculative for a platform with no digital/physical item inventor
 **`/badges` transition plan**: the real replacement reads `badge_definitions` (all badges, filtered
 by `is_hidden_until_earned`) and `member_badge_awards` (the signed-in member's own, via RLS
 `member_id = auth.uid()`) directly from Supabase, replacing `data/badges.ts`/`badgeService.ts`
-entirely. `/dashboard`'s badge section either becomes a thin summary linking to the real `/badges`
-(recommended — avoids two badge-rendering implementations) or is retired in favor of routing that
-traffic through `/my-journey` and the new `/rewards`/`/badges` routes (§29 decision).
+entirely, in place at the existing `/badges` route. **Resolved (§34.5)**: `/dashboard` is retired
+outright at Phase 11.4 (not kept as a thin summary alongside the new pages) — its badge-summary
+traffic routes to `/my-journey` and the new `/rewards`/`/badges` routes instead.
 
 ## 17. Leaderboards
 
@@ -748,32 +749,63 @@ so no existing access pattern is at risk during rollback.
 - **Balance-integrity risk**: the stored-balance-plus-reconciliation design (§7) requires the
   reconciliation job to actually be built and scheduled, or drift between stored balance and
   ledger sum could go unnoticed — named as required follow-up work, not optional polish.
-- **`xp_reward` decision risk** (§2d.1, §12): whichever way the owner decides, existing lesson data
-  already has host-entered `xp_reward` values (e.g. 250, 220, 200 in the demo seed data) that would
-  suddenly become "live" progression inputs if option (a) is chosen — worth a spot-check of real
-  production lesson data's `xp_reward` values before enabling that path, to avoid an unintentional
-  points/XP imbalance across existing lessons.
+- **`xp_reward` reuse risk** (§2d.1, §12, §34.2): now that reuse is approved, existing lesson data
+  already has host-entered `xp_reward` values (e.g. 250, 220, 200 in the demo seed data) that
+  become "live" progression inputs once the award RPC ships — mitigated by the approved ceiling
+  clamp, but still worth a spot-check of real production lesson data's `xp_reward` values before
+  Phase 11.3 sets the exact ceiling, to avoid an unintentional points/XP imbalance across existing
+  lessons.
 
-## 34. Unresolved owner decisions
+## 34. Owner decisions — all resolved
 
-1. Should Points and XP be numerically identical per event in v1, or genuinely independent from
-   day one? (§4, §12 recommend independent columns regardless, but the *initial values* could be
-   set equal.)
-2. Should `lessons.xp_reward` become the real per-lesson XP award amount, or remain inert display
-   metadata with a separate flat award value? (§2d.1, §12, §33.)
-3. Exact member-cancellation refund cutoff (§9) — before `registration_closes_at`? Before
-   `starts_at`? A fixed number of hours?
-4. Exact wallet-table shape for the ledger's owner reference (§7) — one `wallet_type`/`wallet_id`
-   pair, or two nullable FK columns? (Both achieve the "no polymorphic *wallets* table" goal; this
-   is a narrower implementation-time choice, not a product decision, but flagged since it affects
-   the first migration's exact DDL.)
-5. Whether `/dashboard` is retired outright once real Badges/Leaderboard/wallet UI ships, or kept
-   as a lightweight summary page linking out to the real ones (§16, §29, §33).
-6. Whether a church's grant capacity is bounded strictly by its own wallet balance with zero
-   exceptions, or whether the platform may top up a church's wallet on a recurring/policy basis
-   (§6, §8) — affects how "church grant limits" actually gets enforced operationally.
-7. Whether credit requests should ever expire automatically (§8) — deferred by default; owner may
-   want this sooner.
+All seven decisions below were open at the end of Phase 11A's initial audit and are now
+**approved by the product owner**. Phase 11.1 is unblocked. Each entry states the final rule and
+carries forward into the decision log (§35, entries 11–17).
+
+1. **Points vs. XP — resolved: kept separate.** Points and XP are independent values from day one,
+   not numerically-identical aliases of one column. Points is the lifetime, non-spendable ranking
+   score (never decremented, never spent). XP is a distinct progression input that feeds Level
+   computation only. An event type's award-rule row may set a Points amount, an XP amount, both, or
+   neither, independently.
+2. **`lessons.xp_reward` reuse — resolved: reuse with a server-side ceiling.** The Lesson-completed
+   award reads the lesson's own `xp_reward` value as its base amount, but the `award_progression_event`
+   RPC clamps it to a platform-configured ceiling (`max_lesson_xp_award` in `progression_award_rules`)
+   before crediting the member — the raw host-entered value is never awarded uncapped. The existing
+   `lessons.xp_reward` column and its host-facing editor field are unchanged; the ceiling is enforced
+   only at award time, not by constraining the column itself. The exact ceiling value is set at
+   Phase 11.3 implementation time, after a spot-check of real production `xp_reward` values (§33).
+3. **Member-cancellation refund cutoff — resolved: final rule below.**
+   - A member receives a **full credit refund** when cancellation occurs **before**
+     `church_experience_occurrences.registration_closes_at`.
+   - If `registration_closes_at` is `null`, the cutoff falls back to `starts_at`.
+   - Cancellation **at or after** the cutoff receives **no** member-cancellation refund.
+   - **Church-initiated** occurrence cancellation still always receives a full automatic refund,
+     unconditionally (§9, §10, §35 entry 6 — unaffected by this rule).
+   - Every cutoff check happens **server-side**, inside the cancellation RPC, reading the
+     occurrence's own stored `registration_closes_at`/`starts_at` columns directly. The client never
+     computes, displays as authoritative, or authorizes a refund decision — it may only reflect
+     back whatever the RPC actually decided.
+4. **Ledger owner-reference shape — resolved: two explicit nullable FK columns.**
+   `credit_ledger_entries` carries `member_wallet_id` and `church_wallet_id`, each a real foreign
+   key to its own wallet table, with a `CHECK` constraint enforcing exactly one is non-null. No
+   generic `wallet_type`/`wallet_id` pair is used, per the explicit direction against ambiguous
+   polymorphic owner references (§6).
+5. **`/dashboard`, `/badges`, `/leaderboard` — resolved: replace during Phase 11, not alongside
+   duplicates.** `/dashboard` is retired outright at Phase 11.4, once real Wallet/Rewards/Badges/
+   Leaderboard pages exist to replace what it showed — it is not kept as a slimmed-down summary
+   page running alongside the new ones. `/badges` and `/leaderboard` keep their existing routes and
+   have their data source swapped to real Supabase-backed tables at the same milestone, rather than
+   standing up new pages at different paths next to the old mock ones.
+6. **Church grant capacity — resolved: strictly bounded, no exceptions.** A church can only ever
+   grant or approve up to its own wallet's real, current balance, checked atomically (row-locked)
+   at grant/approval time. There is no separate platform "top-up allowance" concept beyond the
+   wallet balance itself — the platform still funds a church wallet via its own `platform_grant`
+   ledger entries (§6), but that is a distinct, earlier event from the grant-time check, never a
+   bypass of it.
+7. **Automatic credit-request expiration — resolved: none in v1.** `credit_requests` has no
+   automatic expiration behavior and no `expired` status value. A request remains in
+   `submitted`/`under_review` until a host acts (`approved`→`fulfilled` or `declined`) or the
+   member cancels it themselves. No scheduled job is needed for this table in v1.
 
 ## 35. Decision log
 
@@ -789,6 +821,13 @@ so no existing access pattern is at risk during rollback.
 | 8 | Fixed, database-backed award-definitions table, not an open rule engine | Directly follows the brief's explicit instruction against an unrestricted v1 rule engine (§11, §12) |
 | 9 | Global leaderboard ranks by lifetime Points, not XP or credits | Matches §4's definition of Points as the rank-driving, non-spendable score |
 | 10 | Leaderboard pagination is included from v1 | Unlike Experience registrant lists, a Global leaderboard can genuinely grow platform-wide (§17) |
+| 11 | Points and XP are independent values, not aliases of one column | Owner-approved, §34.1 — a Points-only or XP-only adjustment can never silently move the other |
+| 12 | `lessons.xp_reward` is reused as the Lesson-completed award base amount, clamped to a platform-configured ceiling at award time | Owner-approved, §34.2 — honors real host input while preventing unrestricted host-entered values from creating unlimited XP |
+| 13 | Member-cancellation refund cutoff is `registration_closes_at`, falling back to `starts_at` when null; church cancellation always fully refunds regardless | Owner-approved, §34.3 — exact final rule, enforced entirely server-side inside the cancellation RPC, never client-computed or client-authorized |
+| 14 | `credit_ledger_entries` uses two explicit nullable FK columns (`member_wallet_id`, `church_wallet_id`) with a CHECK enforcing exactly one populated, not a generic `wallet_type`/`wallet_id` pair | Owner-approved, §34.4 — real FK enforcement per wallet type is only possible this way; avoids an ambiguous polymorphic reference |
+| 15 | `/dashboard` is retired outright at Phase 11.4; `/badges` and `/leaderboard` are replaced in place (same routes, real data), not duplicated at new paths | Owner-approved, §34.5 — replace during Phase 11, never alongside a duplicate new page |
+| 16 | Church grant/approval capacity is strictly bounded by the church wallet's real, current balance, with zero exceptions | Owner-approved, §34.6 — no separate top-up-allowance bypass of the grant-time balance check |
+| 17 | Credit requests have no automatic expiration and no `expired` status in v1 | Owner-approved, §34.7 — no documented reason yet exists to justify the added complexity |
 
 ## 36. Explicit out-of-scope list (Phase 11, all sub-phases, unless separately approved later)
 
