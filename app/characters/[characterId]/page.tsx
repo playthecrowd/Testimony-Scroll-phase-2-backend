@@ -1,22 +1,38 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Play, ScrollText, Feather } from "lucide-react";
-import { getCharacterById } from "@/data/characters";
-import { getAllStoryEntries } from "@/services/storyService";
-import { getEpisodesByCharacter } from "@/services/episodeService";
-import { getTestimonyById } from "@/data/testimonies";
-import { formatDate } from "@/lib/utils";
+import { ArrowLeft, ScrollText, Feather } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { SupabaseConfigError } from "@/lib/supabase/env";
+import { ErrorState } from "@/components/ui/AsyncState";
+import { getCharacterById } from "@/services/supabase/characters";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
 
+export const dynamic = "force-dynamic";
+
 export default async function CharacterDetailPage({ params }: { params: Promise<{ characterId: string }> }) {
   const { characterId } = await params;
-  const character = getCharacterById(characterId);
-  if (!character) return notFound();
+  const supabase = await createClient();
 
-  const entries = getAllStoryEntries().filter((e) => e.characterId === character.id);
-  const episodes = getEpisodesByCharacter(character.id);
-  const testimony = character.testimonyId ? getTestimonyById(character.testimonyId) : undefined;
+  let character;
+  try {
+    character = await getCharacterById(supabase, characterId);
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      return (
+        <div className="max-w-lg mx-auto px-4 py-24">
+          <ErrorState message={err.message} />
+        </div>
+      );
+    }
+    console.error(`[CharacterDetailPage] Failed to load character "${characterId}":`, err);
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message="We couldn't load this character right now. Please try again shortly." />
+      </div>
+    );
+  }
+  if (!character) notFound();
 
   return (
     <div className="relative max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-8">
@@ -26,84 +42,63 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
       </Link>
 
       <div className="grid md:grid-cols-[280px_1fr] gap-6 mb-8">
-        <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
-          <img src={character.imageUrl} className="w-full h-full object-cover" alt="" />
+        <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-surface-2">
+          {character.imageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={character.imageUrl} className="w-full h-full object-cover" alt="" />
+          )}
         </div>
         <div>
-          <span className="text-xs text-accent-blue-light font-medium">{character.arcLabel}</span>
           <h1 className="text-3xl font-bold text-foreground mt-1">{character.name}</h1>
-          <p className="text-accent-blue-light text-sm mb-3">{character.role}</p>
-          <blockquote className="text-sm italic text-foreground border-l-2 border-accent-blue-light pl-3 mb-3">
-            &ldquo;{character.quote}&rdquo;
-            <span className="block text-xs text-muted not-italic mt-1">— {character.quoteSource}</span>
-          </blockquote>
-          <p className="text-sm text-muted leading-relaxed mb-3">{character.description}</p>
-          <p className="text-sm font-semibold text-foreground mb-1">Story Arc</p>
-          <p className="text-sm text-muted leading-relaxed">{character.storyArc}</p>
-
-          {episodes.length > 0 && (
-            <Link
-              href={`/backstories/${character.id}`}
-              className="inline-flex items-center gap-2 mt-5 bg-accent-blue hover:bg-accent-blue-light text-white text-sm font-medium px-4 py-2.5 rounded-lg"
-            >
-              <Play size={15} /> Play Backstory
-            </Link>
+          {character.role && <p className="text-accent-blue-light text-sm mb-3">{character.role}</p>}
+          {character.quote && (
+            <blockquote className="text-sm italic text-foreground border-l-2 border-accent-blue-light pl-3 mb-3">
+              &ldquo;{character.quote}&rdquo;
+              {character.quoteSource && <span className="block text-xs text-muted not-italic mt-1">— {character.quoteSource}</span>}
+            </blockquote>
           )}
+          {character.description && <p className="text-sm text-muted leading-relaxed">{character.description}</p>}
         </div>
       </div>
 
-      {testimony && (
-        <div className="qk-card p-4 flex items-center gap-3 mb-8">
-          <Feather size={18} className="text-accent-blue-light shrink-0" />
-          <p className="text-sm text-muted">
-            Generated from the testimony <span className="text-foreground font-medium">&ldquo;{testimony.title}&rdquo;</span> — read it on the{" "}
-            <Link href="/kingdom-scroll" className="text-accent-blue-light hover:underline">
-              Kingdom Scroll
-            </Link>
-            .
-          </p>
-        </div>
-      )}
-
-      {entries.length > 0 && (
+      {character.testimonies.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <ScrollText size={17} className="text-accent-blue-light" /> Related Story Entries
+            <Feather size={17} className="text-accent-blue-light" /> Contributing Testimonies
           </h2>
           <div className="space-y-3">
-            {entries.map((e) => (
-              <div key={e.id} className="qk-card p-4 flex gap-3">
-                <img src={e.imageUrl} className="w-20 h-20 rounded-lg object-cover shrink-0" alt="" />
+            {character.testimonies.map((t) => (
+              <Link key={t.id} href={`/kingdom-scroll/${t.id}`} className="qk-card p-4 flex items-center gap-3 hover:border-accent-blue-light/50">
                 <div>
-                  <p className="text-xs text-muted mb-1">{formatDate(e.date)} · Episode {e.episodeNumber}</p>
-                  <p className="text-sm font-semibold text-foreground">{e.title}</p>
-                  <p className="text-xs text-muted line-clamp-2">{e.storyText}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {episodes.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Related Episodes</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {episodes.map((ep) => (
-              <Link key={ep.id} href={`/episodes/${ep.id}`} className="qk-card overflow-hidden group">
-                <div className="aspect-video bg-surface-2">
-                  <img src={ep.thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
-                </div>
-                <div className="p-3">
-                  <p className="text-xs text-muted">
-                    S{ep.season} · EP{ep.episodeNumber}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">{ep.title}</p>
+                  <p className="text-sm font-semibold text-foreground">{t.title}</p>
+                  {t.note && <p className="text-xs text-muted mt-0.5">{t.note}</p>}
                 </div>
               </Link>
             ))}
           </div>
         </div>
+      )}
+
+      {character.episodes.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <ScrollText size={17} className="text-accent-blue-light" /> Related Episodes
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {character.episodes.map((ep) => (
+              <Link key={ep.id} href={`/episodes/${ep.id}`} className="qk-card p-3.5 hover:border-accent-blue-light/50">
+                <p className="text-xs text-muted">
+                  S{ep.season} · EP{ep.episodeNumber}
+                </p>
+                <p className="text-sm font-semibold text-foreground">{ep.title}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {character.testimonies.length === 0 && character.episodes.length === 0 && (
+        <p className="text-sm text-muted">This character&apos;s story is still unfolding.</p>
       )}
     </div>
   );

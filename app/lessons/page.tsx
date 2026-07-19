@@ -1,16 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Search, X, Play, FileText, Presentation } from "lucide-react";
-import { getAllLessons } from "@/services/lessonService";
-import { churches } from "@/data/churches";
-import { speakers } from "@/data/speakers";
-import { LessonCard } from "@/components/lessons/LessonCard";
+import { useEffect, useMemo, useState } from "react";
+import { Search, X, Play, FileText, Presentation, BookOpen, Church, Star, Clock3 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getPublishedLessons } from "@/services/supabase/lessons";
+import { getPublishedChurches } from "@/services/supabase/churches";
+import { SupabaseConfigError } from "@/lib/supabase/env";
+import { PublishedLessonCard } from "@/components/lessons/PublishedLessonCard";
+import { LinkButton } from "@/components/ui/Button";
 import { StatPill } from "@/components/ui/StatPill";
-import { BookOpen, Church, Star, Clock3 } from "lucide-react";
+import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
 import { cn } from "@/lib/utils";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
+import { PublishedChurch, PublishedLesson } from "@/types";
 
 const tabs = [
   { key: "all", label: "All Lessons" },
@@ -19,32 +22,105 @@ const tabs = [
   { key: "new", label: "Recently Added" },
 ] as const;
 
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
 export default function LessonsPage() {
-  const lessons = getAllLessons();
+  const [lessons, setLessons] = useState<PublishedLesson[]>([]);
+  const [churches, setChurches] = useState<PublishedChurch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [church, setChurch] = useState("all");
   const [speaker, setSpeaker] = useState("all");
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("all");
+  const [now] = useState(() => Date.now());
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const [lessonRows, churchRows] = await Promise.all([
+          getPublishedLessons(supabase),
+          getPublishedChurches(supabase),
+        ]);
+        if (cancelled) return;
+        setLessons(lessonRows);
+        setChurches(churchRows);
+        setError("");
+      } catch (err) {
+        if (cancelled) return;
+        if (err instanceof SupabaseConfigError) {
+          setError(err.message);
+        } else {
+          // This page fetches client-side, so the real error only surfaces in the browser
+          // console (not Vercel's server Runtime Logs) -- still better than discarding it
+          // silently, and the visitor only ever sees the generic message below.
+          console.error("[LessonsPage] Failed to load lessons:", err);
+          setError("Could not load lessons.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const featured = useMemo(() => lessons.filter((l) => l.featured), [lessons]);
+
+  const speakers = useMemo(() => {
+    const map = new Map<string, string>();
+    lessons.forEach((l) => {
+      if (l.speaker) map.set(l.speaker.id, l.speaker.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [lessons]);
 
   const filtered = useMemo(() => {
     return lessons.filter((l) => {
-      if (church !== "all" && l.churchId !== church) return false;
-      if (speaker !== "all" && l.speakerId !== speaker) return false;
-      if (search && !`${l.title} ${l.topic} ${l.tags.join(" ")}`.toLowerCase().includes(search.toLowerCase())) return false;
-      if (tab === "video" && !l.contentTypes.includes("video")) return false;
-      if (tab === "notes" && !(l.contentTypes.includes("notes") || l.contentTypes.includes("slides"))) return false;
-      if (tab === "new" && !l.isNew && !l.createdBySubmission) return false;
+      if (church !== "all" && l.church.id !== church) return false;
+      if (speaker !== "all" && l.speaker?.id !== speaker) return false;
+      if (search && !`${l.title} ${l.topic ?? ""} ${l.tags.join(" ")}`.toLowerCase().includes(search.toLowerCase()))
+        return false;
+      const mediaTypes = l.media.map((m) => m.mediaType);
+      if (tab === "video" && !mediaTypes.includes("video")) return false;
+      if (tab === "notes" && !(mediaTypes.includes("notes") || mediaTypes.includes("slides"))) return false;
+      if (tab === "new" && now - new Date(l.createdAt).getTime() > THIRTY_DAYS_MS) return false;
       return true;
     });
-  }, [lessons, church, speaker, search, tab]);
+  }, [lessons, church, speaker, search, tab, now]);
 
   return (
     <div className="relative max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
       <PageBackground src={backgrounds.roadToEaster} opacity={0.42} />
       <div className="grid xl:grid-cols-[1fr_300px] gap-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lessons</h1>
-          <p className="text-muted text-sm mt-1 mb-5">Browse every captured lesson, sermon, class, and study resource.</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lessons</h1>
+              <p className="text-muted text-sm mt-1 mb-5">Browse every captured lesson, sermon, class, and study resource.</p>
+            </div>
+            <LinkButton href="/request-lesson" variant="secondary" size="sm">
+              Request a Lesson
+            </LinkButton>
+          </div>
+
+          {!loading && !error && featured.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-1.5 mb-3">
+                <Star size={15} className="text-accent-blue-light" fill="currentColor" />
+                <h2 className="text-sm font-semibold text-foreground">Featured Lessons</h2>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+                {featured.map((l) => (
+                  <PublishedLessonCard key={l.id} lesson={l} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="qk-card p-4 mb-5 grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <FilterField label="Church">
@@ -124,10 +200,14 @@ export default function LessonsPage() {
             ))}
           </div>
 
-          {filtered.length > 0 ? (
+          {loading ? (
+            <LoadingState label="Loading lessons..." />
+          ) : error ? (
+            <ErrorState message={error} />
+          ) : filtered.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
               {filtered.map((l) => (
-                <LessonCard key={l.id} lesson={l} />
+                <PublishedLessonCard key={l.id} lesson={l} />
               ))}
             </div>
           ) : (
@@ -138,7 +218,7 @@ export default function LessonsPage() {
         <aside className="space-y-4">
           <StatPill icon={BookOpen} value={`${lessons.length}+`} label="Captured Lessons Across all churches" />
           <StatPill icon={Church} value={`${churches.length}+`} label="Churches Participating Sharing Kingdom content" />
-          <StatPill icon={Star} value="Faith & Trust" label="Most Viewed Topic" />
+          <StatPill icon={Star} value={lessons[0]?.topic ?? "—"} label="Most Viewed Topic" />
           <StatPill icon={Clock3} value={lessons[0]?.title ?? "—"} label="Newest Addition" />
         </aside>
       </div>

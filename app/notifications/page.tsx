@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Bell, Feather, Award, CheckCircle2, Info } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
@@ -18,11 +18,10 @@ const iconMap: Record<AppNotification["type"], React.ElementType> = {
 
 export default function NotificationsPage() {
   const { session, ready } = useSession();
-  const [notifs, setNotifs] = useState<AppNotification[]>([]);
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) setNotifs(getUserNotifications(session.user.id));
-  }, [ready, session]);
+  // refreshKey's value is never read -- setting it just forces a re-render, which recomputes
+  // `notifs` below from the (mutated) notification store after markAllRead() runs.
+  const [, setRefreshKey] = useState(0);
+  const notifs = ready && session.isLoggedIn ? getUserNotifications(session.user.id) : [];
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
@@ -45,7 +44,7 @@ export default function NotificationsPage() {
           size="sm"
           onClick={() => {
             markAllRead(session.user.id);
-            setNotifs(getUserNotifications(session.user.id));
+            setRefreshKey((k) => k + 1);
           }}
         >
           Mark all read

@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Play, FileText, Presentation, Headphones, Users2, Sparkles, Box } from "lucide-react";
 import { Lesson } from "@/types";
 import { getChurchById } from "@/data/churches";
 import { getSpeakerById } from "@/data/speakers";
 import { formatDate } from "@/lib/utils";
+import { LessonThumbnail } from "./LessonThumbnail";
 
 const contentIcon: Record<string, React.ElementType> = {
   video: Play,
@@ -22,12 +24,13 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
       href={`/lessons/${lesson.slug}`}
       className="qk-card overflow-hidden flex flex-col group hover:border-accent-blue-light/50 transition-colors focus-ring"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-surface-2">
-        <img
-          src={lesson.featuredImageUrl}
-          alt=""
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
+      <LessonThumbnail
+        src={lesson.featuredImageUrl}
+        alt=""
+        imgClassName="group-hover:scale-105 transition-transform duration-300"
+        rounded="rounded-none"
+        sizes="(min-width: 1536px) 23vw, (min-width: 1024px) 31vw, (min-width: 640px) 48vw, 100vw"
+      >
         {lesson.contentTypes.includes("video") && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
@@ -50,14 +53,14 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
             <Box size={11} /> Quest
           </span>
         )}
-      </div>
+      </LessonThumbnail>
 
       <div className="p-3.5 flex-1 flex flex-col">
         <span className="text-[11px] text-accent-blue-light font-medium mb-1">{lesson.topic}</span>
         <h3 className="text-sm font-semibold text-foreground leading-snug mb-1.5 line-clamp-2">{lesson.title}</h3>
         {speaker && (
           <div className="flex items-center gap-1.5 mb-1.5">
-            <img src={speaker.avatarUrl} alt="" className="w-5 h-5 rounded-full" />
+            <Image src={speaker.avatarUrl} alt="" width={20} height={20} className="rounded-full" />
             <span className="text-xs text-muted truncate">{speaker.name}</span>
           </div>
         )}

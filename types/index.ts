@@ -284,3 +284,320 @@ export interface AppNotification {
   ctaLabel?: string;
   ctaHref?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Backend Milestone One: Supabase-backed types, additive only. These describe data coming
+// from the real database (Capture, Lessons Library, Lesson Detail, Church Archive) and are
+// kept separate from the mock types above so every mock-powered page keeps compiling as-is.
+// ---------------------------------------------------------------------------
+
+export type LessonMediaType = "notes" | "video" | "audio" | "slides" | "document" | "transcript";
+
+export interface LessonMedia {
+  id: string;
+  mediaType: LessonMediaType;
+  url: string | null;
+  content: string | null;
+  title: string | null;
+}
+
+export interface Ministry {
+  id: string;
+  name: string;
+}
+
+export interface PublishedChurch {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  memberCount: number;
+  description: string | null;
+  verified: boolean;
+  addressLine1: string | null;
+  website: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  churchType: string | null;
+  bannerUrl: string | null;
+}
+
+export interface ChurchMinistry {
+  id: string;
+  name: string;
+}
+
+export interface ChurchMember {
+  membershipId: string;
+  profileId: string;
+  fullName: string | null;
+  email: string;
+  avatarUrl: string | null;
+  role: "member" | "host" | "admin";
+  joinedAt: string;
+}
+
+export interface ChurchInvite {
+  id: string;
+  churchId: string;
+  email: string;
+  token: string;
+  status: "pending" | "accepted" | "revoked";
+  createdAt: string;
+  acceptedAt: string | null;
+}
+
+export interface PublishedSpeaker {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  bio: string | null;
+}
+
+export interface PublishedLessonHost {
+  id: string;
+  status: "live" | "scheduled";
+  participantCount: number;
+  scheduleLabel: string | null;
+  questUrl: string | null;
+  church: PublishedChurch | null;
+}
+
+export interface PublishedLesson {
+  id: string;
+  slug: string;
+  title: string;
+  shortDescription: string | null;
+  aboutText: string | null;
+  topic: string | null;
+  subject: string | null;
+  ministryCategory: string | null;
+  date: string | null;
+  durationLabel: string | null;
+  lessonType: string | null;
+  primaryScripture: string | null;
+  supportingScriptures: string[];
+  tags: string[];
+  featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
+  questUrl: string | null;
+  questLevel: number | null;
+  xpReward: number | null;
+  status: "draft" | "published";
+  contributorsCount: number;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+  church: PublishedChurch;
+  speaker: PublishedSpeaker | null;
+  media: LessonMedia[];
+  hosts: PublishedLessonHost[];
+  ministries: Ministry[];
+  questions: LessonQuestion[];
+  experiences: LessonExperienceLink[];
+}
+
+export interface LessonQuestion {
+  id: string;
+  question: string;
+  sortOrder: number;
+}
+
+export interface Experience {
+  id: string;
+  name: string;
+  description: string | null;
+  previewImageUrl: string | null;
+}
+
+export interface LessonExperienceLink {
+  id: string;
+  relationshipNote: string | null;
+  experience: Experience;
+}
+
+// Supabase-backed member journey progress (public.lesson_journeys / public.lesson_journey_items,
+// migration 0008). Separate from the mock Journey/JourneyChecklist types above, which the
+// still-mocked Experienced/Applied/Added-to-Story stages continue to use.
+export interface LessonJourney {
+  id: string;
+  lessonId: string;
+  currentStage: "captured" | "studied" | "experienced" | "applied" | "added-to-story";
+  studiedStartedAt: string;
+  studiedCompletedAt: string | null;
+  lastOpenedAt: string;
+}
+
+export interface LessonJourneyItem {
+  id: string;
+  itemKey: string;
+  completed: boolean;
+  completedAt: string | null;
+}
+
+// Phase 5 (docs/PHASE5_AUDIT.md): public.lesson_requests.
+export type LessonRequestScope = "church" | "public";
+export type LessonRequestStatus = "submitted" | "under_review" | "approved" | "declined" | "fulfilled";
+
+export interface LessonRequest {
+  id: string;
+  topic: string;
+  notes: string | null;
+  scope: LessonRequestScope;
+  churchId: string | null;
+  churchName: string | null;
+  status: LessonRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Phase 6 (docs/PHASE6_AUDIT.md): public.testimonies. "Published" here follows the same
+// convention as PublishedLesson -- it represents any real row (pending/approved/rejected), not
+// only ones actually visible on the public Kingdom Scroll.
+// "PublishedTestimonyVisibility" (not just "TestimonyVisibility") specifically to avoid colliding
+// with the mock TestimonyVisibility type defined earlier in this file -- the mock type uses
+// hyphenated values ("church-only"), the real schema uses underscores ("church_only"); these are
+// genuinely different types, not a naming accident. TestimonyIdentityDisplay/ChurchStatus/
+// PlatformStatus don't collide with anything in the mock section, so they keep short names.
+export type PublishedTestimonyVisibility = "public" | "church_only" | "private";
+export type TestimonyIdentityDisplay = "full_name" | "first_name" | "username" | "anonymous";
+export type TestimonyChurchStatus = "pending" | "approved" | "rejected";
+export type TestimonyPlatformStatus = "not_submitted" | "pending" | "approved" | "rejected";
+
+export interface PublishedTestimony {
+  id: string;
+  churchId: string;
+  churchName: string | null;
+  primaryLessonId: string;
+  primaryLessonTitle: string | null;
+  primaryLessonSlug: string | null;
+  supportingLessonIds: string[];
+  title: string;
+  topic: string | null;
+  scripture: string | null;
+  writtenTestimony: string;
+  videoUrl: string | null;
+  audioUrl: string | null;
+  visibility: PublishedTestimonyVisibility;
+  identityDisplay: TestimonyIdentityDisplay;
+  displayName: string | null;
+  suggestedCharacter: string | null;
+  storyGenerationPermission: boolean;
+  futureEpisodePermission: boolean;
+  voiceLikenessPermission: boolean;
+  churchStatus: TestimonyChurchStatus;
+  platformStatus: TestimonyPlatformStatus;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Phase 7 (docs/PHASE7_AUDIT.md): public.characters / public.episodes. "Published" prefix for
+// consistency with PublishedLesson/PublishedChurch/PublishedTestimony -- PublishedEpisode also
+// specifically avoids colliding with the mock Episode type defined earlier in this file.
+export interface PublishedCharacter {
+  id: string;
+  name: string;
+  role: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  quote: string | null;
+  quoteSource: string | null;
+  isKeyCharacter: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CharacterRelatedEpisode {
+  id: string;
+  title: string;
+  episodeNumber: number;
+  season: number;
+}
+
+export interface CharacterRelatedTestimony {
+  id: string;
+  title: string;
+  note: string | null;
+}
+
+export interface PublishedCharacterWithRelations extends PublishedCharacter {
+  episodes: CharacterRelatedEpisode[];
+  testimonies: CharacterRelatedTestimony[];
+}
+
+export type PublishedEpisodeStatus = "draft" | "published";
+
+export interface EpisodeCharacterLink {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  roleNote: string | null;
+}
+
+export interface EpisodeLessonLink {
+  id: string;
+  title: string;
+  slug: string;
+}
+
+export interface PublishedEpisode {
+  id: string;
+  season: number;
+  episodeNumber: number;
+  title: string;
+  description: string | null;
+  durationLabel: string | null;
+  topic: string | null;
+  scripture: string | null;
+  thumbnailUrl: string | null;
+  quote: string | null;
+  quoteSource: string | null;
+  status: PublishedEpisodeStatus;
+  featured: boolean;
+  releaseDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  characters: EpisodeCharacterLink[];
+  lessons: EpisodeLessonLink[];
+}
+
+// Phase 8 (docs/PHASE8_AUDIT.md): public.events. Real Square payment is deliberately not
+// modeled beyond an honest placeholder -- paymentStatus can only ever be "not_applicable" or
+// "pending", never "paid" (no code path exists that could ever set that, since no Square
+// integration exists in this environment).
+export type EventCategory = "pop_up_virtual" | "pop_up_physical" | "ticketed" | "game_day" | "church_hosted" | "kingdom_scroll";
+export type EventFormat = "virtual" | "physical";
+export type EventPaymentStatus = "not_applicable" | "pending";
+export type EventStatus = "submitted" | "under_review" | "approved" | "published" | "declined";
+
+export interface PublishedEvent {
+  id: string;
+  churchId: string | null;
+  churchName: string | null;
+  title: string;
+  description: string | null;
+  category: EventCategory;
+  format: EventFormat;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  imageUrl: string | null;
+  requestingOrg: string | null;
+  contactName: string | null;
+  contactEmail: string | null;
+  expectedAttendance: number | null;
+  requestedExperience: string | null;
+  equipmentNotes: string | null;
+  notes: string | null;
+  requiresPayment: boolean;
+  priceCents: number | null;
+  paymentStatus: EventPaymentStatus;
+  status: EventStatus;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

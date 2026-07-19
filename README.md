@@ -1,10 +1,12 @@
-# Quest for the Kingdom — Phase One Prototype
+# Quest for the Kingdom
 
-A fully clickable Next.js prototype of **Quest for the Kingdom**: every church lesson becomes a member journey —
+A Next.js app for **Quest for the Kingdom**: every church lesson becomes a member journey —
 **Captured → Studied → Experienced → Applied → Added to the Story.**
 
-This is Phase One: a front-end prototype with realistic mock data and simulated services. No production
-database, authentication, AI, email, or payment systems are connected yet — those arrive in Phase Two.
+**Backend Milestone One** connected real Supabase authentication and lesson capture/publish (see
+`docs/SUPABASE_SETUP.md`). Journey, Quest, Leaderboard, Testimony, Kingdom Scroll, Story, Characters, Episodes,
+and the OpenAI/Higgsfield/email integrations are still fully mocked (localStorage + `/data`) — see
+Section 6 below.
 
 ---
 
@@ -17,13 +19,15 @@ You'll need [Node.js](https://nodejs.org) version 18.18 or newer installed on yo
    ```bash
    npm install
    ```
-3. **Run the development server:**
+3. **Set up Supabase** — copy `.env.example` to `.env.local` and follow `docs/SUPABASE_SETUP.md` to create a
+   project, run the migrations, and seed sample data. Without this, the app still runs and every
+   still-mocked feature works, but sign-in/sign-up, Capture, the Lessons Library, Lesson Detail, and Church
+   Archive pages will show a "Supabase isn't configured" message instead of crashing.
+4. **Run the development server:**
    ```bash
    npm run dev
    ```
-4. Open **http://localhost:3000** in your browser.
-
-That's it — the whole prototype runs locally, no external accounts required.
+5. Open **http://localhost:3000** in your browser.
 
 To create a production build:
 ```bash
@@ -31,20 +35,19 @@ npm run build
 npm run start
 ```
 
-The app is also ready to deploy to [Vercel](https://vercel.com) — just import the project, no environment
-variables are required for Phase One.
+The app deploys to [Vercel](https://vercel.com) — see `docs/SUPABASE_SETUP.md` Section 3 for which
+environment variables to set there.
 
 ---
 
 ## 2. How to Explore the Prototype
 
 - Visit `/` for the public campaign homepage.
-- Click **Sign In / Create Account** and choose **Church Host** or **Kingdom Member**. Sign-in is simulated —
-  any email/password combination works.
-- Once logged in, use the **avatar menu (top right) → "Dev: Preview as"** to instantly switch between the
-  Church Host and Kingdom Member experience without signing out.
-- As a **Church Host**, visit `/capture` to submit a new lesson — it will immediately appear in `/lessons` and
-  on the church's archive page.
+- Click **Sign In / Create Account** and choose **Church Host** or **Kingdom Member** — this creates a real
+  Supabase account. A new Church Host is walked through **Complete Church Setup** before reaching their
+  dashboard.
+- As a **Church Host**, visit `/capture` to submit a new lesson. It's saved as a **draft** — open it to
+  preview and click **Publish Lesson** to make it appear in `/lessons` and the church's archive page.
 - As a **Kingdom Member**, open any lesson and click **Start This Journey**, then walk through:
   **Studied → Experienced (Simulate Quest Completion) → Applied (submit + dev-approve a testimony) → Added to
   the Story (publish to the Kingdom Scroll).**
@@ -67,19 +70,24 @@ site.
   /lessons               Lesson card
   /auth                   Sign in / create account screen
   /ui                       Buttons, stat pills, auth-gate modal
-/context               React context for the simulated auth session
+/context               React context for the (now Supabase-backed) auth session
 /data                  Centralized mock seed data + TypeScript types re-exports
-/services              Mock service layer (the "API" the UI talks to)
+/services              Mock service layer (the "API" the still-mocked pages talk to)
+/services/supabase     Real Supabase-backed service layer (Lessons Library, Lesson Detail, Church Archive)
+/lib/supabase          Browser/server/admin Supabase clients + env handling
+/supabase/migrations   SQL migrations (tables, indexes, functions/RPCs, RLS)
+/scripts               Dev-only seed script
 /types                 Shared TypeScript interfaces for every entity
 /lib                   Small helpers (storage, images, class names)
 ```
 
-### Why a service layer?
+### Why two service layers?
 
-Every page requests data through a function in `/services` (e.g. `getAllLessons()`,
-`submitTestimony()`, `simulateQuestCompletion()`) instead of importing mock data directly. In Phase Two,
-these functions will be rewritten to call Supabase and secure server APIs — the pages themselves should not
-need to change.
+Journey/Quest/Leaderboard/Testimony/Scroll/Story/Characters/Episodes still read through the original mock
+`/services/*.ts` functions (e.g. `getAllLessons()`, `submitTestimony()`), backed by `/data` + `localStorage` —
+unchanged by Backend Milestone One. Capture, the Lessons Library, Lesson Detail, and Church Archive instead go
+through `/services/supabase/*`, which talks to the real database. Keeping them separate meant converting the
+four real surfaces to Supabase couldn't silently break the ~20 pages still relying on the mock layer.
 
 ### Where things are stored
 
@@ -94,7 +102,6 @@ lesson, starting a journey, completing a quest, or submitting/approving a testim
 
 | System | How it's simulated |
 | --- | --- |
-| Authentication | `services/authService.ts` — instant sign-in/sign-up, no real credentials checked |
 | AI lesson processing | Cosmetic "AI Processing Preview" panel on `/capture` |
 | 3D Quest completion | "Simulate Quest Completion" dev button generates a randomized score, time, and leaderboard entry |
 | Testimony review | "Dev: Approve Testimony" button on the Applied stage and Host Dashboard |
@@ -110,18 +117,19 @@ lesson, starting a journey, completing a quest, or submitting/approving a testim
 - **Kingdom Member** — browse lessons, progress through journeys, appear on the leaderboard, submit
   testimonies, and view their story contribution.
 
-Switch between them anytime from the avatar menu — this is a Phase One development convenience and will be
-replaced by real role-based accounts in Phase Two.
+Account type is chosen at signup and is a real, fixed attribute of the account (`profiles.account_type`) —
+there's no dev persona switcher anymore, since that was simulated-auth tooling with no meaning once accounts
+are real.
 
 ---
 
-## 6. What's Next (Phase Two, not included here)
+## 6. What's Still Mocked
 
-- Supabase/Postgres-backed data instead of `localStorage`
-- Real authentication & role-based access control
-- OpenAI/Higgsfield-powered lesson processing, story generation, and video/character creation
-- Production file storage for uploaded documents, video, and audio
-- Email notifications and payment/subscription handling
+- Journey, Quest (3D experience + leaderboard), Testimony, Kingdom Scroll, Story, Characters, and Episodes —
+  all still `/data` + `localStorage`, via the original `/services/*.ts` files.
+- AI lesson processing (OpenAI), story/video/character generation (Higgsfield), and email notifications.
+- Production file storage for uploaded documents/video/audio (Capture's file drop zone is still cosmetic;
+  media is captured as links or pasted text/transcript).
 
-Everything in `/services` is written so those integrations can replace the mock implementations behind the
-same function signatures, without needing to rewrite the pages that call them.
+See `docs/SUPABASE_SETUP.md` for how the now-real pieces (auth, Capture, Lessons Library, Lesson Detail,
+Church Archive) are configured and tested.

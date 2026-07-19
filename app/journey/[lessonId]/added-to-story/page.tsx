@@ -1,9 +1,10 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
-import { notFound, useRouter } from "next/navigation";
+import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BookOpen, UserRound, ScrollText as ScrollIcon, Map, Crown, Play, Sparkles } from "lucide-react";
+import { StageComingSoon } from "@/components/journey/StageComingSoon";
 import { getLesson } from "@/services/lessonService";
 import { useSession } from "@/context/SessionContext";
 import { getJourney, completeAddedToStory } from "@/services/journeyService";
@@ -11,23 +12,18 @@ import { getTestimony } from "@/services/testimonyService";
 import { getCharacterByTestimony, getStoryEntryByTestimony } from "@/services/storyService";
 import { JourneyStepper } from "@/components/journey/JourneyStepper";
 import { Button, LinkButton } from "@/components/ui/Button";
-import { Journey } from "@/types";
 
 export default function AddedToStoryPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const { lessonId } = use(params);
   const lesson = getLesson(lessonId);
   const { session, ready } = useSession();
   const router = useRouter();
-  const [journey, setJourney] = useState<Journey | null>(null);
+  // refreshKey's value is never read -- setting it just forces a re-render, which recomputes
+  // `journey` below from the (mutated) journey store after publish() runs.
+  const [, setRefreshKey] = useState(0);
+  const journey = ready && session.isLoggedIn && lesson ? getJourney(session.user.id, lesson.id) ?? null : null;
 
-  useEffect(() => {
-    if (ready && session.isLoggedIn && lesson) {
-      const j = getJourney(session.user.id, lesson.id);
-      setJourney(j ?? null);
-    }
-  }, [ready, session, lesson]);
-
-  if (!lesson) return notFound();
+  if (!lesson) return <StageComingSoon stageLabel="Added to the Story" />;
   if (!ready) return null;
   if (!session.isLoggedIn) {
     router.push("/login");
@@ -59,8 +55,8 @@ export default function AddedToStoryPage({ params }: { params: Promise<{ lessonI
   const published = journey.stage === "added-to-story";
 
   function publish() {
-    const updated = completeAddedToStory(session.user.id, lesson!.id);
-    setJourney(updated);
+    completeAddedToStory(session.user.id, lesson!.id);
+    setRefreshKey((k) => k + 1);
   }
 
   return (

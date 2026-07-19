@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import { User, Mail, Church as ChurchIcon, Award, Map, Feather } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getChurchById } from "@/data/churches";
@@ -12,17 +12,14 @@ import { LinkButton } from "@/components/ui/Button";
 
 export default function ProfilePage() {
   const { session, ready } = useSession();
-  const [counts, setCounts] = useState({ journeys: 0, badges: 0, testimonies: 0 });
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) {
-      setCounts({
-        journeys: getUserJourneys(session.user.id).length,
-        badges: getUserBadges(session.user.id).length,
-        testimonies: getUserTestimonies(session.user.id).length,
-      });
-    }
-  }, [ready, session]);
+  const counts =
+    ready && session.isLoggedIn
+      ? {
+          journeys: getUserJourneys(session.user.id).length,
+          badges: getUserBadges(session.user.id).length,
+          testimonies: getUserTestimonies(session.user.id).length,
+        }
+      : { journeys: 0, badges: 0, testimonies: 0 };
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
@@ -39,7 +36,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-3xl mx-auto px-4 md:px-8 py-6 md:py-8">
       <div className="qk-card p-6 flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-6">
-        <img src={session.user.avatarUrl} className="w-20 h-20 rounded-full" alt="" />
+        <Image src={session.user.avatarUrl} width={80} height={80} className="rounded-full" alt="" />
         <div className="text-center sm:text-left">
           <h1 className="text-2xl font-bold text-foreground">{session.user.fullName}</h1>
           <p className="text-sm text-accent-blue-light font-medium">

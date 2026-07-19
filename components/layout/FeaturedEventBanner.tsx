@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { CalendarHeart, ArrowRight } from "lucide-react";
 import { featuredEvent } from "@/data/featuredEvent";
 
@@ -10,7 +11,13 @@ export function FeaturedEventBanner() {
       className="relative block rounded-2xl overflow-hidden group border border-accent-gold/40 qk-glow-gold"
     >
       <div className="absolute inset-0">
-        <img src={featuredEvent.imageUrl} alt="" className="w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-300" />
+        <Image
+          src={featuredEvent.imageUrl}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover opacity-45 group-hover:scale-105 transition-transform duration-300"
+        />
         <div
           className="absolute inset-0"
           style={{

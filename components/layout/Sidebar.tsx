@@ -3,62 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutGrid,
-  Map,
-  Target,
-  BookOpen,
-  BarChart3,
-  ScrollText,
-  Bell,
-  User,
-  ChevronsLeft,
-  Building2,
-  X,
-  BookMarked,
-  Clapperboard,
-  CalendarHeart,
-} from "lucide-react";
+import { Bell, User, ChevronsLeft, X } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
-
-const memberLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/my-journey", label: "My Journey", icon: Map },
-  { href: "/capture", label: "Capture", icon: Target },
-  { href: "/lessons", label: "Lessons", icon: BookOpen },
-  { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-  { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
-  { href: "/story", label: "Full Story", icon: BookMarked },
-  { href: "/episodes", label: "Episodes", icon: Clapperboard },
-  { href: "/events", label: "Events", icon: CalendarHeart },
-];
-
-const hostLinks = [
-  { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
-  { href: "/capture", label: "Capture", icon: Target },
-  { href: "/lessons", label: "Lessons", icon: BookOpen },
-  { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
-  { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
-  { href: "/story", label: "Full Story", icon: BookMarked },
-  { href: "/episodes", label: "Episodes", icon: Clapperboard },
-  { href: "/events", label: "Events", icon: CalendarHeart },
-];
+import { SIDEBAR_MEMBER_LINKS, SIDEBAR_HOST_LINKS } from "@/lib/navigation";
 
 export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; onCloseMobile: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
   const { session } = useSession();
   const pathname = usePathname();
-  const [unread, setUnread] = useState(0);
+  const unread = session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
 
-  useEffect(() => {
-    if (session.isLoggedIn) setUnread(getUnreadCount(session.user.id));
-  }, [session, pathname]);
-
-  const links = session.accountType === "host" ? hostLinks : memberLinks;
+  const links = session.accountType === "host" ? SIDEBAR_HOST_LINKS : SIDEBAR_MEMBER_LINKS;
 
   const content = (
     <div className="flex flex-col h-full">
@@ -90,7 +47,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
               )}
               title={collapsed ? link.label : undefined}
             >
-              <Icon size={18} className="shrink-0" />
+              {Icon && <Icon size={18} className="shrink-0" />}
               {!collapsed && <span>{link.label}</span>}
             </Link>
           );

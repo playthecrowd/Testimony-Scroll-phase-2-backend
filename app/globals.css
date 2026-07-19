@@ -113,3 +113,24 @@ body {
   outline-offset: 2px;
   border-radius: 0.5rem;
 }
+
+.qk-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+.qk-input::placeholder {
+  color: var(--muted);
+}
+.qk-input:focus {
+  outline: 2px solid var(--accent-blue-light);
+  outline-offset: 1px;
+}
+.qk-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

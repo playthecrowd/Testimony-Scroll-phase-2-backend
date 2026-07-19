@@ -1,21 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Feather } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getUserJourneys } from "@/services/journeyService";
 import { getUserNotifications } from "@/services/notificationService";
 import { getLesson } from "@/services/lessonService";
-import { Journey } from "@/types";
 import { LinkButton } from "@/components/ui/Button";
 
 export default function ContributePage() {
   const { session, ready } = useSession();
-  const [journeys, setJourneys] = useState<Journey[]>([]);
-
-  useEffect(() => {
-    if (ready && session.isLoggedIn) setJourneys(getUserJourneys(session.user.id));
-  }, [ready, session]);
+  const journeys = ready && session.isLoggedIn ? getUserJourneys(session.user.id) : [];
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
