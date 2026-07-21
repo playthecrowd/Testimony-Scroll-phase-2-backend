@@ -225,7 +225,7 @@ export function StudiedClient({
       </Link>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-6">
-        <div>
+        <div className="min-w-0">
           <div className="grid sm:grid-cols-[140px_1fr] gap-4 mb-5">
             <LessonThumbnail src={lesson.featuredImageUrl} alt={lesson.featuredImageAlt} rounded="rounded-xl" />
             <div>

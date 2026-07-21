@@ -71,7 +71,7 @@ export default function AddedToStoryPage({ params }: { params: Promise<{ lessonI
       <p className="text-muted text-sm mt-1 mb-6">Your testimony becomes part of the Kingdom Scroll.</p>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-6">
-        <div className="qk-card overflow-hidden">
+        <div className="qk-card overflow-hidden min-w-0">
           <div className="relative aspect-video bg-surface-2">
             <img src={testimony.thumbnailUrl} className="w-full h-full object-cover" alt="" />
             <div className="absolute inset-0 flex items-center justify-center">

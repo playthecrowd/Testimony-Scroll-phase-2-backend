@@ -15,12 +15,13 @@ export const dynamic = "force-dynamic";
 // reader (one episode at a time, Previous/Next); Timeline View keeps the chronological list
 // presentation -- genuinely two different experiences over the same data.
 export default async function FullStoryPage() {
-  const supabase = await createClient();
-
   let episodes: Awaited<ReturnType<typeof getEpisodes>> = [];
   let characters: Awaited<ReturnType<typeof getCharacters>> = [];
   let loadError = "";
   try {
+    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+    // inside this try so that failure renders the graceful branded error state below.
+    const supabase = await createClient();
     [episodes, characters] = await Promise.all([getEpisodes(supabase), getCharacters(supabase)]);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

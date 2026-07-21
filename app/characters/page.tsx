@@ -13,11 +13,12 @@ export const dynamic = "force-dynamic";
 // (mock), auto-populated by an uncontrolled mock character-generation pipeline. Official
 // characters are now exclusively production-admin-curated (/admin/characters).
 export default async function CharactersPage() {
-  const supabase = await createClient();
-
   let characters: Awaited<ReturnType<typeof getCharacters>> = [];
   let loadError = "";
   try {
+    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+    // inside this try so that failure renders the graceful branded error state below.
+    const supabase = await createClient();
     characters = await getCharacters(supabase);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

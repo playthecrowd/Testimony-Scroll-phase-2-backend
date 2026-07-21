@@ -26,10 +26,12 @@ const NEW_LESSON_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 // Builder already uses (see services/supabase/churches.ts, services/supabase/lessons.ts).
 //
 export default async function HostDashboardPage() {
-  const supabase = await createClient();
-
+  // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+  // inside this try so that failure renders the graceful branded error state below.
+  let supabase: Awaited<ReturnType<typeof createClient>>;
   let user: { id: string } | null = null;
   try {
+    supabase = await createClient();
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();

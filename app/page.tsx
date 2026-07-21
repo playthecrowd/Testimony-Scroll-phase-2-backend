@@ -38,7 +38,7 @@ export default function HomePage() {
       {/* Hero */}
       <section className="max-w-[1600px] mx-auto px-4 md:px-8 pt-10 md:pt-14 pb-8">
         <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-4xl md:text-6xl font-extrabold leading-[1.05] text-foreground max-w-2xl">
               Every lesson becomes a{" "}
               <span className="bg-gradient-to-r from-accent-blue-light to-accent-purple bg-clip-text text-transparent">

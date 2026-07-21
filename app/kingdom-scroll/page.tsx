@@ -16,11 +16,12 @@ export const dynamic = "force-dynamic";
 // that the real workflow deliberately does not carry over (production admin controls any real
 // character/story relationship, entirely outside this table -- see Phase 7).
 export default async function KingdomScrollPage() {
-  const supabase = await createClient();
-
   let testimonies: Awaited<ReturnType<typeof getApprovedPublicTestimonies>> = [];
   let loadError = "";
   try {
+    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+    // inside this try so that failure renders the graceful branded error state below.
+    const supabase = await createClient();
     testimonies = await getApprovedPublicTestimonies(supabase);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

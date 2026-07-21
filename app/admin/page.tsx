@@ -24,10 +24,12 @@ interface AdminLink {
 // Landing page for every admin section built across Phases 5-9 (docs/PHASE9_AUDIT.md). Several
 // pages already link back to "/admin" as their "Admin Home" breadcrumb; this is that destination.
 export default async function AdminHomePage() {
-  const supabase = await createClient();
-
+  // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+  // inside this try so that failure renders the graceful branded error state below.
+  let supabase: Awaited<ReturnType<typeof createClient>>;
   let gate;
   try {
+    supabase = await createClient();
     gate = await getPlatformAdminGate(supabase);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

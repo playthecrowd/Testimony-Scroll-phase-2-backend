@@ -198,7 +198,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
       )}
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div>
+        <div className="min-w-0">
           <div className="grid sm:grid-cols-[220px_1fr] gap-5 mb-6">
             <LessonThumbnail
               src={lesson.featuredImageUrl}

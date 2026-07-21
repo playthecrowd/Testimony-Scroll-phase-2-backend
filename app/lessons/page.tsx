@@ -97,7 +97,7 @@ export default function LessonsPage() {
     <div className="relative max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
       <PageBackground src={backgrounds.roadToEaster} opacity={0.42} />
       <div className="grid xl:grid-cols-[1fr_300px] gap-6">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">Lessons</h1>

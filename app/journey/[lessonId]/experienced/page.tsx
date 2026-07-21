@@ -78,7 +78,7 @@ export default function ExperiencedStagePage({ params }: { params: Promise<{ les
       </div>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6 mb-8">
-        <div className="qk-card p-5 flex flex-col sm:flex-row gap-5">
+        <div className="qk-card p-5 flex flex-col sm:flex-row gap-5 min-w-0">
           <div className="relative sm:w-56 aspect-video sm:aspect-square rounded-xl overflow-hidden bg-surface-2 shrink-0">
             <img src={lesson.featuredImageUrl} className="w-full h-full object-cover" alt="" />
             {lesson.questLevel && (
