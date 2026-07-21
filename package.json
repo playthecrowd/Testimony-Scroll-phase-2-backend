@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
+    "qa:seed:dry": "tsx scripts/qaSeed.ts",
+    "qa:seed": "tsx scripts/qaSeed.ts --execute",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
