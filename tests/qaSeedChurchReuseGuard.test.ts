@@ -22,13 +22,13 @@ function extractFunction(name: string): string {
 
 test("resolveChurchForHost fails closed on a duplicate QA church (more than one church with the exact expected name)", () => {
   const fn = extractFunction("resolveChurchForHost");
-  assert.match(fn, /nameMatches.*\)\.length > 1/s, "must check for more than one church matching the exact expected name");
+  assert.match(fn, /nameMatches[\s\S]*?\)\.length > 1/, "must check for more than one church matching the exact expected name");
   assert.match(fn, /duplicate QA church/i);
 });
 
 test("resolveChurchForHost fails closed on more than one host/admin membership for the QA host", () => {
   const fn = extractFunction("resolveChurchForHost");
-  assert.match(fn, /memberships.*\)\.length > 1/s, "must check for more than one host/admin church_memberships row");
+  assert.match(fn, /memberships[\s\S]*?\)\.length > 1/, "must check for more than one host/admin church_memberships row");
 });
 
 test("resolveChurchForHost fails closed when the host manages a church that isn't named exactly the expected QA name", () => {

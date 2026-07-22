@@ -396,6 +396,15 @@ async function provisionIdentity(id: QaIdentity): Promise<{ result: IdentityResu
     profileId = data.user.id;
     authUserOutcome = "created";
     profileOutcome = "created";
+    // listAllUsersCached() was already populated (by the required-table/non-QA-domain audit
+    // earlier in main()) with the user list as it existed BEFORE this identity was created.
+    // Without invalidating it here, every later findExistingUserByEmail() call in this same
+    // process -- including resolveChurchForHost()'s host lookup -- would keep seeing the stale,
+    // pre-creation snapshot and incorrectly report this brand-new host as missing, causing church
+    // creation (and everything gated on it: member joins, wallets) to be silently skipped on a
+    // fresh --execute run. Forcing a re-fetch is the simplest correct fix -- five extra users is
+    // not worth a subtler incremental-cache-update bug.
+    cachedAllUsers = null;
   }
 
   // Verify the on_auth_user_created trigger actually produced the profiles row -- never insert
