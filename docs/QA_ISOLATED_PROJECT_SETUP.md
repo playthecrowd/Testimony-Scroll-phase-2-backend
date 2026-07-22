@@ -1,6 +1,13 @@
 # Isolated QA Supabase Project — Setup Instructions
 
-**Why this exists:** Vercel inspection (2026-07-21) confirmed every current Supabase environment
+> **SUPERSEDED (2026-07-21).** After this document was written, the explicit decision was made to
+> use the existing shared Supabase project for QA instead of creating an isolated one, because the
+> project is pre-launch and has no real users/churches/financial records yet — see
+> `docs/QA_SHARED_DATABASE.md` for the current plan and environment classification. This document
+> is kept for reference (e.g. if isolation is revisited post-launch) but does not describe the
+> current approach — do not follow it without re-confirming that decision has changed again.
+
+**Why this exists (historical):** Vercel inspection (2026-07-21) confirmed every current Supabase environment
 variable is scoped to "Production and Preview" with no branch override, so the `Production` git
 branch and `main` currently share the same Supabase project and credentials. QA user/data
 provisioning must not run against that shared project. This document is the exact, no-secrets-shown

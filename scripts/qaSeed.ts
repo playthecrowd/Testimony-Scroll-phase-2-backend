@@ -1,5 +1,15 @@
 // Guarded QA identity/data provisioning script -- NOT for production data, NOT run automatically.
 //
+// Target: the SHARED PRE-LAUNCH DEVELOPMENT AND QA DATABASE (the one Supabase project the
+// `Production` branch's deployed Preview and `main` currently both point at -- there is no
+// separate isolated QA project). This is an explicit, accepted decision for the pre-launch
+// period, made because the project has no real users/churches/financial records yet. This
+// script must never be pointed at anything described as "isolated QA" or "the final live
+// database" without the guard values below being re-confirmed for that target.
+//
+// See scripts/qaCleanup.ts for the companion guarded removal script (dry-run only until
+// explicitly run with --execute after testing completes, per docs/QA_SHARED_DATABASE.md).
+//
 // Creates five synthetic, login-capable QA accounts (Church A Host/Member, Church B Host/Member,
 // Platform Administrator) plus the two QA churches and a baseline wallet state, using the app's
 // own real Auth + RPC architecture (never a hand-rolled substitute for it):
@@ -112,12 +122,16 @@ if (approvedProjectRef !== actualProjectRef) {
   );
 }
 
-if (qaEnvironment !== "deployed-qa") {
-  fail('QA_ENVIRONMENT must be exactly "deployed-qa". This script never assumes an environment classification.');
+// "shared-prelaunch-dev-qa" is a deliberate, explicit classification -- never "isolated-qa" or
+// any value implying a dedicated project, since there isn't one. Changing what this value means
+// is a decision for a human, not something this script should infer from context.
+if (qaEnvironment !== "shared-prelaunch-dev-qa") {
+  fail('QA_ENVIRONMENT must be exactly "shared-prelaunch-dev-qa". This script never assumes an environment classification.');
 }
 
-if (!qaEmailDomain) {
-  fail("QA_EMAIL_DOMAIN is not set (e.g. qa.quest4thekingdom.com). Set it in .env.qa.local.");
+const APPROVED_QA_EMAIL_DOMAIN = "qa.quest4thekingdom.com";
+if (qaEmailDomain !== APPROVED_QA_EMAIL_DOMAIN) {
+  fail(`QA_EMAIL_DOMAIN must be exactly "${APPROVED_QA_EMAIL_DOMAIN}" (the one approved domain), not "${qaEmailDomain ?? "(unset)"}".`);
 }
 
 if (!DRY_RUN && allowQaSeed !== "true") {
@@ -235,19 +249,89 @@ async function signInAs(id: QaIdentity): Promise<SupabaseClient> {
 // Auth user create-or-reuse (admin API only; never a direct profiles insert as a substitute)
 // ---------------------------------------------------------------------------
 
-async function findExistingUserByEmail(targetEmail: string): Promise<{ id: string } | null> {
-  // supabase-js's admin.listUsers() has no server-side email filter in all SDK versions, but the
-  // QA roster is five accounts on one dedicated domain -- paginating that is cheap and safe.
+interface AuthUserSummary {
+  id: string;
+  email: string;
+  userMetadata: Record<string, unknown>;
+}
+
+let cachedAllUsers: AuthUserSummary[] | null = null;
+
+// supabase-js's admin.listUsers() has no server-side email filter in all SDK versions -- fetch
+// once, cache for the rest of the run. Also doubles as the "confirm no unexpected real users"
+// read: see auditNonQaIdentities() below.
+async function listAllUsersCached(): Promise<AuthUserSummary[]> {
+  if (cachedAllUsers) return cachedAllUsers;
+  const all: AuthUserSummary[] = [];
   let page = 1;
   const perPage = 200;
   for (;;) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) throw new Error(`listUsers failed: ${error.message}`);
-    const match = data.users.find((u) => u.email?.toLowerCase() === targetEmail.toLowerCase());
-    if (match) return { id: match.id };
-    if (data.users.length < perPage) return null;
+    for (const u of data.users) {
+      all.push({ id: u.id, email: u.email ?? "", userMetadata: u.user_metadata ?? {} });
+    }
+    if (data.users.length < perPage) break;
     page += 1;
   }
+  cachedAllUsers = all;
+  return all;
+}
+
+async function findExistingUserByEmail(targetEmail: string): Promise<AuthUserSummary | null> {
+  const all = await listAllUsersCached();
+  return all.find((u) => u.email.toLowerCase() === targetEmail.toLowerCase()) ?? null;
+}
+
+// "Fail closed if unexpected existing records or identity collisions are found": an auth user
+// already sitting at one of the five approved QA emails that this script did NOT create (no
+// qa_seed/qa_label markers matching this identity) is refused rather than silently reused or
+// overwritten -- it might be a real account that happens to share the address, or QA data seeded
+// by a different, incompatible process.
+function assertNoIdentityCollision(id: QaIdentity, existing: AuthUserSummary) {
+  const isKnownQaUser = existing.userMetadata.qa_seed === true && existing.userMetadata.qa_label === id.key;
+  if (!isKnownQaUser) {
+    fail(
+      `Identity collision: an auth user already exists at ${id.email} that was NOT created by this script ` +
+        `(missing/mismatched qa_seed/qa_label metadata). Refusing to reuse or modify it. Investigate manually ` +
+        `before proceeding -- this could be a real account or QA data from an incompatible source.`
+    );
+  }
+}
+
+// Read-only check supporting "confirm there are currently no real Auth users" -- reports any auth
+// user whose email is not on the approved QA domain. Informational only: never acts on these.
+async function auditNonQaIdentities(): Promise<{ total: number; nonQaCount: number; nonQaEmailsRedacted: string[] }> {
+  const all = await listAllUsersCached();
+  const nonQa = all.filter((u) => !QA_EMAIL_PATTERN.test(u.email));
+  return {
+    total: all.length,
+    nonQaCount: nonQa.length,
+    // Redact the local part so this is safe to paste into a report -- domain only, e.g. "***@gmail.com".
+    nonQaEmailsRedacted: nonQa.map((u) => `***@${u.email.split("@")[1] ?? "(unknown)"}`),
+  };
+}
+
+// Read-only check supporting "confirm migrations 0001-0035 are already applied": every table this
+// script needs to read or write should already exist with the expected shape. A missing table
+// surfaces here as a clear, itemized report instead of a confusing failure deep inside a later
+// RPC call.
+const REQUIRED_TABLES = [
+  "profiles",
+  "churches",
+  "church_memberships",
+  "member_wallets",
+  "church_wallets",
+  "credit_ledger_entries",
+] as const;
+
+async function checkRequiredTablesExist(): Promise<{ table: string; ok: boolean; error?: string }[]> {
+  const results: { table: string; ok: boolean; error?: string }[] = [];
+  for (const table of REQUIRED_TABLES) {
+    const { error } = await admin.from(table).select("*", { count: "exact", head: true });
+    results.push({ table, ok: !error, error: error?.message });
+  }
+  return results;
 }
 
 interface IdentityResult {
@@ -264,6 +348,9 @@ interface IdentityResult {
 
 async function provisionIdentity(id: QaIdentity): Promise<{ result: IdentityResult; profileId: string | null }> {
   const existing = await findExistingUserByEmail(id.email);
+  // Checked in both dry-run and execute -- an identity collision is worth surfacing as early as
+  // possible, and this check is read-only either way.
+  if (existing) assertNoIdentityCollision(id, existing);
 
   if (DRY_RUN) {
     return {
@@ -479,8 +566,30 @@ async function provisionChurchWallet(hostId: QaIdentity, churchId: string, grant
 async function main() {
   console.log(`\n[qaSeed] mode: ${DRY_RUN ? "DRY RUN (read-only)" : "EXECUTE (will write)"}`);
   console.log(`[qaSeed] target project ref: ${actualProjectRef}`);
+  console.log(`[qaSeed] environment classification: shared pre-launch development and QA database`);
   console.log(`[qaSeed] QA_ENVIRONMENT: ${qaEnvironment}`);
   console.log(`[qaSeed] QA_EMAIL_DOMAIN: ${qaEmailDomain}\n`);
+
+  console.log("[qaSeed] Required-table check (supports confirming migrations 0001-0035 are applied):");
+  const tableChecks = await checkRequiredTablesExist();
+  for (const t of tableChecks) {
+    console.log(`  ${t.ok ? "OK  " : "MISSING"} ${t.table}${t.error ? ` -- ${t.error}` : ""}`);
+  }
+  if (tableChecks.some((t) => !t.ok)) {
+    fail("One or more required tables are missing or unreadable -- migrations 0001-0035 may not be fully applied to this project. Fix before continuing.");
+  }
+  console.log("");
+
+  console.log("[qaSeed] Existing Auth user audit (supports confirming there are no real users yet):");
+  const audit = await auditNonQaIdentities();
+  console.log(`  total auth users in this project: ${audit.total}`);
+  console.log(`  users on the approved QA domain:   ${audit.total - audit.nonQaCount}`);
+  console.log(`  users on OTHER domains:            ${audit.nonQaCount}${audit.nonQaCount > 0 ? ` (domains only, redacted: ${audit.nonQaEmailsRedacted.join(", ")})` : ""}`);
+  if (audit.nonQaCount > 0) {
+    console.log("  NOTE: non-QA-domain users exist in this project. This script never touches them, but you");
+    console.log("  should confirm none of them are real accounts before proceeding, per your own review process.");
+  }
+  console.log("");
 
   const results: IdentityResult[] = [];
   const profileIds = new Map<string, string | null>();
