@@ -211,11 +211,15 @@ for (const id of IDENTITIES) {
   }
 }
 
-if (!DRY_RUN) {
-  for (const id of IDENTITIES) {
-    if (!process.env[id.passwordEnvVar]) {
-      fail(`${id.passwordEnvVar} is not set in .env.qa.local. All five QA passwords are required before --execute.`);
-    }
+// Checked in both dry-run and execute (previously execute-only) -- a dry run should surface a
+// missing password as an actionable pre-flight problem, not silently skip the check and let it
+// surface for the first time partway through a real --execute run. This validates PRESENCE only
+// (the env var is set to a non-empty string); it cannot and does not attempt to judge whether a
+// given value is a "real" password versus a placeholder/dummy one -- that determination has no
+// reliable automated signal and is left to you.
+for (const id of IDENTITIES) {
+  if (!process.env[id.passwordEnvVar]) {
+    fail(`${id.passwordEnvVar} is not set in .env.qa.local. All five QA passwords are required.`);
   }
 }
 
