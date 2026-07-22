@@ -443,31 +443,115 @@ async function provisionIdentity(id: QaIdentity): Promise<{ result: IdentityResu
 // Churches + memberships (Step 5) -- via the app's own RPCs/insert shape, never a raw substitute.
 // ---------------------------------------------------------------------------
 
-async function provisionChurchForHost(hostId: QaIdentity, churchLabel: "A" | "B"): Promise<{ churchId: string | null; note: string }> {
-  if (DRY_RUN) return { churchId: null, note: `would create/verify "${CHURCH_NAMES[churchLabel]}" via create_church_with_host` };
+interface ChurchRow {
+  id: string;
+  name: string;
+  is_demo: boolean;
+  created_by: string | null;
+}
 
-  // Idempotency: check for an existing host/admin membership before calling the RPC, since the
-  // RPC itself raises "You already manage a church" on a second call for the same user.
+type ChurchResolution =
+  | { kind: "reuse"; church: ChurchRow }
+  | { kind: "create" }
+  | { kind: "host-missing" };
+
+// Hardened reuse check: a match requires BOTH the collision-verified QA host's own host/admin
+// membership AND the exact stable synthetic church name expected for that host to agree on the
+// same row. `churches.name` has no unique constraint in the schema (only `slug` does), so two
+// independently-created churches could otherwise share a name -- and a host could in principle
+// hold a membership to some other church entirely. Every disagreement between those two signals,
+// or any sign of more than one candidate, fails closed rather than guessing.
+async function resolveChurchForHost(hostId: QaIdentity, churchLabel: "A" | "B"): Promise<ChurchResolution> {
+  const expectedName = CHURCH_NAMES[churchLabel];
+
   const existingHost = await findExistingUserByEmail(hostId.email);
-  if (!existingHost) return { churchId: null, note: "host auth user missing -- cannot provision church" };
+  if (!existingHost) return { kind: "host-missing" };
 
-  const { data: existingMembership, error: membershipLookupError } = await admin
+  const { data: nameMatches, error: nameLookupError } = await admin
+    .from("churches")
+    .select("id, name, is_demo, created_by")
+    .eq("name", expectedName);
+  if (nameLookupError) throw new Error(`churches name lookup failed: ${nameLookupError.message}`);
+  if ((nameMatches ?? []).length > 1) {
+    fail(
+      `Found ${nameMatches!.length} churches named exactly "${expectedName}" -- expected at most one ` +
+        `(duplicate QA church). Refusing to guess which is the real one. Investigate manually before continuing.`
+    );
+  }
+  const nameMatch = (nameMatches?.[0] as ChurchRow | undefined) ?? null;
+
+  const { data: memberships, error: membershipLookupError } = await admin
     .from("church_memberships")
     .select("church_id")
     .eq("profile_id", existingHost.id)
-    .in("role", ["host", "admin"])
-    .maybeSingle();
+    .in("role", ["host", "admin"]);
   if (membershipLookupError) throw new Error(`church_memberships lookup failed: ${membershipLookupError.message}`);
-
-  if (existingMembership) {
-    // Make sure it's still flagged as QA/demo data even on rerun.
-    await admin.from("churches").update({ is_demo: true }).eq("id", existingMembership.church_id);
-    return { churchId: existingMembership.church_id, note: "reused existing church" };
+  if ((memberships ?? []).length > 1) {
+    fail(
+      `${hostId.label} (${hostId.email}) holds more than one host/admin church_memberships row -- expected ` +
+        `at most one, since create_church_with_host enforces one church per host. Refusing to guess which is ` +
+        `the QA church. Investigate manually before continuing.`
+    );
   }
+  const membershipChurchId = memberships?.[0]?.church_id ?? null;
+
+  if (!membershipChurchId && !nameMatch) {
+    return { kind: "create" };
+  }
+  if (membershipChurchId && !nameMatch) {
+    fail(
+      `${hostId.label} manages a church (id ${membershipChurchId}) but no church is named exactly ` +
+        `"${expectedName}" -- mismatched church. Refusing to reuse it. Investigate manually before continuing.`
+    );
+  }
+  if (!membershipChurchId && nameMatch) {
+    fail(
+      `A church named exactly "${expectedName}" already exists (id ${nameMatch.id}), but ${hostId.label} does ` +
+        `not manage it (no host/admin membership) -- unexpected/non-QA record. Refusing to touch it. ` +
+        `Investigate manually before continuing.`
+    );
+  }
+  if (nameMatch!.id !== membershipChurchId) {
+    fail(
+      `${hostId.label}'s managed church (id ${membershipChurchId}) is not the same row as the church named ` +
+        `"${expectedName}" (id ${nameMatch!.id}) -- unexpected church. Refusing to guess which is correct. ` +
+        `Investigate manually before continuing.`
+    );
+  }
+  if (nameMatch!.created_by !== existingHost.id) {
+    fail(
+      `Church "${expectedName}" (id ${nameMatch!.id}) was created_by a different profile than ${hostId.label} ` +
+        `-- non-QA/unexpected record. Refusing to touch it. Investigate manually before continuing.`
+    );
+  }
+
+  return { kind: "reuse", church: nameMatch! };
+}
+
+async function provisionChurchForHost(hostId: QaIdentity, churchLabel: "A" | "B"): Promise<{ churchId: string | null; note: string }> {
+  const expectedName = CHURCH_NAMES[churchLabel];
+  const resolution = await resolveChurchForHost(hostId, churchLabel);
+
+  if (resolution.kind === "host-missing") {
+    return { churchId: null, note: "host auth user missing -- cannot provision church" };
+  }
+
+  if (resolution.kind === "reuse") {
+    if (DRY_RUN) {
+      return { churchId: resolution.church.id, note: `would reuse "${expectedName}" (verified: host identity + exact name match)` };
+    }
+    // Re-assert is_demo=true (idempotent, narrowly scoped to this exact, now-verified id) -- self-
+    // heals a rerun that crashed between create_church_with_host and this flag being set the first time.
+    await admin.from("churches").update({ is_demo: true }).eq("id", resolution.church.id);
+    return { churchId: resolution.church.id, note: "reused existing church (verified by host identity + exact name match)" };
+  }
+
+  // resolution.kind === "create"
+  if (DRY_RUN) return { churchId: null, note: `would create "${expectedName}" via create_church_with_host` };
 
   const client = await signInAs(hostId);
   const { data, error } = await client.rpc("create_church_with_host", {
-    p_name: CHURCH_NAMES[churchLabel],
+    p_name: expectedName,
     p_city: "QA City",
     p_region: "QA",
     p_country: "US",
