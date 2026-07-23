@@ -48,6 +48,7 @@ function mapTestimony(row: any): PublishedTestimony {
 }
 
 export interface CreateTestimonyInput {
+  idempotencyKey: string;
   primaryLessonId: string;
   supportingLessonIds: string[];
   title: string;
@@ -64,33 +65,35 @@ export interface CreateTestimonyInput {
   voiceLikenessPermission: boolean;
 }
 
-// church_id is deliberately never sent here -- the testimonies_before_insert trigger
-// (0018_testimonies.sql) derives it from primary_lesson_id and also enforces that every attached
-// lesson (primary + supporting) is one the caller has actually completed.
+// Repair Batch 2, D23 (Trello tBiCxvNF): rapid/duplicate submissions (double-click, Enter-key
+// repeat, a retry after a slow network response) must produce exactly one testimony, not one per
+// request. The real, database-level guarantee is submit_testimony_idempotent's unique index on
+// (submitted_by, idempotency_key) (0036_testimony_idempotency.sql) -- this function is a thin
+// wrapper, not where the protection actually lives. No member/profile id is ever sent as a
+// parameter: the RPC always resolves the authenticated profile itself via auth.uid(), the same
+// trust model as every other SECURITY DEFINER RPC in this codebase.
+//
+// church_id is still never sent here -- the RPC's internal insert still fires
+// testimonies_before_insert (0018_testimonies.sql), which derives it from primary_lesson_id and
+// enforces that every attached lesson (primary + supporting) is one the caller has actually
+// completed, unchanged from before this migration.
 export async function createTestimony(supabase: SupabaseClient, input: CreateTestimonyInput): Promise<void> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("You must be signed in to submit a testimony.");
-
-  const { error } = await supabase.from("testimonies").insert({
-    submitted_by: user.id,
-    primary_lesson_id: input.primaryLessonId,
-    supporting_lesson_ids: input.supportingLessonIds,
-    title: input.title,
-    topic: input.topic || null,
-    scripture: input.scripture || null,
-    written_testimony: input.writtenTestimony,
-    video_url: input.videoUrl || null,
-    audio_url: input.audioUrl || null,
-    visibility: input.visibility,
-    identity_display: input.identityDisplay,
-    suggested_character: input.suggestedCharacter || null,
-    story_generation_permission: input.storyGenerationPermission,
-    future_episode_permission: input.futureEpisodePermission,
-    voice_likeness_permission: input.voiceLikenessPermission,
-    church_status: "pending",
-    platform_status: input.visibility === "public" ? "pending" : "not_submitted",
+  const { error } = await supabase.rpc("submit_testimony_idempotent", {
+    p_idempotency_key: input.idempotencyKey,
+    p_primary_lesson_id: input.primaryLessonId,
+    p_supporting_lesson_ids: input.supportingLessonIds,
+    p_title: input.title,
+    p_topic: input.topic || null,
+    p_scripture: input.scripture || null,
+    p_written_testimony: input.writtenTestimony,
+    p_video_url: input.videoUrl || null,
+    p_audio_url: input.audioUrl || null,
+    p_visibility: input.visibility,
+    p_identity_display: input.identityDisplay,
+    p_suggested_character: input.suggestedCharacter || null,
+    p_story_generation_permission: input.storyGenerationPermission,
+    p_future_episode_permission: input.futureEpisodePermission,
+    p_voice_likeness_permission: input.voiceLikenessPermission,
   });
   if (error) throw error;
 }

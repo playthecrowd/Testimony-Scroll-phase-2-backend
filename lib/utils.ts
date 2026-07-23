@@ -2,6 +2,15 @@ export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
+// Repair Batch 2, D23: shared UUID-shape check used by submitTestimonyAction's client-side defense
+// in depth (a "use server" file may only export async functions, so this pure regex check has to
+// live here rather than inline in the action itself) -- the real enforcement is
+// submit_testimony_idempotent's own format check (0036_testimony_idempotency.sql).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function isValidUuid(value: string): boolean {
+  return UUID_RE.test(value);
+}
+
 export function formatDate(dateStr: string) {
   try {
     return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

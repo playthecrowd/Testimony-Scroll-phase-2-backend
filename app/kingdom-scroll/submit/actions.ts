@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { isValidMediaUrl } from "@/lib/lessonForm";
+import { isValidUuid } from "@/lib/utils";
 import { createTestimony, CreateTestimonyInput } from "@/services/supabase/testimonies";
 
 export interface SubmitTestimonyResult {
@@ -12,6 +13,12 @@ export interface SubmitTestimonyResult {
 }
 
 export async function submitTestimonyAction(input: CreateTestimonyInput): Promise<SubmitTestimonyResult> {
+  // Defense in depth: the real enforcement is submit_testimony_idempotent's own format check
+  // (0036_testimony_idempotency.sql), but failing fast here avoids a round trip for an obviously
+  // malformed key (e.g. a caller that bypassed the form's crypto.randomUUID() generation).
+  if (!input.idempotencyKey || !isValidUuid(input.idempotencyKey)) {
+    return { error: "Could not submit your testimony -- please reload the page and try again." };
+  }
   if (!input.primaryLessonId) return { error: "Choose which lesson this testimony is about." };
   if (!input.title.trim()) return { error: "A title is required." };
   if (!input.writtenTestimony.trim()) return { error: "Your testimony is required." };
