@@ -42,30 +42,40 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = await signIn(email, password);
-    setSubmitting(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await signIn(email, password);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.push(getNextDestination() ?? result.destination ?? "/dashboard");
+    } catch {
+      setError("Something went wrong signing you in. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = await signUp(fullName, email, password, accountType);
-    setSubmitting(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await signUp(fullName, email, password, accountType);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if (result.status === "check-email") {
+        setCheckEmail(true);
+        return;
+      }
+      router.push(getNextDestination() ?? result.destination ?? "/dashboard");
+    } catch {
+      setError("Something went wrong creating your account. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    if (result.status === "check-email") {
-      setCheckEmail(true);
-      return;
-    }
-    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   if (checkEmail) {
