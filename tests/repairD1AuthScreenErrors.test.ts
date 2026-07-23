@@ -7,9 +7,12 @@ import path from "node:path";
 // exceptions -- any thrown error left `submitting` stuck true forever with no visible feedback.
 // Trello: https://trello.com/c/pthIcqkL/41
 //
-// Structural guard here; genuine behavioral coverage (a real thrown exception, no mocking -- this
-// repo has no .env.local locally, so createClient() throws for real) lives in
-// tests/manual/repairBatch1.spec.ts (Playwright, run manually, not part of `npm test`).
+// Structural guard here. Genuine behavioral coverage (a real thrown exception, no mocking -- this
+// repo has no .env.local locally, so createClient() throws for real) was separately verified via
+// an ad-hoc local Playwright run against the dev server; that file was not committed since
+// @playwright/test isn't a permanent project dependency (see npm run build's clean-install
+// requirement -- tsconfig.json's include globs the whole repo, so any committed .ts file importing
+// an uninstalled package breaks the production build's typecheck).
 const REPO_ROOT = path.join(__dirname, "..");
 
 function read(relPath: string): string {
