@@ -11,9 +11,21 @@ export function isValidUuid(value: string): boolean {
   return UUID_RE.test(value);
 }
 
+// Repair Batch 5, D9 (Trello RQYoZPId): a date-only string ("2026-07-20", no time component) is
+// parsed by `new Date(...)` as UTC midnight per the ES spec. Formatting that with the local
+// timezone during SSR (closer to UTC) vs. the browser's local timezone on hydration produced both
+// the one-day-early display and a real React hydration error #418 (server/client text mismatch) in
+// any timezone behind UTC. Only date-only strings get the local-calendar-date fix below; a full ISO
+// timestamp (e.g. a badge's awardedAt) has no such ambiguity and keeps its existing behavior.
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
 export function formatDate(dateStr: string) {
   try {
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const dateOnly = DATE_ONLY_RE.exec(dateStr);
+    const date = dateOnly
+      ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+      : new Date(dateStr);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   } catch {
     return dateStr;
   }
