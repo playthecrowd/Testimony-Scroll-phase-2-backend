@@ -1,6 +1,12 @@
 # Pending Trello updates — blocked by MCP outage (2026-07-24)
 
-**Status: no Trello write succeeded for any item below.** The Trello MCP integration
+**RESOLVED 2026-07-24: all updates below have been applied.** The Trello MCP integration recovered
+after Batch 7 reached its checkpoint; D13-D19 were updated and moved to Completed/Passed, D4 and
+D11 (Batch 7, added after this file was first written) were updated and moved as well, and
+REPAIR PHASE READY was updated to reflect all 23 defects complete. This file is kept as the
+historical record of the outage and the exact evidence that was queued during it.
+
+**Status at time of outage: no Trello write succeeded for any item below.** The Trello MCP integration
 (`mcp-proxy.anthropic.com`) began returning Cloudflare 502 "bad gateway" errors and 300s
 background-task timeouts partway through the Batch 6 Trello update pass. All 7 card-update
 attempts (D13–D19) and the planned REPAIR PHASE READY update failed before completing -- none
