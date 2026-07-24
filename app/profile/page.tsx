@@ -1,31 +1,47 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { User, Mail, Church as ChurchIcon, Award, Map, Feather } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getChurchById } from "@/data/churches";
-import { getUserJourneys } from "@/services/journeyService";
-import { getUserTestimonies } from "@/services/testimonyService";
+import { createClient } from "@/lib/supabase/client";
+import { getUserJourneysWithLessons } from "@/services/supabase/journeys";
+import { getMyTestimonies } from "@/services/supabase/testimonies";
 import { StatPill } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 
-// Phase 11.5 (docs/PHASE11_5_AUDIT.md SS11): this page's "Journeys"/"Testimonies" stats still come
-// from the pre-Supabase mock layer (its whole identity model does -- session.user itself is real,
-// but everything queried from it here is not; see docs/PHASE11_4_AUDIT.md SS2/SS18 for why a full
-// migration of this page is deliberately deferred rather than attempted piecemeal). The one stat
-// this page used to show that overlaps with the REAL Kingdom Economy system --  "Badges Earned" --
-// was removed here specifically, because it could show a different number than the real one on
-// /dashboard and /badges, which is exactly the "contradictory real and mock progression values"
-// this phase's brief calls out. A link to the real /badges page replaces it instead.
+// Phase 11.5 (docs/PHASE11_5_AUDIT.md SS11) deliberately deferred migrating this page's identity
+// model (name/email/avatar/church, still on the client SessionContext/data/churches.ts layer) as a
+// "casual piecemeal migration" risk -- that decision is respected here and NOT touched. What *is*
+// fixed (Repair Batch 2, D12, Trello 37oP4fVD) is narrower: the Journeys/Testimonies stat counts
+// specifically, which the same audit named as safe to make real once done together (its own
+// "Future migration path" note) -- both switched in this one change, not just one of the two, so
+// this doesn't trade "both mock" for a new "one real, one mock" inconsistency on the same page.
+// Fetched client-side (not converted to a Server Component) specifically because the rest of this
+// page still depends on the client SessionContext for identity -- converting only the count logic
+// keeps this a narrow fix, not the full identity-model migration the audit warned against attempting
+// piecemeal.
 export default function ProfilePage() {
   const { session, ready } = useSession();
-  const counts =
-    ready && session.isLoggedIn
-      ? {
-          journeys: getUserJourneys(session.user.id).length,
-          testimonies: getUserTestimonies(session.user.id).length,
-        }
-      : { journeys: 0, testimonies: 0 };
+  const [counts, setCounts] = useState({ journeys: 0, testimonies: 0 });
+
+  useEffect(() => {
+    if (!ready || !session.isLoggedIn) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const [journeys, testimonies] = await Promise.all([getUserJourneysWithLessons(supabase), getMyTestimonies(supabase)]);
+        if (!cancelled) setCounts({ journeys: journeys.length, testimonies: testimonies.length });
+      } catch (err) {
+        console.error("[ProfilePage] Failed to load journey/testimony counts:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, session.isLoggedIn]);
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
