@@ -28,6 +28,17 @@ export default function ChurchOnboardingPage() {
   }
 
   if (session.accountType !== "host") {
+    if (session.user.churchId) {
+      return (
+        <div className="max-w-lg mx-auto py-24 text-center px-4">
+          <p className="text-foreground font-semibold mb-2">Only a Host or Admin of your church can edit its profile.</p>
+          <p className="text-muted text-sm mb-4">
+            You&apos;re already a member of a church -- ask your Church Host if changes are needed.
+          </p>
+          <LinkButton href="/dashboard">Go to Dashboard</LinkButton>
+        </div>
+      );
+    }
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
         <p className="text-foreground font-semibold mb-2">Only Church Host accounts can create a church.</p>
