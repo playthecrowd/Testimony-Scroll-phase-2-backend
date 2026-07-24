@@ -26,6 +26,14 @@ Concretely, this means:
 - A `/journey/` link must never point at a route that doesn't exist. A stage without a real page
   yet shows `components/journey/StageComingSoon.tsx`, not a 404.
 
+## After pushing to Production
+
+Read `docs/DEPLOYMENT_VERIFICATION_STRATEGY.md` before verifying any deploy. In short: don't
+conclude a deploy hasn't landed from one JS-chunk fingerprint alone (a change can land as a
+CSS-only or partial-chunk rehash); verify the actual DOM/behavior the commit introduced via
+cache-busted requests to the affected routes, retry once after ~5 minutes, and only then ask the
+owner to check AWS directly.
+
 ## General
 
 - Branch conventions, migration numbering (`supabase/migrations/000N_*.sql`), and RLS patterns are
