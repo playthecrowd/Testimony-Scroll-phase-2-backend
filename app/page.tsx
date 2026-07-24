@@ -80,7 +80,7 @@ export default async function HomePage() {
             </div>
             <p className="text-xs text-muted mt-6">Thousands of believers. One Kingdom mission.</p>
 
-            <div className="mt-10 qk-card p-4 md:p-5 overflow-x-auto qk-scrollbar">
+            <div className="mt-10 qk-card p-4 md:p-5 overflow-x-auto qk-scrollbar" tabIndex={0}>
               <JourneyStagesBar />
             </div>
           </div>
