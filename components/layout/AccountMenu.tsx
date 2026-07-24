@@ -42,8 +42,8 @@ export function AccountMenu() {
       >
         <Image src={session.user.avatarUrl} alt={session.user.fullName} width={32} height={32} className="rounded-full" />
         <span className="hidden md:block text-left leading-tight">
-          <span className="block text-sm font-semibold text-foreground">{session.user.fullName}</span>
-          <span className="block text-[11px] text-muted">
+          <span className="block text-sm font-semibold text-foreground whitespace-nowrap">{session.user.fullName}</span>
+          <span className="block text-[11px] text-muted whitespace-nowrap">
             {session.accountType === "host" ? "Church Host" : "Kingdom Member"}
           </span>
         </span>
