@@ -5,10 +5,13 @@ import { SectionCard } from "@/components/ui/StatPill";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { FeaturedEventBanner } from "@/components/layout/FeaturedEventBanner";
 import { FeaturedScrollStrip } from "@/components/layout/FeaturedScrollStrip";
-import { getAllLessons } from "@/services/lessonService";
+import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
+import { createClient } from "@/lib/supabase/server";
+import { getPublishedLessons } from "@/services/supabase/lessons";
 import { getApprovedTestimonies } from "@/services/testimonyService";
 import { photo } from "@/lib/images";
 import { backgrounds } from "@/data/backgrounds";
+import { PublishedLesson } from "@/types";
 import { Church, Compass, HelpCircle, Box, Award, ScrollText, ArrowRight, Heart, Clock } from "lucide-react";
 import Link from "next/link";
 
@@ -24,11 +27,29 @@ const HOMEPAGE_BADGE_PREVIEW = [
   { slug: "kingdom-scroll-contributor", name: "Kingdom Scroll Contributor" },
 ];
 
-export default function HomePage() {
-  const lessons = getAllLessons().slice(0, 1);
+// Repair Batch 4, D20 (Trello gkNWwB0e): this featured card previously read from
+// services/lessonService.ts's legacy mock/localStorage catalog, which is how a seed-only lesson
+// ("Light in the Darkness", never migrated into Supabase) could be selected and linked to --
+// /lessons/[slug] resolves exclusively against the real Supabase catalog (services/supabase/lessons.ts)
+// and has no such row, so the card 404'd. Now sourced from the same real, published-lessons query
+// every other real lesson listing already uses, so this can never point at a nonexistent lesson
+// again, regardless of what's in the (still-present, unrelated) mock seed data.
+async function getFeaturedLesson(): Promise<PublishedLesson | null> {
+  try {
+    const supabase = await createClient();
+    const lessons = await getPublishedLessons(supabase);
+    return lessons[0] ?? null;
+  } catch {
+    // Supabase not configured, or the request failed -- the homepage must still render without a
+    // featured lesson rather than crash the whole page for an anonymous visitor.
+    return null;
+  }
+}
+
+export default async function HomePage() {
+  const featuredLesson = await getFeaturedLesson();
   const testimonies = getApprovedTestimonies().slice(0, 3);
   const badges = HOMEPAGE_BADGE_PREVIEW;
-  const featuredLesson = lessons[0];
 
   return (
     <div className="relative">
@@ -112,15 +133,14 @@ export default function HomePage() {
         <SectionCard title="Church Archives" action="View all" actionHref="/churches" icon={Church}>
           {featuredLesson && (
             <Link href={`/lessons/${featuredLesson.slug}`} className="block group">
-              <div className="relative aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2">
-                <Image
-                  src={featuredLesson.featuredImageUrl}
-                  alt=""
-                  fill
-                  sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw"
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
-              </div>
+              <LessonThumbnail
+                src={featuredLesson.featuredImageUrl}
+                alt=""
+                rounded="rounded-lg"
+                className="mb-2"
+                imgClassName="group-hover:scale-105 transition-transform"
+                sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw"
+              />
               <p className="text-sm font-semibold text-foreground line-clamp-1">{featuredLesson.title}</p>
               <p className="text-xs text-muted">{featuredLesson.durationLabel}</p>
             </Link>
