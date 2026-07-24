@@ -34,7 +34,7 @@ export function KingdomScrollList({ testimonies }: { testimonies: PublishedTesti
             className="qk-input pl-9"
           />
         </div>
-        <select value={church} onChange={(e) => setChurch(e.target.value)} className="qk-input">
+        <select value={church} onChange={(e) => setChurch(e.target.value)} aria-label="Filter by church" className="qk-input">
           <option value="all">All Churches</option>
           {churches.map((c) => (
             <option key={c} value={c}>
