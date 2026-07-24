@@ -187,9 +187,17 @@ test("private.award_progression_event awards a matching single_event badge idemp
 // The five real triggers -- each fires only on a genuine, already-verified transition
 // ---------------------------------------------------------------------------
 
-test("award_progression_on_lesson_studied fires only on the transition into 'studied', reading the real lesson_journeys row (user_id, lesson_id)", () => {
+// Repair Batch 3, D22 (Trello Hv90Iye0, fixed in 0037_fix_lesson_studied_progression_trigger.sql):
+// the original current_stage-based condition asserted here was structurally unreachable -- a
+// journey is created already at current_stage='studied' and completion moves it forward to
+// 'experienced', so new.current_stage <> 'studied' was always true and this trigger never fired on
+// a real completion. Updated to assert the corrected studied_completed_at-based condition, the same
+// signal testimonies_before_insert (0018) and church_experience_journey_sync (0026) already use
+// correctly for this same concept. See tests/lessonStudiedProgressionFix.test.ts for the dedicated
+// regression coverage of this fix.
+test("award_progression_on_lesson_studied fires only on the transition into a completed Studied stage (studied_completed_at null -> non-null), reading the real lesson_journeys row (user_id, lesson_id)", () => {
   const body = functionBody("award_progression_on_lesson_studied", "");
-  assert.match(body, /if new\.current_stage <> 'studied' or old\.current_stage is not distinct from 'studied' then/);
+  assert.match(body, /if new\.studied_completed_at is null or old\.studied_completed_at is not null then/);
   assert.match(body, /private\.award_progression_event\(new\.user_id, 'lesson_studied', new\.id, new\.lesson_id, null, null\)/);
 });
 
