@@ -9,7 +9,7 @@ export function FeaturedScrollStrip() {
       </div>
       <div className="flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-blue-light mb-0.5">Featured</p>
-        <h3 className="text-lg md:text-xl font-bold text-foreground">Read real stories in the Kingdom Scroll</h3>
+        <h2 className="text-lg md:text-xl font-bold text-foreground">Read real stories in the Kingdom Scroll</h2>
         <p className="text-sm text-muted mt-0.5">Every testimony here is real, approved, and becoming part of one connected Kingdom story.</p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2.5 shrink-0">

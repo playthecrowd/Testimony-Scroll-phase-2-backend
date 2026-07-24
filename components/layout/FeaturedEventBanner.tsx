@@ -31,7 +31,7 @@ export function FeaturedEventBanner() {
           <CalendarHeart size={12} /> {featuredEvent.tagline}
         </span>
         <div className="flex-1">
-          <h3 className="text-xl md:text-2xl font-bold text-foreground">{featuredEvent.title}</h3>
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">{featuredEvent.title}</h2>
           <p className="text-sm text-muted mt-1 max-w-xl">{featuredEvent.description}</p>
         </div>
         <span className="inline-flex items-center justify-center gap-1.5 shrink-0 bg-accent-gold hover:brightness-110 text-[#231607] text-sm font-semibold px-5 py-3 rounded-lg w-fit">
