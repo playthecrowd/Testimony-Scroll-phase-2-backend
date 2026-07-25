@@ -54,10 +54,10 @@ export function SectionCard({
   return (
     <div className="qk-card p-4 md:p-5">
       <div className="flex items-center justify-between mb-3.5">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
           {Icon && <Icon size={16} className="text-accent-blue-light" />}
           {title}
-        </h3>
+        </h2>
         {action && actionHref && (
           <Link href={actionHref} className="text-xs text-accent-blue-light hover:underline">
             {action}

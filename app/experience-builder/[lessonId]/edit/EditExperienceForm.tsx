@@ -376,7 +376,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       </p>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-5">
-        <div className="qk-card p-5 space-y-4">
+        <div className="qk-card p-5 space-y-4 min-w-0">
           <h2 className="text-sm font-semibold text-foreground">Lesson Setup</h2>
           <p className="text-xs text-muted -mt-3">Update the details of this lesson experience.</p>
 

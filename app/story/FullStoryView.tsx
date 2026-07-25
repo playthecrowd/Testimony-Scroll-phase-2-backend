@@ -107,7 +107,7 @@ export function FullStoryView({ episodes, characters }: { episodes: PublishedEpi
 
       {mode === "timeline" && (
         <div className="grid lg:grid-cols-[1fr_300px] gap-6">
-          <div className="relative pl-8">
+          <div className="relative pl-8 min-w-0">
             <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border-subtle" />
             <div className="space-y-6">
               {filtered.map((ep) => (
@@ -146,7 +146,7 @@ export function FullStoryView({ episodes, characters }: { episodes: PublishedEpi
           {!chapter ? (
             <p className="text-sm text-muted py-10">No episodes match this filter.</p>
           ) : (
-            <div className="qk-card p-6 md:p-8">
+            <div className="qk-card p-6 md:p-8 min-w-0">
               <p className="text-xs text-accent-blue-light font-medium mb-1">
                 Chapter {chapterIndex + 1} of {filtered.length}
               </p>

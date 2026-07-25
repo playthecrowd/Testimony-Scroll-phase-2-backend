@@ -29,7 +29,7 @@ interface SessionContextValue {
   ready: boolean;
   signIn: (email: string, password: string) => Promise<SignInOutcome>;
   signUp: (fullName: string, email: string, password: string, accountType: AccountType) => Promise<SignUpOutcome>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -99,8 +99,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     [refresh]
   );
 
-  const logout = useCallback(() => {
-    authSignOut().then(refresh);
+  const logout = useCallback(async () => {
+    await authSignOut();
+    await refresh();
   }, [refresh]);
 
   return (

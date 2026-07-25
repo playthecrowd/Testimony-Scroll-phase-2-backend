@@ -48,7 +48,7 @@ function InfoCard({ icon: Icon, title, desc }: { icon: React.ElementType; title:
       <div className="w-10 h-10 rounded-lg bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center text-accent-blue-light mb-3">
         <Icon size={18} />
       </div>
-      <h3 className="text-sm font-semibold text-foreground mb-1">{title}</h3>
+      <h2 className="text-sm font-semibold text-foreground mb-1">{title}</h2>
       <p className="text-xs text-muted leading-relaxed">{desc}</p>
     </div>
   );

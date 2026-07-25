@@ -14,11 +14,12 @@ export const dynamic = "force-dynamic";
 // (mock). getEpisodes relies on RLS to only return published rows to a public visitor, so no
 // draft ever reaches this page.
 export default async function EpisodesPage() {
-  const supabase = await createClient();
-
   let episodes: Awaited<ReturnType<typeof getEpisodes>> = [];
   let loadError = "";
   try {
+    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+    // inside this try so that failure renders the graceful branded error state below.
+    const supabase = await createClient();
     episodes = await getEpisodes(supabase);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

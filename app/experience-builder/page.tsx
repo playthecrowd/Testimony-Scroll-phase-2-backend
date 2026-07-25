@@ -16,9 +16,11 @@ export const dynamic = "force-dynamic";
 // below keeps its own checks too, but a Kingdom Member or churchless Host should never even
 // receive the form markup in the first place.
 export default async function ExperienceBuilderPage() {
-  const supabase = await createClient();
-
+  // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+  // inside this try so that failure renders the graceful branded error state below.
+  let supabase: Awaited<ReturnType<typeof createClient>>;
   try {
+    supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();

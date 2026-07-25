@@ -1,25 +1,47 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { User, Mail, Church as ChurchIcon, Award, Map, Feather } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getChurchById } from "@/data/churches";
-import { getUserJourneys } from "@/services/journeyService";
-import { getUserBadges } from "@/services/badgeService";
-import { getUserTestimonies } from "@/services/testimonyService";
+import { createClient } from "@/lib/supabase/client";
+import { getUserJourneysWithLessons } from "@/services/supabase/journeys";
+import { getMyTestimonies } from "@/services/supabase/testimonies";
 import { StatPill } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 
+// Phase 11.5 (docs/PHASE11_5_AUDIT.md SS11) deliberately deferred migrating this page's identity
+// model (name/email/avatar/church, still on the client SessionContext/data/churches.ts layer) as a
+// "casual piecemeal migration" risk -- that decision is respected here and NOT touched. What *is*
+// fixed (Repair Batch 2, D12, Trello 37oP4fVD) is narrower: the Journeys/Testimonies stat counts
+// specifically, which the same audit named as safe to make real once done together (its own
+// "Future migration path" note) -- both switched in this one change, not just one of the two, so
+// this doesn't trade "both mock" for a new "one real, one mock" inconsistency on the same page.
+// Fetched client-side (not converted to a Server Component) specifically because the rest of this
+// page still depends on the client SessionContext for identity -- converting only the count logic
+// keeps this a narrow fix, not the full identity-model migration the audit warned against attempting
+// piecemeal.
 export default function ProfilePage() {
   const { session, ready } = useSession();
-  const counts =
-    ready && session.isLoggedIn
-      ? {
-          journeys: getUserJourneys(session.user.id).length,
-          badges: getUserBadges(session.user.id).length,
-          testimonies: getUserTestimonies(session.user.id).length,
-        }
-      : { journeys: 0, badges: 0, testimonies: 0 };
+  const [counts, setCounts] = useState({ journeys: 0, testimonies: 0 });
+
+  useEffect(() => {
+    if (!ready || !session.isLoggedIn) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const [journeys, testimonies] = await Promise.all([getUserJourneysWithLessons(supabase), getMyTestimonies(supabase)]);
+        if (!cancelled) setCounts({ journeys: journeys.length, testimonies: testimonies.length });
+      } catch (err) {
+        console.error("[ProfilePage] Failed to load journey/testimony counts:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, session.isLoggedIn]);
 
   if (!ready) return null;
   if (!session.isLoggedIn) {
@@ -57,8 +79,8 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         <StatPill icon={Map} value={counts.journeys} label="Active Journeys" />
-        <StatPill icon={Award} value={counts.badges} label="Badges Earned" />
         <StatPill icon={Feather} value={counts.testimonies} label="Testimonies" />
+        <StatPill icon={Award} value="View" label="Badges Earned" href="/badges" />
       </div>
 
       <div className="qk-card p-5">

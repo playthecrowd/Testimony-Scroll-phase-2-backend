@@ -30,7 +30,7 @@ export default async function BackstoryPage({ params }: { params: Promise<{ char
       </Link>
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div>
+        <div className="min-w-0">
           <div className="relative aspect-video rounded-2xl overflow-hidden bg-surface-2 mb-4">
             <img src={character.imageUrl} className="w-full h-full object-cover" alt="" />
             <div className="absolute inset-0 flex items-center justify-center">

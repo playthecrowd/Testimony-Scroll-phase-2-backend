@@ -9,6 +9,8 @@ import { useSession } from "@/context/SessionContext";
 export function AccountMenu() {
   const { session, logout } = useSession();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,6 +21,19 @@ export function AccountMenu() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
+  async function handleSignOut() {
+    if (signingOut) return; // guard against repeated clicks starting concurrent logout calls
+    setSigningOut(true);
+    setSignOutError("");
+    try {
+      await logout();
+      window.location.href = "/";
+    } catch {
+      setSignOutError("Sign out failed. Please try again.");
+      setSigningOut(false);
+    }
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -27,8 +42,8 @@ export function AccountMenu() {
       >
         <Image src={session.user.avatarUrl} alt={session.user.fullName} width={32} height={32} className="rounded-full" />
         <span className="hidden md:block text-left leading-tight">
-          <span className="block text-sm font-semibold text-foreground">{session.user.fullName}</span>
-          <span className="block text-[11px] text-muted">
+          <span className="block text-sm font-semibold text-foreground whitespace-nowrap">{session.user.fullName}</span>
+          <span className="block text-[11px] text-muted whitespace-nowrap">
             {session.accountType === "host" ? "Church Host" : "Kingdom Member"}
           </span>
         </span>
@@ -53,15 +68,13 @@ export function AccountMenu() {
 
           <div className="my-2 border-t border-border-subtle" />
           <button
-            onClick={() => {
-              logout();
-              setOpen(false);
-              window.location.href = "/";
-            }}
-            className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-500/10"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut size={15} /> Sign Out
+            <LogOut size={15} /> {signingOut ? "Signing out..." : "Sign Out"}
           </button>
+          {signOutError && <p className="px-3 pt-1.5 text-[11px] text-red-300">{signOutError}</p>}
         </div>
       )}
     </div>

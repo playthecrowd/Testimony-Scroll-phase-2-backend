@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Upload, X, RefreshCw } from "lucide-react";
-import { validateThumbnailFile, checkThumbnailAspectRatio, THUMBNAIL_ACCEPTED_TYPES } from "@/lib/lessonThumbnail";
+import { validateThumbnailFileBytes, checkThumbnailAspectRatio, THUMBNAIL_ACCEPTED_TYPES } from "@/lib/lessonThumbnail";
 
 interface ThumbnailUploadFieldProps {
   previewUrl: string | null;
@@ -31,9 +31,12 @@ export function ThumbnailUploadField({
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
 
-  function handleFile(file: File | undefined | null) {
+  async function handleFile(file: File | undefined | null) {
     if (!file) return;
-    const validationError = validateThumbnailFile(file);
+    // Real byte-signature check, not just the declared file.type -- see the trusted-boundary note
+    // on validateThumbnailFileBytes in lib/lessonThumbnail.ts for what this does and doesn't
+    // protect against.
+    const validationError = await validateThumbnailFileBytes(file);
     if (validationError) {
       setError(validationError);
       setWarning("");

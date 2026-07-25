@@ -42,30 +42,40 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = await signIn(email, password);
-    setSubmitting(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await signIn(email, password);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.push(getNextDestination() ?? result.destination ?? "/dashboard");
+    } catch {
+      setError("Something went wrong signing you in. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
-    const result = await signUp(fullName, email, password, accountType);
-    setSubmitting(false);
-    if (result.error) {
-      setError(result.error);
-      return;
+    try {
+      const result = await signUp(fullName, email, password, accountType);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      if (result.status === "check-email") {
+        setCheckEmail(true);
+        return;
+      }
+      router.push(getNextDestination() ?? result.destination ?? "/dashboard");
+    } catch {
+      setError("Something went wrong creating your account. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
-    if (result.status === "check-email") {
-      setCheckEmail(true);
-      return;
-    }
-    router.push(getNextDestination() ?? result.destination ?? "/dashboard");
   }
 
   if (checkEmail) {
@@ -208,8 +218,9 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
           <form onSubmit={tab === "signin" ? handleSignIn : handleSignUp} className="space-y-4">
             {tab === "signup" && (
               <div>
-                <label className="block text-xs font-medium text-muted mb-1.5">Full Name</label>
+                <label htmlFor="auth-full-name" className="block text-xs font-medium text-muted mb-1.5">Full Name</label>
                 <input
+                  id="auth-full-name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
@@ -219,8 +230,9 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-muted mb-1.5">Email Address</label>
+              <label htmlFor="auth-email" className="block text-xs font-medium text-muted mb-1.5">Email Address</label>
               <input
+                id="auth-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -230,9 +242,10 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted mb-1.5">Password</label>
+              <label htmlFor="auth-password" className="block text-xs font-medium text-muted mb-1.5">Password</label>
               <div className="relative">
                 <input
+                  id="auth-password"
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -244,6 +257,7 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted"
                 >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}

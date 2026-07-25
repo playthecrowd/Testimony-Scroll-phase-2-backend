@@ -601,3 +601,291 @@ export interface PublishedEvent {
   createdAt: string;
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 10.1 (docs/PHASE10_EXPERIENCE_PLATFORM_SPEC.md, migration 0022_church_experiences.sql) --
+// the church Experience Platform: a reusable activity definition, its scheduled occurrences,
+// lesson links, and member registrations. Every type here is prefixed "ChurchExperience" -- never
+// the bare "Experience" -- because that name is already taken by the unrelated experiences catalog
+// type above (public.experiences, migration 0015). Do not use the bare name for anything new here.
+// No service/query layer exists yet for these types (that's Phase 10.2); this is schema-only.
+// ---------------------------------------------------------------------------
+
+export type ChurchExperienceType =
+  | "volunteer"
+  | "outreach"
+  | "prayer_gathering"
+  | "worship_gathering"
+  | "small_group"
+  | "bible_study"
+  | "service_project"
+  | "community_event"
+  | "online_gathering"
+  | "custom";
+
+export type ChurchExperienceFormat = "in_person" | "online" | "hybrid" | "self_guided";
+export type ChurchExperienceStatus = "draft" | "published" | "archived";
+export type ChurchExperienceVisibility = "church_only" | "invited_only" | "public";
+export type ChurchExperienceCompletionMethod = "host_marked" | "self_attested";
+
+export interface ChurchExperience {
+  id: string;
+  churchId: string;
+  ministryId: string | null;
+  createdBy: string | null;
+  title: string;
+  summary: string | null;
+  fullDescription: string | null;
+  type: ChurchExperienceType;
+  customTypeLabel: string | null;
+  format: ChurchExperienceFormat;
+  locationName: string | null;
+  addressLine1: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  onlineUrl: string | null;
+  coverImageUrl: string | null;
+  ageGuidance: string | null;
+  accessibilityNotes: string | null;
+  preparationInstructions: string | null;
+  whatToBring: string | null;
+  status: ChurchExperienceStatus;
+  visibility: ChurchExperienceVisibility;
+  registrationRequired: boolean;
+  approvalRequired: boolean;
+  defaultCapacity: number | null;
+  defaultDurationMinutes: number | null;
+  completionMethod: ChurchExperienceCompletionMethod;
+  defaultCreditCost: number | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  archivedAt: string | null;
+}
+
+export type ChurchExperienceOccurrenceStatus = "scheduled" | "cancelled" | "completed";
+
+export interface ChurchExperienceOccurrence {
+  id: string;
+  experienceId: string;
+  churchId: string;
+  startsAt: string;
+  endsAt: string | null;
+  timezone: string;
+  registrationOpensAt: string | null;
+  registrationClosesAt: string | null;
+  capacity: number | null;
+  locationName: string | null;
+  onlineUrl: string | null;
+  hostContactName: string | null;
+  hostContactEmail: string | null;
+  status: ChurchExperienceOccurrenceStatus;
+  cancellationReason: string | null;
+  checkInEnabled: boolean;
+  attendanceFinalizedAt: string | null;
+  creditCost: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ChurchExperienceLessonRelationship = "required" | "recommended";
+
+export interface ChurchExperienceLessonLink {
+  id: string;
+  experienceId: string;
+  lessonId: string;
+  relationship: ChurchExperienceLessonRelationship;
+  sortOrder: number;
+  hostNotes: string | null;
+  reflectionPromptOverride: string | null;
+  createdAt: string;
+}
+
+export type ChurchExperienceRegistrationStatus = "pending" | "confirmed" | "waitlisted" | "cancelled" | "rejected";
+export type ChurchExperienceRegistrationSource = "self" | "host_walk_in";
+export type ChurchExperienceAttendanceStatus = "not_recorded" | "attended" | "absent" | "excused";
+export type ChurchExperienceCompletionStatus = "not_started" | "completed";
+
+export interface ChurchExperienceRegistration {
+  id: string;
+  occurrenceId: string;
+  profileId: string;
+  status: ChurchExperienceRegistrationStatus;
+  registrationSource: ChurchExperienceRegistrationSource;
+  capacityOverride: boolean;
+  waitlistPosition: number | null;
+  attendanceStatus: ChurchExperienceAttendanceStatus;
+  completionStatus: ChurchExperienceCompletionStatus;
+  notes: string | null;
+  cancellationReason: string | null;
+  registeredAt: string;
+  confirmedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Phase 11.1 (docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md, docs/PHASE11_1_AUDIT.md) -- Kingdom
+// Economy wallet/ledger types, mapped from migrations 0027/0028. Deliberately named
+// MemberWallet/ChurchWallet/CreditLedgerEntry (not "Wallet"/"LedgerEntry") to avoid any collision
+// with this file's pre-existing mock Badge/UserBadge/Journey interfaces from the Phase-1
+// prototype layer (see docs/PHASE11_ECONOMY_PROGRESSION_SPEC.md SS2d.2).
+
+export interface MemberWallet {
+  id: string;
+  profileId: string;
+  currentBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChurchWallet {
+  id: string;
+  churchId: string;
+  currentBalance: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreditTransactionType =
+  | "platform_grant"
+  | "church_grant"
+  | "member_request_approved"
+  | "purchase"
+  | "experience_spend"
+  | "event_spend"
+  | "refund"
+  | "promotional_credit"
+  | "administrator_adjustment"
+  | "reversal";
+
+export type CreditLedgerEntryStatus = "pending" | "completed" | "failed" | "reversed";
+
+export interface CreditLedgerEntry {
+  id: string;
+  memberWalletId: string | null;
+  churchWalletId: string | null;
+  amount: number;
+  transactionType: CreditTransactionType;
+  status: CreditLedgerEntryStatus;
+  idempotencyKey: string | null;
+  relatedChurchId: string | null;
+  relatedMemberId: string | null;
+  relatedExperienceId: string | null;
+  relatedOccurrenceId: string | null;
+  description: string;
+  metadata: Record<string, unknown> | null;
+  createdBy: string | null;
+  createdAt: string;
+  reversesEntryId: string | null;
+  reversedByEntryId: string | null;
+}
+
+// Phase 11.2 (docs/PHASE11_2_AUDIT.md) -- the member-to-church credit request workflow, mapped
+// from migration 0029.
+export type CreditRequestStatus = "submitted" | "under_review" | "approved" | "declined" | "cancelled" | "fulfilled";
+
+export interface CreditRequest {
+  id: string;
+  requestedBy: string;
+  churchId: string;
+  requestedAmount: number;
+  relatedExperienceId: string | null;
+  reason: string | null;
+  status: CreditRequestStatus;
+  declineReason: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Phase 11.3 (docs/PHASE11_3_AUDIT.md) -- Points/XP/Levels/Badges/Trophies, mapped from
+// migrations 0032/0033. ProgressionEventType is a fixed, server-side-only enum -- never an open
+// rule engine (spec SS11/SS12).
+export type ProgressionEventType =
+  | "lesson_studied"
+  | "experience_completed"
+  | "testimony_submitted"
+  | "testimony_church_approved"
+  | "testimony_kingdom_scroll_published";
+
+export interface ProgressionAwardRule {
+  id: string;
+  eventType: ProgressionEventType;
+  pointsAmount: number;
+  xpAmount: number;
+  xpRewardCeiling: number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProgressionLevelThreshold {
+  id: string;
+  level: number;
+  minXp: number;
+  createdAt: string;
+}
+
+export interface MemberProgressionSummary {
+  id: string;
+  profileId: string;
+  pointsTotal: number;
+  xpTotal: number;
+  currentLevel: number;
+  leaderboardOptOut: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BadgeCategory = "achievement" | "trophy";
+export type BadgeRequirementType = "event_count" | "single_event" | "threshold";
+
+export interface BadgeDefinition {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  category: BadgeCategory;
+  requirementType: BadgeRequirementType;
+  relatedEventType: string | null;
+  threshold: number | null;
+  isActive: boolean;
+  isHiddenUntilEarned: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberBadgeAward {
+  id: string;
+  memberId: string;
+  badgeId: string;
+  awardSource: string;
+  relatedLessonId: string | null;
+  relatedExperienceId: string | null;
+  relatedTestimonyId: string | null;
+  awardedAt: string;
+  awardedBy: string | null;
+  revokedAt: string | null;
+  revocationReason: string | null;
+}
+
+export type LeaderboardScope = "global" | "my_church";
+
+// Named ProgressionLeaderboardEntry, not LeaderboardEntry -- this file already has a
+// pre-Supabase mock LeaderboardEntry (services/questService.ts's quest-score shape); this is the
+// real, Supabase-backed Points-ranked entry and must never collide with that unrelated type
+// (spec SS2d.2).
+export interface ProgressionLeaderboardEntry {
+  profileId: string;
+  fullName: string | null;
+  pointsTotal: number;
+  xpTotal: number;
+  currentLevel: number;
+  rank: number;
+  churchId?: string;
+}

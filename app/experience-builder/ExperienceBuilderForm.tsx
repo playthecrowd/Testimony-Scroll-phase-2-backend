@@ -456,7 +456,7 @@ export function ExperienceBuilderForm() {
         </div>
       ) : (
         <div className="grid lg:grid-cols-[1fr_340px] gap-5">
-          <div className="qk-card p-5 space-y-4">
+          <div className="qk-card p-5 space-y-4 min-w-0">
             <div className="flex items-center gap-1.5 overflow-x-auto qk-scrollbar -mx-1 px-1 pb-1">
               {STEPS.map((label, i) => (
                 <button

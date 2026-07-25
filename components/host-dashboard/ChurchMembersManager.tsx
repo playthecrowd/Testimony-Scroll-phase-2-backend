@@ -81,7 +81,7 @@ export function ChurchMembersManager({
     <div className="space-y-5">
       <SectionCard title="Share & QR Code" icon={Users2}>
         <p className="text-xs text-muted mb-3">
-          Anyone with this link can join {church.name} as a Kingdom Member once they&apos;re signed in.
+          {`Anyone with this link can join ${church.name} as a Kingdom Member once they're signed in.`}
         </p>
         <ShareLinkCard path={`/join/${church.slug}`} />
       </SectionCard>

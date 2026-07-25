@@ -25,7 +25,7 @@ export function KingdomScrollList({ testimonies }: { testimonies: PublishedTesti
   return (
     <div>
       <div className="qk-card p-4 mb-5 grid sm:grid-cols-[1fr_220px] gap-3">
-        <div className="relative">
+        <div className="relative min-w-0">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={search}
@@ -34,7 +34,7 @@ export function KingdomScrollList({ testimonies }: { testimonies: PublishedTesti
             className="qk-input pl-9"
           />
         </div>
-        <select value={church} onChange={(e) => setChurch(e.target.value)} className="qk-input">
+        <select value={church} onChange={(e) => setChurch(e.target.value)} aria-label="Filter by church" className="qk-input">
           <option value="all">All Churches</option>
           {churches.map((c) => (
             <option key={c} value={c}>

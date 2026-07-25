@@ -15,6 +15,12 @@ export interface EligibleLesson {
 
 export function SubmitTestimonyForm({ eligibleLessons }: { eligibleLessons: EligibleLesson[] }) {
   const router = useRouter();
+  // Generated once per mount and reused across every retry of this same logical submission (a
+  // slow-network retry, a retried click) -- the server/DB-side check (0036_testimony_idempotency.sql)
+  // is what actually prevents duplicates; this key just lets retries be recognized as the same
+  // submission instead of a new one. A fresh page load (a genuinely new, intentional submission)
+  // naturally gets a fresh key since this is a new component mount.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [primaryLessonId, setPrimaryLessonId] = useState(eligibleLessons[0]?.id ?? "");
   const [supportingLessonIds, setSupportingLessonIds] = useState<string[]>([]);
   const [title, setTitle] = useState("");
@@ -39,9 +45,15 @@ export function SubmitTestimonyForm({ eligibleLessons }: { eligibleLessons: Elig
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Synchronous reentrancy guard, before any await -- blocks a rapid double-click, an Enter-key
+    // repeat, or a second submit attempt fired while a slow-network request is still in flight.
+    // The button's own `disabled={submitting}` covers the same case for a mouse click specifically,
+    // but this guard also covers a form-level submit triggered another way before React re-renders.
+    if (submitting) return;
     setError("");
     setSubmitting(true);
     const result = await submitTestimonyAction({
+      idempotencyKey,
       primaryLessonId,
       supportingLessonIds: supportingLessonIds.filter((id) => id !== primaryLessonId),
       title,

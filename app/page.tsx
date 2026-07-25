@@ -5,19 +5,51 @@ import { SectionCard } from "@/components/ui/StatPill";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { FeaturedEventBanner } from "@/components/layout/FeaturedEventBanner";
 import { FeaturedScrollStrip } from "@/components/layout/FeaturedScrollStrip";
-import { getAllLessons } from "@/services/lessonService";
+import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
+import { createClient } from "@/lib/supabase/server";
+import { getPublishedLessons } from "@/services/supabase/lessons";
 import { getApprovedTestimonies } from "@/services/testimonyService";
-import { getAllBadges } from "@/services/badgeService";
 import { photo } from "@/lib/images";
 import { backgrounds } from "@/data/backgrounds";
+import { PublishedLesson } from "@/types";
 import { Church, Compass, HelpCircle, Box, Award, ScrollText, ArrowRight, Heart, Clock } from "lucide-react";
 import Link from "next/link";
 
-export default function HomePage() {
-  const lessons = getAllLessons().slice(0, 1);
+// Anonymous-visitor marketing preview only -- names three of the real, currently-seeded v1 badge
+// catalog (Phase 11.3, badge_definitions) so this teaser stays accurate. Not a live query: an
+// anonymous visitor's Supabase session authenticates as the `anon` role, and badge_definitions'
+// RLS is scoped `to authenticated` only, so a live read here would just return zero rows for a
+// signed-out visitor anyway. A short static list avoids both that dead end and the mock catalog
+// this used to show (data/badges.ts's six retired journey-stage badge names).
+const HOMEPAGE_BADGE_PREVIEW = [
+  { slug: "first-lesson-completed", name: "First Lesson Completed" },
+  { slug: "first-experience-completed", name: "First Experience Completed" },
+  { slug: "kingdom-scroll-contributor", name: "Kingdom Scroll Contributor" },
+];
+
+// Repair Batch 4, D20 (Trello gkNWwB0e): this featured card previously read from
+// services/lessonService.ts's legacy mock/localStorage catalog, which is how a seed-only lesson
+// ("Light in the Darkness", never migrated into Supabase) could be selected and linked to --
+// /lessons/[slug] resolves exclusively against the real Supabase catalog (services/supabase/lessons.ts)
+// and has no such row, so the card 404'd. Now sourced from the same real, published-lessons query
+// every other real lesson listing already uses, so this can never point at a nonexistent lesson
+// again, regardless of what's in the (still-present, unrelated) mock seed data.
+async function getFeaturedLesson(): Promise<PublishedLesson | null> {
+  try {
+    const supabase = await createClient();
+    const lessons = await getPublishedLessons(supabase);
+    return lessons[0] ?? null;
+  } catch {
+    // Supabase not configured, or the request failed -- the homepage must still render without a
+    // featured lesson rather than crash the whole page for an anonymous visitor.
+    return null;
+  }
+}
+
+export default async function HomePage() {
+  const featuredLesson = await getFeaturedLesson();
   const testimonies = getApprovedTestimonies().slice(0, 3);
-  const badges = getAllBadges().slice(0, 3);
-  const featuredLesson = lessons[0];
+  const badges = HOMEPAGE_BADGE_PREVIEW;
 
   return (
     <div className="relative">
@@ -27,7 +59,7 @@ export default function HomePage() {
       {/* Hero */}
       <section className="max-w-[1600px] mx-auto px-4 md:px-8 pt-10 md:pt-14 pb-8">
         <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-4xl md:text-6xl font-extrabold leading-[1.05] text-foreground max-w-2xl">
               Every lesson becomes a{" "}
               <span className="bg-gradient-to-r from-accent-blue-light to-accent-purple bg-clip-text text-transparent">
@@ -48,7 +80,7 @@ export default function HomePage() {
             </div>
             <p className="text-xs text-muted mt-6">Thousands of believers. One Kingdom mission.</p>
 
-            <div className="mt-10 qk-card p-4 md:p-5 overflow-x-auto qk-scrollbar">
+            <div className="mt-10 qk-card p-4 md:p-5 overflow-x-auto qk-scrollbar" tabIndex={0}>
               <JourneyStagesBar />
             </div>
           </div>
@@ -101,15 +133,14 @@ export default function HomePage() {
         <SectionCard title="Church Archives" action="View all" actionHref="/churches" icon={Church}>
           {featuredLesson && (
             <Link href={`/lessons/${featuredLesson.slug}`} className="block group">
-              <div className="relative aspect-video rounded-lg overflow-hidden bg-surface-2 mb-2">
-                <Image
-                  src={featuredLesson.featuredImageUrl}
-                  alt=""
-                  fill
-                  sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw"
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
-              </div>
+              <LessonThumbnail
+                src={featuredLesson.featuredImageUrl}
+                alt=""
+                rounded="rounded-lg"
+                className="mb-2"
+                imgClassName="group-hover:scale-105 transition-transform"
+                sizes="(min-width: 1280px) 20vw, (min-width: 768px) 50vw, 100vw"
+              />
               <p className="text-sm font-semibold text-foreground line-clamp-1">{featuredLesson.title}</p>
               <p className="text-xs text-muted">{featuredLesson.durationLabel}</p>
             </Link>
@@ -150,11 +181,11 @@ export default function HomePage() {
         <SectionCard title="Badges & Achievements" action="View Badges" actionHref="/badges" icon={Award}>
           <div className="grid grid-cols-3 gap-2">
             {badges.map((b) => (
-              <div key={b.id} className="qk-card p-2 flex flex-col items-center text-center">
+              <div key={b.slug} className="qk-card p-2 flex flex-col items-center text-center">
                 <div className="w-9 h-9 rounded-full bg-accent-blue/15 border border-accent-blue/40 flex items-center justify-center mb-1">
                   <Award size={15} className="text-accent-blue-light" />
                 </div>
-                <span className="text-[11px] text-foreground leading-tight">{b.name.replace(" Badge", "")}</span>
+                <span className="text-[11px] text-foreground leading-tight">{b.name}</span>
               </div>
             ))}
           </div>

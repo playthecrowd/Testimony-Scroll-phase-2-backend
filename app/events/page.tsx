@@ -17,11 +17,12 @@ export const dynamic = "force-dynamic";
 // event banner real would show real content next to mock content on the same page; left
 // consistent (all mock) until the homepage itself is migrated.
 export default async function EventsPage() {
-  const supabase = await createClient();
-
   let events: Awaited<ReturnType<typeof getPublishedEvents>> = [];
   let loadError = "";
   try {
+    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
+    // inside this try so that failure renders the graceful branded error state below.
+    const supabase = await createClient();
     events = await getPublishedEvents(supabase);
   } catch (err) {
     if (err instanceof SupabaseConfigError) {

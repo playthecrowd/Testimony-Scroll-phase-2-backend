@@ -30,13 +30,18 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
           <Logo />
         </div>
 
-        <nav className="hidden lg:flex items-center gap-1">
+        {/* Repair Batch 5, D7 (Trello iCj9X9zs): at the lg breakpoint's narrower end (~1024-1300px),
+            the Host-only extra link ("Experience Builder") pushed total row width past what fit,
+            and individual link text wrapped mid-word instead of the row handling the overflow.
+            whitespace-nowrap stops that; the tighter gap/padding buys back the room the extra
+            Host-only link needs to still fit on one line at the same breakpoint. */}
+        <nav className="hidden lg:flex items-center gap-0.5 shrink-0">
           {navLinks.map((link, i) => (
             <Link
               key={link.label + i}
               href={link.href}
               className={cn(
-                "px-3 py-2 text-sm rounded-lg text-muted hover:text-foreground hover:bg-white/5 transition-colors",
+                "px-2.5 py-2 text-sm rounded-lg text-muted hover:text-foreground hover:bg-white/5 transition-colors whitespace-nowrap",
                 pathname === link.href && "text-foreground"
               )}
             >
