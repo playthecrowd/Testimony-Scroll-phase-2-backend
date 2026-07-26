@@ -21,16 +21,44 @@ export default async function ExperiencesPage() {
   let loadError = "";
   let noChurches = false;
   let configError: SupabaseConfigError | null = null;
+  // createClient() and the data-loading below each get their own try/catch so a thrown redirect()
+  // signal (Next.js's internal control-flow throw) never lands inside a catch that would swallow
+  // it and misreport a signed-out visit as a generic load failure. createClient() itself throws
+  // SupabaseConfigError when env vars are missing -- it must stay inside its own try, or that
+  // error would be an uncaught 500 instead of the graceful branded error state below.
+  let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
   try {
-    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
-    // inside this try, not before it, or that error would be an uncaught 500 instead of the
-    // graceful branded error state below.
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/login?next=%2Fexperiences");
+    supabase = await createClient();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      configError = err;
+    } else {
+      console.error("[ExperiencesPage] Failed to initialize Supabase client:", err);
+      loadError = "We couldn't load Experiences right now. Please try again shortly.";
+    }
+  }
 
+  if (configError) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message={configError.message} />
+      </div>
+    );
+  }
+  if (loadError || !supabase) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message={loadError || "We couldn't load Experiences right now. Please try again shortly."} />
+      </div>
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=%2Fexperiences");
+
+  try {
     const churches = await getMyChurches(supabase);
     if (churches.length === 0) {
       noChurches = true;

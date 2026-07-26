@@ -73,11 +73,11 @@ test("member Experience actions only call the RPC wrapper functions, never a dir
 test("createExperienceAction and createOccurrenceAction verify church access before writing, never trusting a client-supplied churchId alone", () => {
   const actionsPath = path.join(REPO_ROOT, "app", "host-dashboard", "experiences", "actions.ts");
   const source = readFileSync(actionsPath, "utf8");
-  const createExperienceMatch = source.match(/export async function createExperienceAction[\s\S]*?\n}\n/);
+  const createExperienceMatch = source.match(/export async function createExperienceAction[\s\S]*?\r?\n}\r?\n/);
   assert.ok(createExperienceMatch, "Expected createExperienceAction to be defined");
   assert.match(createExperienceMatch![0], /requireChurchAccess\(supabase, user\.id, input\.churchId\)/);
 
-  const createOccurrenceMatch = source.match(/export async function createOccurrenceAction[\s\S]*?\n}\n/);
+  const createOccurrenceMatch = source.match(/export async function createOccurrenceAction[\s\S]*?\r?\n}\r?\n/);
   assert.ok(createOccurrenceMatch, "Expected createOccurrenceAction to be defined");
   assert.match(createOccurrenceMatch![0], /getAuthorizedExperience\(supabase, input\.experienceId\)/);
   assert.match(createOccurrenceMatch![0], /archived Experiences cannot receive new occurrences/i);
@@ -87,7 +87,7 @@ test("walk-ins and attendance/completion actions are all church-manager-gated, n
   const actionsPath = path.join(REPO_ROOT, "app", "host-dashboard", "experiences", "actions.ts");
   const source = readFileSync(actionsPath, "utf8");
   for (const fnName of ["recordWalkInAction", "updateAttendanceStatusAction", "updateCompletionStatusAction", "updateRegistrationStatusAction"]) {
-    const fnMatch = source.match(new RegExp(`export async function ${fnName}[\\s\\S]*?\\n}\\n`));
+    const fnMatch = source.match(new RegExp(`export async function ${fnName}[\\s\\S]*?\\r?\\n}\\r?\\n`));
     assert.ok(fnMatch, `Expected ${fnName} to be defined`);
     assert.match(fnMatch![0], /getAuthorized(Occurrence|Registration)\(/, `${fnName} must call a shared church-manager authorization guard`);
   }
@@ -99,7 +99,7 @@ test("walk-ins and attendance/completion actions are all church-manager-gated, n
 test("getMyRegistrationsForOccurrences batches with a single .in() query, not one query per occurrence id", () => {
   const servicePath = path.join(REPO_ROOT, "services", "supabase", "churchExperiences.ts");
   const source = readFileSync(servicePath, "utf8");
-  const fnMatch = source.match(/export async function getMyRegistrationsForOccurrences[\s\S]*?\n}\n/);
+  const fnMatch = source.match(/export async function getMyRegistrationsForOccurrences[\s\S]*?\r?\n}\r?\n/);
   assert.ok(fnMatch, "Expected getMyRegistrationsForOccurrences to be defined");
   assert.match(fnMatch![0], /\.in\(\s*["']occurrence_id["']\s*,\s*occurrenceIds\s*\)/, "Must fetch all occurrences' registrations in a single .in() query");
 
