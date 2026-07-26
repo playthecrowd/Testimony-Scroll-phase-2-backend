@@ -77,11 +77,15 @@ export function PublishedLessonCard({ lesson }: { lesson: PublishedLesson }) {
           <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted">
             <Users2 size={12} /> Hosted by {lesson.hosts.length} {lesson.hosts.length === 1 ? "church" : "churches"}
           </div>
-        ) : (
+        ) : lesson.church ? (
           <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted">
             <Users2 size={12} /> {lesson.church.name}
           </div>
-        )}
+        ) : lesson.isCampaignLesson ? (
+          <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted">
+            <Users2 size={12} /> {lesson.campaignName || "Year-Round Campaign"}
+          </div>
+        ) : null}
       </div>
     </Link>
   );

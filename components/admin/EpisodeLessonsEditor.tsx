@@ -57,7 +57,7 @@ export function EpisodeLessonsEditor({
                 {selected && <Check size={11} className="text-white" />}
               </div>
               <span className="text-xs text-foreground truncate">{l.title}</span>
-              <span className="text-[11px] text-muted ml-auto shrink-0">{l.church.name}</span>
+              <span className="text-[11px] text-muted ml-auto shrink-0">{l.church?.name ?? (l.isCampaignLesson ? "Year-Round Campaign" : "")}</span>
             </button>
           );
         })}

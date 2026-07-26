@@ -39,7 +39,7 @@ export default async function EditExperiencePage({ params }: { params: Promise<{
       // host/admin -- a nonexistent OR unauthorized-draft lookup both come back null here.
       lesson = await getLessonBySlug(supabase, lessonSlug);
 
-      if (lesson) {
+      if (lesson?.church) {
         // RLS alone is not sufficient to gate this *edit* page: a published lesson is
         // legitimately visible to anyone via the query above, but only a host/admin of its own
         // church may edit it. Same membership check submitLessonDraft already performs.
@@ -77,6 +77,9 @@ export default async function EditExperiencePage({ params }: { params: Promise<{
   }
   if (!userId) redirect("/login");
   if (!lesson) notFound();
+  // A campaign lesson has no owning church and is never editable through this host-only route --
+  // it's managed exclusively via /admin/campaign-lessons.
+  if (!lesson.church) notFound();
 
   if (!hasChurchEditAccess(role)) {
     return (

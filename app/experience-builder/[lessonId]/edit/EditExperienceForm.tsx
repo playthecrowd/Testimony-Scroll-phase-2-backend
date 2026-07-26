@@ -197,6 +197,15 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       return;
     }
 
+    // This form only ever renders for a host-editable, church-owned lesson (the page-level gate
+    // in page.tsx already excludes campaign lessons, which have no church) -- this is a defensive
+    // type guard, not an expected runtime path.
+    if (!lesson.church) {
+      setError("This lesson has no owning church and cannot be edited here.");
+      return;
+    }
+    const church = lesson.church;
+
     const preparedMedia = mediaItems.map((item) => ({
       id: item.id,
       mediaType: item.mediaType,
@@ -231,7 +240,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     let keepExisting = true;
 
     if (thumbnailFile) {
-      const path = buildThumbnailPath(lesson.church.id, lesson.id, thumbnailUniqueId, thumbnailFile.name);
+      const path = buildThumbnailPath(church.id, lesson.id, thumbnailUniqueId, thumbnailFile.name);
       const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
       if (!uploadResult.ok) {
         // The original thumbnail is untouched -- we haven't written anything to the database yet.
@@ -251,8 +260,8 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     const result = await updateLessonExperience({
       lessonId: lesson.id,
       lessonSlug: lesson.slug,
-      churchId: lesson.church.id,
-      churchSlug: lesson.church.slug,
+      churchId: church.id,
+      churchSlug: church.slug,
       currentStatus,
       action,
       title,
@@ -372,7 +381,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
         </span>
       </div>
       <p className="text-muted text-sm mt-1 mb-5">
-        Editing &ldquo;{lesson.title}&rdquo; for {lesson.church.name}.
+        Editing &ldquo;{lesson.title}&rdquo; for {lesson.church?.name ?? "your church"}.
       </p>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-5">
@@ -416,7 +425,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
               <input value={speakerName} onChange={(e) => setSpeakerName(e.target.value)} className="qk-input" />
             </Field>
             <Field label="Church">
-              <input value={lesson.church.name} disabled className="qk-input opacity-70" />
+              <input value={lesson.church?.name ?? ""} disabled className="qk-input opacity-70" />
             </Field>
           </div>
 

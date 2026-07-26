@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, X, Play, FileText, Presentation, BookOpen, Church, Star, Clock3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getPublishedLessons } from "@/services/supabase/lessons";
 import { getPublishedChurches } from "@/services/supabase/churches";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { PublishedLessonCard } from "@/components/lessons/PublishedLessonCard";
+import { CampaignLessonCard } from "@/components/lessons/CampaignLessonCard";
 import { LinkButton } from "@/components/ui/Button";
 import { StatPill } from "@/components/ui/StatPill";
 import { LoadingState, ErrorState } from "@/components/ui/AsyncState";
@@ -17,6 +19,7 @@ import { PublishedChurch, PublishedLesson } from "@/types";
 
 const tabs = [
   { key: "all", label: "All Lessons" },
+  { key: "campaign", label: "Campaign Lessons" },
   { key: "video", label: "Video Lessons" },
   { key: "notes", label: "Notes & Slides" },
   { key: "new", label: "Recently Added" },
@@ -25,6 +28,18 @@ const tabs = [
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 export default function LessonsPage() {
+  return (
+    <Suspense fallback={<LoadingState label="Loading lessons..." />}>
+      <LessonsPageContent />
+    </Suspense>
+  );
+}
+
+// useSearchParams() (for the homepage's ?tab=campaign deep link) requires a Suspense boundary
+// around any component that calls it, per Next.js App Router -- LessonsPage above is that
+// boundary, this is the real page content.
+function LessonsPageContent() {
+  const searchParams = useSearchParams();
   const [lessons, setLessons] = useState<PublishedLesson[]>([]);
   const [churches, setChurches] = useState<PublishedChurch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +48,8 @@ export default function LessonsPage() {
   const [church, setChurch] = useState("all");
   const [speaker, setSpeaker] = useState("all");
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<(typeof tabs)[number]["key"]>("all");
+  const initialTab = searchParams.get("tab") === "campaign" ? "campaign" : "all";
+  const [tab, setTab] = useState<(typeof tabs)[number]["key"]>(initialTab);
   const [now] = useState(() => Date.now());
 
   useEffect(() => {
@@ -81,11 +97,12 @@ export default function LessonsPage() {
 
   const filtered = useMemo(() => {
     return lessons.filter((l) => {
-      if (church !== "all" && l.church.id !== church) return false;
+      if (church !== "all" && l.church?.id !== church) return false;
       if (speaker !== "all" && l.speaker?.id !== speaker) return false;
       if (search && !`${l.title} ${l.topic ?? ""} ${l.tags.join(" ")}`.toLowerCase().includes(search.toLowerCase()))
         return false;
       const mediaTypes = l.media.map((m) => m.mediaType);
+      if (tab === "campaign" && !l.isCampaignLesson) return false;
       if (tab === "video" && !mediaTypes.includes("video")) return false;
       if (tab === "notes" && !(mediaTypes.includes("notes") || mediaTypes.includes("slides"))) return false;
       if (tab === "new" && now - new Date(l.createdAt).getTime() > THIRTY_DAYS_MS) return false;
@@ -206,9 +223,9 @@ export default function LessonsPage() {
             <ErrorState message={error} />
           ) : filtered.length > 0 ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-              {filtered.map((l) => (
-                <PublishedLessonCard key={l.id} lesson={l} />
-              ))}
+              {filtered.map((l) =>
+                l.isCampaignLesson ? <CampaignLessonCard key={l.id} lesson={l} /> : <PublishedLessonCard key={l.id} lesson={l} />
+              )}
             </div>
           ) : (
             <div className="qk-card p-10 text-center text-muted text-sm">No lessons match your filters yet. Try clearing filters.</div>

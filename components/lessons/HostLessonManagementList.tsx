@@ -16,6 +16,9 @@ export function HostLessonManagementList({ lessons }: { lessons: PublishedLesson
   const [error, setError] = useState("");
 
   async function handlePublish(lesson: PublishedLesson) {
+    // This list is always church-scoped (getManagedLessonsByChurch) -- a campaign lesson (no
+    // church) never appears here in practice; this is a defensive type guard.
+    if (!lesson.church) return;
     setPendingId(lesson.id);
     setError("");
     const result = await publishLesson(lesson.id, lesson.slug, lesson.church.slug);
@@ -32,6 +35,7 @@ export function HostLessonManagementList({ lessons }: { lessons: PublishedLesson
       `Unpublish "${lesson.title}"? It will no longer appear in the public Lessons Library or church archive until you publish it again.`
     );
     if (!confirmed) return;
+    if (!lesson.church) return;
     setPendingId(lesson.id);
     setError("");
     const result = await unpublishLesson(lesson.id, lesson.slug, lesson.church.slug);
@@ -67,7 +71,7 @@ export function HostLessonManagementList({ lessons }: { lessons: PublishedLesson
                 </span>
               </div>
               <p className="text-[11px] text-muted mt-0.5">
-                {lesson.church.name} · Updated {formatDate(lesson.updatedAt)}
+                {lesson.church?.name ?? ""} · Updated {formatDate(lesson.updatedAt)}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">

@@ -231,7 +231,7 @@ export function StudiedClient({
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">{lesson.title}</h1>
               <p className="text-muted text-sm mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span>{lesson.church.name}</span>
+                <span>{lesson.church?.name ?? (lesson.isCampaignLesson ? lesson.campaignName || "Year-Round Campaign" : "")}</span>
                 {lesson.speaker && <span>{lesson.speaker.name}</span>}
                 {lesson.date && <span>{formatDate(lesson.date)}</span>}
                 {lesson.primaryScripture && <span>Scripture: {lesson.primaryScripture}</span>}

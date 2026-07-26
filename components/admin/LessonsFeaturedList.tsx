@@ -36,7 +36,7 @@ export function LessonsFeaturedList({ lessons: initial }: { lessons: PublishedLe
           <div key={l.id} className="qk-card p-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{l.title}</p>
-              <p className="text-[11px] text-muted truncate">{l.church.name}</p>
+              <p className="text-[11px] text-muted truncate">{l.church?.name ?? (l.isCampaignLesson ? "Year-Round Campaign" : "")}</p>
             </div>
             <Button size="sm" variant={l.featured ? "secondary" : "ghost"} disabled={busy} onClick={() => toggle(l.id, !l.featured)}>
               <Star size={13} fill={l.featured ? "currentColor" : "none"} /> {l.featured ? "Featured" : "Feature"}
