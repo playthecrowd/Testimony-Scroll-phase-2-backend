@@ -31,7 +31,7 @@ import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
 import { DocumentUploadField } from "@/components/lessons/DocumentUploadField";
 import { MediaItemsEditor, MediaItemFormRow } from "@/components/lessons/MediaItemsEditor";
-import { QuestionsEditor } from "@/components/lessons/QuestionsEditor";
+import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs } from "@/components/lessons/QuestionsEditor";
 import { ExperienceConnectionSelector, ExperienceSelection } from "@/components/lessons/ExperienceConnectionSelector";
 import { isValidMediaUrl } from "@/lib/lessonForm";
 import { Field } from "@/components/ui/FormField";
@@ -85,7 +85,7 @@ export function ExperienceBuilderForm() {
   const [thumbnailStatus, setThumbnailStatus] = useState<"idle" | "uploading" | "failed" | "done">("idle");
 
   // Step 3 -- Questions
-  const [questions, setQuestions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>([]);
 
   // Step 4 -- Experience Connection
   const [experienceSelections, setExperienceSelections] = useState<ExperienceSelection[]>([]);
@@ -275,6 +275,14 @@ export function ExperienceBuilderForm() {
       setError("Complete your church setup before building a lesson experience.");
       return;
     }
+    // Checked before the lesson row itself is created (unlike media/experience links below, which
+    // stay best-effort after save) -- a host choosing a correct answer and having it silently fail
+    // to persist is worse than being blocked here on an obviously-incomplete question.
+    const questionErrors = validateQuestionDrafts(questions);
+    if (questionErrors.length > 0) {
+      setError(questionErrors[0]);
+      return;
+    }
 
     setSubmitting(true);
     const result = await submitLessonDraft({
@@ -305,9 +313,9 @@ export function ExperienceBuilderForm() {
       // Everything below the draft's core fields is best-effort follow-up: the lesson itself is
       // already safely saved at this point, so none of these failing should look like the whole
       // submission failed.
-      if (questions.some((q) => q.trim())) {
+      if (questions.some((q) => q.question.trim())) {
         try {
-          await replaceLessonQuestions(supabase, result.lesson.id, questions);
+          await replaceLessonQuestions(supabase, result.lesson.id, toQuestionInputs(questions));
         } catch (err) {
           console.error("[ExperienceBuilderForm] Failed to save questions:", err);
         }
@@ -661,7 +669,7 @@ export function ExperienceBuilderForm() {
                   <ReviewRow label="Church" value={churches.find((c) => c.id === churchId)?.name ?? "—"} />
                   <ReviewRow label="Date Taught" value={date || "—"} />
                   <ReviewRow label="Content sources" value={`${providedMedia.length + (documentFile ? 1 : 0)} added`} />
-                  <ReviewRow label="Questions" value={`${questions.filter((q) => q.trim()).length} added`} />
+                  <ReviewRow label="Questions" value={`${questions.filter((q) => q.question.trim()).length} added`} />
                   <ReviewRow label="Connected experiences" value={`${experienceSelections.length} selected`} />
                 </div>
                 <p className="text-xs text-muted">

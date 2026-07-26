@@ -418,10 +418,20 @@ export interface PublishedLesson {
   linkedExperienceId: string | null;
 }
 
+export interface QuestionChoice {
+  id: string;
+  answerText: string;
+  sortOrder: number;
+  isCorrect: boolean;
+}
+
 export interface LessonQuestion {
   id: string;
   question: string;
   sortOrder: number;
+  // Empty for legacy plain-text-only questions authored before this field existed -- always a
+  // safe, renderable shape, never null.
+  choices: QuestionChoice[];
 }
 
 export interface Experience {

@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { Field } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 import { CampaignLessonInput } from "@/services/supabase/lessons";
+import { replaceLessonQuestions } from "@/services/supabase/questions";
+import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs, questionsToDrafts } from "@/components/lessons/QuestionsEditor";
 import { PublishedLesson } from "@/types";
 import { createCampaignLessonAction, updateCampaignLessonAction } from "./actions";
 
@@ -37,12 +40,23 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
   const [sortOrder, setSortOrder] = useState(lesson?.sortOrder?.toString() ?? "0");
   const [displayStartDate, setDisplayStartDate] = useState(lesson?.displayStartDate ?? "");
   const [linkedExperienceId, setLinkedExperienceId] = useState(lesson?.linkedExperienceId ?? "");
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() => (lesson ? questionsToDrafts(lesson.questions) : []));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Checked before the lesson row itself is saved, matching the same rule applied to
+    // church-authored lessons -- an admin choosing a correct answer and having it silently fail to
+    // persist is worse than being blocked here on an obviously-incomplete question.
+    const questionErrors = validateQuestionDrafts(questions);
+    if (questionErrors.length > 0) {
+      setError(questionErrors[0]);
+      return;
+    }
+
     setSubmitting(true);
 
     const input: CampaignLessonInput = {
@@ -71,12 +85,24 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
     const result = lesson
       ? await updateCampaignLessonAction(lesson.id, { ...input, status: isPublished ? "published" : "draft" })
       : await createCampaignLessonAction(input);
-    setSubmitting(false);
     if (result.error) {
+      setSubmitting(false);
       setError(result.error);
       return;
     }
-    router.push(`/admin/campaign-lessons/${lesson ? lesson.id : result.id}/edit`);
+
+    const savedId = lesson ? lesson.id : result.id!;
+    try {
+      await replaceLessonQuestions(createClient(), savedId, toQuestionInputs(questions));
+    } catch (err) {
+      console.error("[CampaignLessonForm] Failed to save questions:", err);
+      setSubmitting(false);
+      setError("Campaign lesson saved, but questions failed to save. Please try again.");
+      return;
+    }
+
+    setSubmitting(false);
+    router.push(`/admin/campaign-lessons/${savedId}/edit`);
     router.refresh();
   }
 
@@ -137,6 +163,11 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
             <input value={featuredImageUrl} onChange={(e) => setFeaturedImageUrl(e.target.value)} placeholder="https://..." className="qk-input" />
           </Field>
         </div>
+      </div>
+
+      <div className="border-t border-border-subtle pt-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Study Questions (up to 5)</h2>
+        <QuestionsEditor questions={questions} onChange={setQuestions} disabled={submitting} />
       </div>
 
       <div className="border-t border-border-subtle pt-4">

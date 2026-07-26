@@ -62,6 +62,7 @@ const CHURCH_SCOPED_TABLES = [
   "lesson_ministries",
   "church_invites",
   "lesson_questions",
+  "lesson_question_choices",
   "lesson_experiences",
   "church_experiences",
   "church_experience_occurrences",
@@ -157,13 +158,35 @@ test("experiences is intentionally public-read, with no authenticated write poli
 });
 
 test("lesson_experiences and lesson_questions support edit-time removal (update+delete), unlike lesson_ministries", () => {
-  for (const table of ["lesson_experiences", "lesson_questions"]) {
+  for (const table of ["lesson_experiences", "lesson_questions", "lesson_question_choices"]) {
     const deletePolicies = policiesOn(table).filter((c) => /for delete/i.test(c));
     assert.ok(deletePolicies.length > 0, `Expected a DELETE policy on ${table}`);
     for (const chunk of deletePolicies) {
       assert.match(chunk, /private\.is_church_manager/, `DELETE policy on ${table} must be manager-gated`);
     }
   }
+});
+
+// Migration 0039 (host/admin-authored multiple-choice lesson questions): lesson_question_choices
+// sits one join hop further out than lesson_questions itself (choices -> lesson_questions ->
+// lessons -> private.is_church_manager), so its policies can't be picked up by the generic
+// CHURCH_SCOPED_TABLES loop's is_church_manager check alone -- these two tests pin down the actual
+// join shape and the "at most one correct choice per question" DB constraint directly.
+test("every lesson_question_choices policy joins through lesson_questions and lessons to reach private.is_church_manager", () => {
+  const chunks = policiesOn("lesson_question_choices");
+  assert.ok(chunks.length >= 4, "Expected at least 4 policies (select/insert/update/delete) on lesson_question_choices");
+  for (const chunk of chunks) {
+    assert.match(chunk, /public\.lesson_questions/i, "Must join through lesson_questions");
+    assert.match(chunk, /public\.lessons/i, "Must join through lessons to reach church_id");
+    assert.match(chunk, /private\.is_church_manager/);
+  }
+});
+
+test("lesson_question_choices has a partial unique index enforcing at most one correct choice per question", () => {
+  const indexMatch = sql.match(/create unique index lesson_question_choices_one_correct_per_question[\s\S]*?;/i);
+  assert.ok(indexMatch, "Expected a lesson_question_choices_one_correct_per_question unique index");
+  assert.match(indexMatch![0], /on public\.lesson_question_choices\s*\(question_id\)/i);
+  assert.match(indexMatch![0], /where is_correct/i, "Must be a partial index on is_correct, not a global uniqueness constraint");
 });
 
 // Phase 5 (docs/PHASE5_AUDIT.md): lesson_requests has a distinct shape from the tables above (own-

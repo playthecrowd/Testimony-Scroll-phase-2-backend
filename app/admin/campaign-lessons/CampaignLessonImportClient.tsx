@@ -32,12 +32,14 @@ export function CampaignLessonImportClient() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [importedTitles, setImportedTitles] = useState<string[] | null>(null);
+  const [questionWarnings, setQuestionWarnings] = useState<string[]>([]);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportError("");
     setImportedTitles(null);
+    setQuestionWarnings([]);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
@@ -76,6 +78,7 @@ export function CampaignLessonImportClient() {
       return;
     }
     setImportedTitles(result.importedTitles ?? []);
+    setQuestionWarnings(result.questionWarnings ?? []);
     setCsvText("");
     setRows([]);
     setFileName("");
@@ -166,6 +169,19 @@ export function CampaignLessonImportClient() {
             </a>
             .
           </p>
+          {questionWarnings.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-border-subtle">
+              <p className="text-xs font-semibold text-amber-300 mb-1.5 flex items-center gap-1.5">
+                <AlertTriangle size={13} /> Some study questions failed to import
+              </p>
+              <ul className="text-xs text-amber-300 list-disc list-inside space-y-0.5">
+                {questionWarnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+              <p className="text-[11px] text-muted mt-1.5">The lesson itself imported fine -- edit it to re-add its questions.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

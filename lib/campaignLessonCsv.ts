@@ -1,4 +1,7 @@
 import { CampaignLessonInput } from "@/services/supabase/lessons";
+import { QuestionInput } from "@/services/supabase/questions";
+
+const MAX_CSV_QUESTIONS = 5;
 
 // Bulk CSV import for Year-Round Campaign Lessons (Phase Two). Hand-rolled parser rather than a
 // new npm dependency -- this repo has no CSV/Excel library installed, and the schema is small and
@@ -35,6 +38,20 @@ export const CAMPAIGN_LESSON_CSV_COLUMNS: CampaignLessonCsvColumn[] = [
   { key: "sort_order", header: "Sort Order", required: false, example: "0" },
   { key: "display_start_date", header: "Display Start Date (YYYY-MM-DD)", required: false, example: "2026-09-01" },
   { key: "linked_experience_id", header: "Linked Experience ID (optional)", required: false, example: "" },
+  // Study questions are entirely optional per-row (required: false at the column level) -- the
+  // generic required-field loop below has no "required if this other column is filled" concept,
+  // so per-question completeness is checked separately in validateCampaignLessonRow.
+  ...Array.from({ length: MAX_CSV_QUESTIONS }, (_, i): CampaignLessonCsvColumn[] => {
+    const n = i + 1;
+    return [
+      { key: `question_${n}`, header: `Question ${n}`, required: false, example: n === 1 ? "What does this passage teach us about God's faithfulness?" : "" },
+      { key: `question_${n}_answer_1`, header: `Question ${n} Answer 1`, required: false, example: n === 1 ? "He is always faithful" : "" },
+      { key: `question_${n}_answer_2`, header: `Question ${n} Answer 2`, required: false, example: n === 1 ? "He is faithful sometimes" : "" },
+      { key: `question_${n}_answer_3`, header: `Question ${n} Answer 3`, required: false, example: n === 1 ? "Faithfulness isn't mentioned" : "" },
+      { key: `question_${n}_answer_4`, header: `Question ${n} Answer 4`, required: false, example: n === 1 ? "None of the above" : "" },
+      { key: `question_${n}_right_answer`, header: `Question ${n} Right Answer (1-4)`, required: false, example: n === 1 ? "1" : "" },
+    ];
+  }).flat(),
 ];
 
 function csvEscape(value: string): string {
@@ -100,6 +117,11 @@ export interface ParsedCampaignLessonRow {
   rowNumber: number; // 1-based, matches the row's position in the uploaded file (header = row 1)
   raw: Record<string, string>;
   input: CampaignLessonInput | null;
+  // Kept separate from CampaignLessonInput -- that type is scalar lessons-table-fields-only, and
+  // questions are saved through a different service call (replaceLessonQuestions) after the lesson
+  // row exists. Always [] when input is null (a row with lesson-field errors doesn't get its
+  // questions parsed at all -- see the errors.length short-circuit in validateCampaignLessonRow).
+  questions: QuestionInput[];
   errors: string[];
 }
 
@@ -118,12 +140,50 @@ function columnHeader(key: string): string {
   return CAMPAIGN_LESSON_CSV_COLUMNS.find((c) => c.key === key)?.header ?? key;
 }
 
-export function validateCampaignLessonRow(raw: Record<string, string>): { input: CampaignLessonInput | null; errors: string[] } {
+export function validateCampaignLessonRow(raw: Record<string, string>): { input: CampaignLessonInput | null; questions: QuestionInput[]; errors: string[] } {
   const errors: string[] = [];
   const get = (key: string) => (raw[key] ?? "").trim();
 
   for (const col of CAMPAIGN_LESSON_CSV_COLUMNS) {
     if (col.required && !get(col.key)) errors.push(`Missing required field "${col.header}".`);
+  }
+
+  // If a question is provided, all 4 answers and a right answer are required -- mirrors the manual
+  // QuestionsEditor's validateQuestionDrafts rule so a partially-filled question never silently
+  // imports as empty or with no correct answer flagged. The right answer resolves as a position
+  // number 1-4 first (unambiguous, typo-proof for a non-technical admin filling in Excel), falling
+  // back to a case-insensitive exact match against the 4 answer texts.
+  const questions: QuestionInput[] = [];
+  for (let n = 1; n <= MAX_CSV_QUESTIONS; n++) {
+    const questionText = get(`question_${n}`);
+    if (!questionText) continue;
+
+    const answers = [1, 2, 3, 4].map((i) => get(`question_${n}_answer_${i}`));
+    const rightAnswerRaw = get(`question_${n}_right_answer`);
+    const missingAnswers = answers.some((a) => !a);
+    if (missingAnswers) {
+      errors.push(`Question ${n}: all 4 answer choices are required when a question is provided.`);
+    }
+    if (!rightAnswerRaw) {
+      errors.push(`Question ${n}: a right answer is required when a question is provided.`);
+    } else {
+      const asPosition = parseIntOrNull(rightAnswerRaw);
+      let correctIndex: number | null = null;
+      if (asPosition !== null && !Number.isNaN(asPosition) && asPosition >= 1 && asPosition <= 4) {
+        correctIndex = asPosition - 1;
+      } else {
+        correctIndex = answers.findIndex((a) => a.toLowerCase() === rightAnswerRaw.toLowerCase());
+        if (correctIndex === -1) correctIndex = null;
+      }
+      if (correctIndex === null) {
+        errors.push(`Question ${n}: right answer "${rightAnswerRaw}" must be 1-4 or match one of the 4 answer choices.`);
+      } else if (!missingAnswers) {
+        questions.push({
+          question: questionText,
+          choices: answers.map((answerText, i) => ({ answerText, isCorrect: i === correctIndex })),
+        });
+      }
+    }
   }
 
   const monthNumber = parseIntOrNull(get("month_number"));
@@ -144,7 +204,7 @@ export function validateCampaignLessonRow(raw: Record<string, string>): { input:
     errors.push(`"${columnHeader("display_start_date")}" must be in YYYY-MM-DD format.`);
   }
 
-  if (errors.length > 0) return { input: null, errors };
+  if (errors.length > 0) return { input: null, questions: [], errors };
 
   const input: CampaignLessonInput = {
     campaignName: get("campaign_name"),
@@ -168,7 +228,7 @@ export function validateCampaignLessonRow(raw: Record<string, string>): { input:
     displayStartDate,
     linkedExperienceId: get("linked_experience_id") || null,
   };
-  return { input, errors: [] };
+  return { input, questions, errors: [] };
 }
 
 export interface ParsedCampaignLessonCsv {
@@ -194,8 +254,8 @@ export function parseAndValidateCampaignLessonCsv(text: string): ParsedCampaignL
       const col = CAMPAIGN_LESSON_CSV_COLUMNS.find((c) => c.header === header);
       if (col) raw[col.key] = cells[colIndex] ?? "";
     });
-    const { input, errors } = validateCampaignLessonRow(raw);
-    return { rowNumber: i + 2, raw, input, errors }; // +2: row 1 is the header, data starts at row 2
+    const { input, questions, errors } = validateCampaignLessonRow(raw);
+    return { rowNumber: i + 2, raw, input, questions, errors }; // +2: row 1 is the header, data starts at row 2
   });
 
   return { rows, headerErrors: [] };

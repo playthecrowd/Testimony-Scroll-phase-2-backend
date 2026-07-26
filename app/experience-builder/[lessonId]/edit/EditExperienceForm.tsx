@@ -16,7 +16,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Field } from "@/components/ui/FormField";
 import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
 import { MediaItemsEditor, MediaItemFormRow } from "@/components/lessons/MediaItemsEditor";
-import { QuestionsEditor } from "@/components/lessons/QuestionsEditor";
+import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs, questionsToDrafts } from "@/components/lessons/QuestionsEditor";
 import { ExperienceConnectionSelector, ExperienceSelection } from "@/components/lessons/ExperienceConnectionSelector";
 import { PublishedLesson, Experience } from "@/types";
 
@@ -63,7 +63,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
   const [mediaItems, setMediaItems] = useState<MediaItemFormRow[]>(() => mediaRowsFromLesson(initialLesson));
   const existingMediaIdsRef = useRef(initialLesson.media.map((m) => m.id));
 
-  const [questions, setQuestions] = useState<string[]>(() => initialLesson.questions.map((q) => q.question));
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() => questionsToDrafts(initialLesson.questions));
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [experienceSelections, setExperienceSelections] = useState<ExperienceSelection[]>(() =>
     initialLesson.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
@@ -225,6 +225,15 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       return;
     }
 
+    // Checked before the lesson row itself is saved (unlike media/experience links below, which
+    // stay best-effort after save) -- a host choosing a correct answer and having it silently fail
+    // to persist is worse than being blocked here on an obviously-incomplete question.
+    const questionErrors = validateQuestionDrafts(questions);
+    if (questionErrors.length > 0) {
+      setError(questionErrors[0]);
+      return;
+    }
+
     if (action === "unpublish") {
       const confirmed = window.confirm(
         "Unpublish this lesson? It will no longer appear in the public Lessons Library or church archive until you publish it again."
@@ -302,7 +311,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     // Best-effort, same as the create wizard: the lesson's core fields are already confirmed
     // saved above, so a failure here must not look like the whole save failed.
     try {
-      await replaceLessonQuestions(supabase, lesson.id, questions);
+      await replaceLessonQuestions(supabase, lesson.id, toQuestionInputs(questions));
     } catch (err) {
       console.error("[EditExperienceForm] Failed to save questions:", err);
     }
@@ -343,7 +352,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setXpReward(fresh.xpReward != null ? String(fresh.xpReward) : "");
       setMediaItems(mediaRowsFromLesson(fresh));
       existingMediaIdsRef.current = fresh.media.map((m) => m.id);
-      setQuestions(fresh.questions.map((q) => q.question));
+      setQuestions(questionsToDrafts(fresh.questions));
       setExperienceSelections(
         fresh.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
       );

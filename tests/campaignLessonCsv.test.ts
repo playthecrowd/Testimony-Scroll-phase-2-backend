@@ -126,14 +126,162 @@ test("a CSV missing an expected column header is rejected before any row is even
 });
 
 test("row numbers reported to the admin match the row's real position in the uploaded file (header = row 1)", () => {
-  const csv =
-    "Campaign Name,Sprint/Season,Month,Month Number (1-12),Week Number,Monthly Theme,Monthly Bible Verse,Lesson Title,Lesson Summary,Lesson Content/Notes,Weekly Verse (if available),Speaker Name,Speaker Bio,Speaker Image URL,Thumbnail/Image URL,Is Featured (true/false),Is Highlighted (true/false),Published (true/false),Sort Order,Display Start Date (YYYY-MM-DD),Linked Experience ID (optional)\n" +
-    "Kingdom Harvest,,September,1,1,,,Week 1 Lesson,,,,,,,,,,,,,\n" +
-    "Kingdom Harvest,,September,1,,,,,,,,,,,,,,,,,\n"; // second data row: missing week_number and lesson_title
+  // Header built from the live column list (not hand-typed) so this test doesn't go stale every
+  // time a column is added -- e.g. the 30 question/answer columns added alongside this test.
+  const header = CAMPAIGN_LESSON_CSV_COLUMNS.map((c) => c.header).join(",");
+  const blankRow = CAMPAIGN_LESSON_CSV_COLUMNS.map(() => "").join(",");
+  const row1 = CAMPAIGN_LESSON_CSV_COLUMNS.map((c) => {
+    if (c.key === "campaign_name") return "Kingdom Harvest";
+    if (c.key === "month") return "September";
+    if (c.key === "month_number") return "1";
+    if (c.key === "week_number") return "1";
+    if (c.key === "lesson_title") return "Week 1 Lesson";
+    return "";
+  }).join(",");
+  // second data row: missing week_number and lesson_title
+  const row2 = CAMPAIGN_LESSON_CSV_COLUMNS.map((c) => {
+    if (c.key === "campaign_name") return "Kingdom Harvest";
+    if (c.key === "month") return "September";
+    if (c.key === "month_number") return "1";
+    return "";
+  }).join(",");
+  const csv = `${header}\n${row1}\n${row2}\n`;
   const { rows } = parseAndValidateCampaignLessonCsv(csv);
   assert.equal(rows.length, 2);
   assert.equal(rows[0].rowNumber, 2);
   assert.deepEqual(rows[0].errors, []);
   assert.equal(rows[1].rowNumber, 3);
   assert.ok(rows[1].errors.length > 0);
+  assert.deepEqual(parseCsvText(blankRow), [], "sanity: a fully-blank row is dropped by the parser itself");
+});
+
+// ---- Study question columns (host/admin-authored multiple-choice reference answers) ----
+
+const BASE_ROW = { campaign_name: "Kingdom Harvest", month: "September", month_number: "1", week_number: "1", lesson_title: "Test" };
+
+test("[TRUE TEST] a row with no question text imports with zero questions and no question-related errors", () => {
+  const { input, questions, errors } = validateCampaignLessonRow({ ...BASE_ROW });
+  assert.ok(input);
+  assert.deepEqual(questions, []);
+  assert.deepEqual(errors, []);
+});
+
+test("[TRUE TEST] a complete question resolves its right answer by position number (1-4)", () => {
+  const { questions, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "What does this teach us?",
+    question_1_answer_1: "Faithfulness",
+    question_1_answer_2: "Nothing",
+    question_1_answer_3: "Doubt",
+    question_1_answer_4: "Fear",
+    question_1_right_answer: "1",
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(questions.length, 1);
+  assert.equal(questions[0].question, "What does this teach us?");
+  assert.deepEqual(
+    questions[0].choices.map((c) => c.isCorrect),
+    [true, false, false, false]
+  );
+});
+
+test("[TRUE TEST] a complete question resolves its right answer by case-insensitive text match", () => {
+  const { questions, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "What does this teach us?",
+    question_1_answer_1: "Faithfulness",
+    question_1_answer_2: "Nothing",
+    question_1_answer_3: "Doubt",
+    question_1_answer_4: "Fear",
+    question_1_right_answer: "doubt",
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(questions.length, 1);
+  assert.deepEqual(
+    questions[0].choices.map((c) => c.isCorrect),
+    [false, false, true, false]
+  );
+});
+
+test("[TRUE TEST] a question missing one of its 4 answers is rejected with a specific row error", () => {
+  const { input, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "What does this teach us?",
+    question_1_answer_1: "Faithfulness",
+    question_1_answer_2: "Nothing",
+    question_1_answer_3: "Doubt",
+    // answer 4 left blank
+    question_1_right_answer: "1",
+  });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Question 1") && e.includes("all 4 answer choices")));
+});
+
+test("[TRUE TEST] a question with 4 answers but no right answer is rejected", () => {
+  const { input, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "What does this teach us?",
+    question_1_answer_1: "Faithfulness",
+    question_1_answer_2: "Nothing",
+    question_1_answer_3: "Doubt",
+    question_1_answer_4: "Fear",
+    // right answer left blank
+  });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Question 1") && e.includes("right answer is required")));
+});
+
+test("[TRUE TEST] a right answer that matches neither a position number nor any answer text is rejected", () => {
+  const { input, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "What does this teach us?",
+    question_1_answer_1: "Faithfulness",
+    question_1_answer_2: "Nothing",
+    question_1_answer_3: "Doubt",
+    question_1_answer_4: "Fear",
+    question_1_right_answer: "Hope",
+  });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Question 1") && e.includes("must be 1-4 or match")));
+});
+
+test("[TRUE TEST] Question 5 (the last of the 5-question cap) validates and imports correctly", () => {
+  const { questions, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_5: "Final question?",
+    question_5_answer_1: "A",
+    question_5_answer_2: "B",
+    question_5_answer_3: "C",
+    question_5_answer_4: "D",
+    question_5_right_answer: "4",
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(questions.length, 1);
+  assert.equal(questions[0].question, "Final question?");
+  assert.deepEqual(
+    questions[0].choices.map((c) => c.isCorrect),
+    [false, false, false, true]
+  );
+});
+
+test("[TRUE TEST] multiple questions (1 and 3) in the same row are both parsed independently", () => {
+  const { questions, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    question_1: "Q1?",
+    question_1_answer_1: "A1",
+    question_1_answer_2: "A2",
+    question_1_answer_3: "A3",
+    question_1_answer_4: "A4",
+    question_1_right_answer: "2",
+    question_3: "Q3?",
+    question_3_answer_1: "B1",
+    question_3_answer_2: "B2",
+    question_3_answer_3: "B3",
+    question_3_answer_4: "B4",
+    question_3_right_answer: "3",
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(questions.length, 2);
+  assert.equal(questions[0].question, "Q1?");
+  assert.equal(questions[1].question, "Q3?");
 });

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { PublishedLesson } from "@/types";
 import { mapChurch } from "./churches";
 import { mapExperience } from "./experiences";
+import { mapQuestion } from "./questions";
 
 const CHURCH_FIELDS = "id, name, slug, logo_url, city, region, country, member_count, description, verified";
 const EXPERIENCE_FIELDS = "id, name, description, preview_image_url";
@@ -19,7 +20,7 @@ const LESSON_SELECT = `
   media:lesson_media(id, media_type, url, content, title, sort_order),
   hosts:lesson_hosts(id, status, participant_count, schedule_label, quest_url, church:churches(${CHURCH_FIELDS})),
   lesson_ministries(ministry:ministries(id, name)),
-  questions:lesson_questions(id, question, sort_order),
+  questions:lesson_questions(id, question, sort_order, choices:lesson_question_choices(id, answer_text, sort_order, is_correct)),
   lesson_experiences(id, relationship_note, experience:experiences(${EXPERIENCE_FIELDS}))
 `;
 
@@ -99,8 +100,7 @@ function mapLesson(row: any): PublishedLesson {
       .slice()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((q: any) => ({ id: q.id, question: q.question, sortOrder: q.sort_order ?? 0 })),
+      .map(mapQuestion),
     experiences: (row.lesson_experiences ?? [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((le: any) => le.experience)
