@@ -15,7 +15,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
   const pathname = usePathname();
   const unread = session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
 
-  const links = session.accountType === "host" ? SIDEBAR_HOST_LINKS : SIDEBAR_MEMBER_LINKS;
+  const links = (session.accountType === "host" ? SIDEBAR_HOST_LINKS : SIDEBAR_MEMBER_LINKS).filter(
+    (link) => !link.platformAdminOnly || session.isPlatformAdmin
+  );
 
   const content = (
     <div className="flex flex-col h-full">
