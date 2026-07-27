@@ -556,9 +556,20 @@ export interface CharacterRelatedTestimony {
   note: string | null;
 }
 
+// Derived transitively through the character's own episodes (episode_characters ->
+// episode_lessons -> lessons) -- there is no direct character_lessons table. A character with no
+// episodes yet simply has an empty array; see services/supabase/characters.ts's own comment for
+// why this reuses episode_lessons instead of adding a new, largely-duplicate join table.
+export interface CharacterRelatedLesson {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 export interface PublishedCharacterWithRelations extends PublishedCharacter {
   episodes: CharacterRelatedEpisode[];
   testimonies: CharacterRelatedTestimony[];
+  relatedLessons: CharacterRelatedLesson[];
 }
 
 export type PublishedEpisodeStatus = "draft" | "published";

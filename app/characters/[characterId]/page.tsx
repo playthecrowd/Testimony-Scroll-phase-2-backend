@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ScrollText, Feather } from "lucide-react";
+import { ArrowLeft, ScrollText, Feather, BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
 import { getCharacterById } from "@/services/supabase/characters";
+import { CharacterAvatarImage } from "@/components/characters/CharacterAvatarImage";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
 
@@ -43,10 +44,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
 
       <div className="grid md:grid-cols-[280px_1fr] gap-6 mb-8">
         <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-surface-2">
-          {character.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={character.imageUrl} className="w-full h-full object-cover" alt="" />
-          )}
+          <CharacterAvatarImage src={character.imageUrl} />
         </div>
         <div>
           <h1 className="text-3xl font-bold text-foreground mt-1">{character.name}</h1>
@@ -80,7 +78,7 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
       )}
 
       {character.episodes.length > 0 && (
-        <div>
+        <div className="mb-8">
           <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <ScrollText size={17} className="text-accent-blue-light" /> Related Episodes
           </h2>
@@ -97,7 +95,25 @@ export default async function CharacterDetailPage({ params }: { params: Promise<
         </div>
       )}
 
-      {character.testimonies.length === 0 && character.episodes.length === 0 && (
+      {/* Derived through the character's episodes (episode_lessons), not a direct link -- see
+          services/supabase/characters.ts. Only appears once the character has at least one
+          episode with lessons attached. */}
+      {character.relatedLessons.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <BookOpen size={17} className="text-accent-blue-light" /> Related Lessons
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {character.relatedLessons.map((lesson) => (
+              <Link key={lesson.id} href={`/lessons/${lesson.slug}`} className="qk-card p-3.5 hover:border-accent-blue-light/50">
+                <p className="text-sm font-semibold text-foreground">{lesson.title}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {character.testimonies.length === 0 && character.episodes.length === 0 && character.relatedLessons.length === 0 && (
         <p className="text-sm text-muted">This character&apos;s story is still unfolding.</p>
       )}
     </div>
