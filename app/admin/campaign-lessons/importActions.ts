@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { requirePlatformAdmin } from "@/lib/adminAuth";
 import { logAdminAction } from "@/lib/adminAuditLog";
-import { createCampaignLessonsBatch, CampaignLessonInput } from "@/services/supabase/lessons";
+import { createCampaignLessonsBatch, CampaignLessonInput, replaceLessonMediaByTypes } from "@/services/supabase/lessons";
 import { replaceLessonQuestions } from "@/services/supabase/questions";
 import { parseAndValidateCampaignLessonCsv } from "@/lib/campaignLessonCsv";
 
@@ -15,6 +15,7 @@ export interface ImportCampaignLessonsResult {
   importedCount?: number;
   importedTitles?: string[];
   questionWarnings?: string[];
+  mediaWarnings?: string[];
 }
 
 // Re-parses and re-validates the raw CSV text server-side rather than trusting the client's own
@@ -57,6 +58,21 @@ export async function importCampaignLessonsCsvAction(csvText: string): Promise<I
       }
     }
 
+    // Same best-effort reasoning as questions above -- Video URL/Slides URL are already validated
+    // (real http(s) URLs or blank) by the time rowErrors was checked, so a failure here is a
+    // genuine write error on already-valid data.
+    const mediaWarnings: string[] = [];
+    for (let i = 0; i < created.length; i++) {
+      const media = rows[i].media;
+      if (media.length === 0) continue;
+      try {
+        await replaceLessonMediaByTypes(supabase, created[i].id, media);
+      } catch (err) {
+        console.error("[importCampaignLessonsCsvAction] Failed to save video/slides for row:", rows[i].rowNumber, err);
+        mediaWarnings.push(`"${created[i].title}" (row ${rows[i].rowNumber}) saved, but its video/slides links failed to import.`);
+      }
+    }
+
     await logAdminAction(supabase, {
       action: "bulk_import",
       entityType: "campaign_lesson",
@@ -65,7 +81,12 @@ export async function importCampaignLessonsCsvAction(csvText: string): Promise<I
     revalidatePath("/admin/campaign-lessons");
     revalidatePath("/");
     revalidatePath("/lessons");
-    return { importedCount: importedTitles.length, importedTitles, questionWarnings: questionWarnings.length > 0 ? questionWarnings : undefined };
+    return {
+      importedCount: importedTitles.length,
+      importedTitles,
+      questionWarnings: questionWarnings.length > 0 ? questionWarnings : undefined,
+      mediaWarnings: mediaWarnings.length > 0 ? mediaWarnings : undefined,
+    };
   } catch (err) {
     if (err instanceof SupabaseConfigError) return { error: err.message };
     console.error("[importCampaignLessonsCsvAction] Unexpected error:", err);

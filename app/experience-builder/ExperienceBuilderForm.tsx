@@ -81,6 +81,7 @@ export function ExperienceBuilderForm() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
   const [thumbnailAlt, setThumbnailAlt] = useState("");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState("");
   const [thumbnailUniqueId] = useState(() => crypto.randomUUID());
   const [thumbnailStatus, setThumbnailStatus] = useState<"idle" | "uploading" | "failed" | "done">("idle");
 
@@ -204,30 +205,43 @@ export function ExperienceBuilderForm() {
   const providedMedia = media.filter((m) => (m.url && m.url.trim()) || (m.content && m.content.trim()));
   const hasContentSource = providedMedia.length > 0 || !!documentFile;
 
+  // Handles both the deferred thumbnail file upload (can only happen once the lesson has a real
+  // id) and the Background Image URL, which -- unlike the thumbnail -- has no file to upload, but
+  // is applied in this same follow-up call rather than a second one so there's only ever one
+  // post-creation write to reconcile, never two competing updates.
   async function performThumbnailUpload(lessonId: string, forChurchId: string, lessonSlug: string, churchSlug: string) {
-    if (!thumbnailFile) return;
-    setThumbnailStatus("uploading");
-    const supabase = createClient();
-    const path = buildThumbnailPath(forChurchId, lessonId, thumbnailUniqueId, thumbnailFile.name);
+    const trimmedBackground = backgroundImageUrl.trim() || null;
+    if (!thumbnailFile && !trimmedBackground) return;
 
-    const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
-    if (!uploadResult.ok) {
-      setThumbnailStatus("failed");
-      return;
+    let featuredImageUrl: string | null = null;
+    let featuredImageAlt: string | null = null;
+    const supabase = createClient();
+
+    if (thumbnailFile) {
+      setThumbnailStatus("uploading");
+      const path = buildThumbnailPath(forChurchId, lessonId, thumbnailUniqueId, thumbnailFile.name);
+      const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
+      if (!uploadResult.ok) {
+        setThumbnailStatus("failed");
+        return;
+      }
+      featuredImageUrl = uploadResult.publicUrl;
+      featuredImageAlt = thumbnailAlt || null;
     }
 
     const updateResult = await updateLessonThumbnail({
       lessonId,
       lessonSlug,
       churchSlug,
-      featuredImageUrl: uploadResult.publicUrl,
-      featuredImageAlt: thumbnailAlt || null,
+      featuredImageUrl,
+      featuredImageAlt,
+      backgroundImageUrl: trimmedBackground,
     });
     if (updateResult.error) {
-      setThumbnailStatus("failed");
+      if (thumbnailFile) setThumbnailStatus("failed");
       return;
     }
-    setThumbnailStatus("done");
+    if (thumbnailFile) setThumbnailStatus("done");
     router.refresh();
   }
 
@@ -241,6 +255,7 @@ export function ExperienceBuilderForm() {
       }
       const invalidField = providedMedia.find((m) => m.mediaType !== "transcript" && m.url && !isValidMediaUrl(m.url));
       if (invalidField) return "One of your media links doesn't look like a valid web address.";
+      if (!isValidMediaUrl(backgroundImageUrl)) return "Background Image URL doesn't look like a valid web address.";
     }
     return null;
   }
@@ -629,6 +644,18 @@ export function ExperienceBuilderForm() {
                       onAltChange={setThumbnailAlt}
                       disabled={submitting}
                     />
+                    <div>
+                      <Field label="Background Image URL">
+                        <input
+                          value={backgroundImageUrl}
+                          onChange={(e) => setBackgroundImageUrl(e.target.value)}
+                          placeholder="https://..."
+                          disabled={submitting}
+                          className="qk-input"
+                        />
+                      </Field>
+                      <p className="text-[11px] text-muted mt-1.5">Large lesson detail page background -- separate from the thumbnail above.</p>
+                    </div>
                   </div>
                 </div>
               </div>

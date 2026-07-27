@@ -383,6 +383,10 @@ export interface PublishedLesson {
   tags: string[];
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
+  // Large lesson-detail-page background/hero image, distinct from featuredImageUrl (the card/
+  // list/homepage thumbnail). Null for the vast majority of existing lessons -- the detail page
+  // falls back to featuredImageUrl, then to the current dark background, when unset.
+  backgroundImageUrl: string | null;
   questUrl: string | null;
   questLevel: number | null;
   xpReward: number | null;

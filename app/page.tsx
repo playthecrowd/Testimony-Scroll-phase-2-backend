@@ -5,9 +5,10 @@ import {
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
 import { PageBackground } from "@/components/layout/PageBackground";
-import { CampaignLessonCard } from "@/components/lessons/CampaignLessonCard";
+import { CampaignLessonsMarquee } from "@/components/lessons/CampaignLessonsMarquee";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
+import { selectFeaturedCampaignLessonsForHomepage } from "@/lib/campaignLessonOrder";
 import { getCampaignLessons, getCurrentWeekCampaignLesson } from "@/services/supabase/lessons";
 import {
   getPlatformActivityCounts,
@@ -80,12 +81,10 @@ export default async function HomePage() {
   const startThisWeekHref = currentWeekLesson ? `/lessons/${currentWeekLesson.slug}` : "/lessons";
   const joinNowHref = user ? "/lessons" : "/signup?next=%2Flessons";
 
-  // The weekly row shows the current campaign month's lessons (matching the screenshot's
-  // "Week 1/Week 2/Week 3/Week 4, all in the same month" layout). Falls back to whichever month
-  // has the earliest published lessons if there's no current-week match yet (e.g. before any
-  // display_start_date has arrived).
-  const currentMonthNumber = currentWeekLesson?.campaignMonthNumber ?? campaignLessons[0]?.campaignMonthNumber ?? null;
-  const weeklyLessons = currentMonthNumber != null ? campaignLessons.filter((l) => l.campaignMonthNumber === currentMonthNumber) : [];
+  // The featured row shows every published + featured Year-Round Campaign Lesson (not just the
+  // current month) in September -> August, Week 1 -> 4 order, with a slow auto-scroll so visitors
+  // notice there's a full year of lessons -- see lib/campaignLessonOrder.ts for the ordering.
+  const featuredCampaignLessons = selectFeaturedCampaignLessonsForHomepage(campaignLessons);
 
   return (
     <div className="relative">
@@ -107,21 +106,15 @@ export default async function HomePage() {
 
       {/* Weekly campaign lessons */}
       <section className="max-w-[1600px] mx-auto px-4 md:px-8 pb-8">
-        {weeklyLessons.length > 0 ? (
+        {featuredCampaignLessons.length > 0 ? (
           <>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-foreground">
-                {weeklyLessons[0]?.campaignMonth ? `${weeklyLessons[0].campaignMonth}'s Lessons` : "This Month's Lessons"}
-              </h2>
+              <h2 className="text-lg font-bold text-foreground">Featured Campaign Lessons</h2>
               <Link href="/lessons?tab=campaign" className="text-xs text-accent-blue-light hover:underline inline-flex items-center gap-1">
                 View all campaign lessons <ArrowRight size={12} />
               </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto qk-scrollbar pb-2" tabIndex={0}>
-              {weeklyLessons.map((lesson) => (
-                <CampaignLessonCard key={lesson.id} lesson={lesson} className="shrink-0 w-[260px]" />
-              ))}
-            </div>
+            <CampaignLessonsMarquee lessons={featuredCampaignLessons} />
           </>
         ) : (
           <div className="qk-card p-8 text-center">

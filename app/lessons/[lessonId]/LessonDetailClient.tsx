@@ -204,7 +204,19 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
       )}
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div className="min-w-0">
+        <div className="min-w-0 relative">
+          {/* Lesson-specific hero background -- scoped to this column only (the 320px side panel
+              in <aside> below is a sibling, never covered). backgroundImageUrl first, falling back
+              to the card thumbnail, then to nothing (the page's own dark background already shows
+              through). Every piece of actual content below sits inside an opaque qk-card, so this
+              can never make tabs/buttons/text unreadable regardless of the image. */}
+          {(lesson.backgroundImageUrl || lesson.featuredImageUrl) && (
+            <div className="absolute inset-0 -z-10 overflow-hidden rounded-2xl pointer-events-none" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lesson.backgroundImageUrl || lesson.featuredImageUrl || ""} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-background/80 to-background" />
+            </div>
+          )}
           <div className="grid sm:grid-cols-[220px_1fr] gap-5 mb-6">
             <LessonThumbnail
               src={lesson.featuredImageUrl}
@@ -449,10 +461,28 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
             <div className="qk-card p-5">
               <h3 className="text-sm font-semibold text-foreground mb-3">Study Questions ({questions.length})</h3>
               {questions.length > 0 ? (
-                <ol className="space-y-2.5">
+                <ol className="space-y-4">
                   {questions.map((q, i) => (
-                    <li key={q.id} className="flex items-start gap-2.5 text-sm text-muted">
-                      <span className="text-accent-blue-light font-medium">{i + 1}.</span> {q.question}
+                    <li key={q.id}>
+                      <p className="flex items-start gap-2.5 text-sm text-foreground font-medium">
+                        <span className="text-accent-blue-light shrink-0">{i + 1}.</span> {q.question}
+                      </p>
+                      {/* Reference answer choices only -- host/admin-authored, not a member-answerable
+                          quiz yet. Deliberately never shows which choice is correct here; that stays
+                          host-side reference data. Legacy plain-text questions have zero choices and
+                          simply show no list, unchanged from before. */}
+                      {q.choices.length > 0 && (
+                        <ul className="mt-2 ml-6 space-y-1.5">
+                          {q.choices.map((c, ci) => (
+                            <li key={c.id} className="flex items-center gap-2 text-sm text-muted">
+                              <span className="w-5 h-5 rounded-full border border-border-subtle flex items-center justify-center text-[11px] shrink-0">
+                                {String.fromCharCode(65 + ci)}
+                              </span>
+                              {c.answerText}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ol>

@@ -285,3 +285,67 @@ test("[TRUE TEST] multiple questions (1 and 3) in the same row are both parsed i
   assert.equal(questions[0].question, "Q1?");
   assert.equal(questions[1].question, "Q3?");
 });
+
+// ---- Background Image URL / Video URL / Slides URL columns ----
+
+test("[TRUE TEST] the template includes the Background Image URL, Video URL, and Slides URL columns, in that order after Thumbnail/Image URL", () => {
+  const headers = CAMPAIGN_LESSON_CSV_COLUMNS.map((c) => c.header);
+  const thumbIdx = headers.indexOf("Thumbnail/Image URL");
+  assert.ok(thumbIdx !== -1, "expected a Thumbnail/Image URL column");
+  assert.equal(headers[thumbIdx + 1], "Background Image URL");
+  assert.equal(headers[thumbIdx + 2], "Video URL");
+  assert.equal(headers[thumbIdx + 3], "Slides URL");
+});
+
+test("[TRUE TEST] Background Image URL, Video URL, and Slides URL are all optional -- a row with none of them still validates", () => {
+  const { input, media, errors } = validateCampaignLessonRow({ ...BASE_ROW });
+  assert.deepEqual(errors, []);
+  assert.ok(input);
+  assert.equal(input!.backgroundImageUrl, "");
+  assert.deepEqual(media, []);
+});
+
+test("[TRUE TEST] a row with all three URL fields populated resolves backgroundImageUrl on the input and both video/slides in media", () => {
+  const { input, media, errors } = validateCampaignLessonRow({
+    ...BASE_ROW,
+    background_image_url: "https://example.com/bg.jpg",
+    video_url: "https://example.com/video.mp4",
+    slides_url: "https://example.com/slides.pdf",
+  });
+  assert.deepEqual(errors, []);
+  assert.equal(input!.backgroundImageUrl, "https://example.com/bg.jpg");
+  assert.deepEqual(media, [
+    { mediaType: "video", url: "https://example.com/video.mp4" },
+    { mediaType: "slides", url: "https://example.com/slides.pdf" },
+  ]);
+});
+
+test("[TRUE TEST] only Video URL provided (no Slides URL) produces a single-item media array, not a blank slides entry", () => {
+  const { media, errors } = validateCampaignLessonRow({ ...BASE_ROW, video_url: "https://example.com/video.mp4" });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(media, [{ mediaType: "video", url: "https://example.com/video.mp4" }]);
+});
+
+test("[TRUE TEST] an invalid Background Image URL is rejected with a specific error naming the column", () => {
+  const { input, errors } = validateCampaignLessonRow({ ...BASE_ROW, background_image_url: "not a url" });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Background Image URL")));
+});
+
+test("[TRUE TEST] an invalid Video URL is rejected with a specific error naming the column", () => {
+  const { input, errors } = validateCampaignLessonRow({ ...BASE_ROW, video_url: "not a url" });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Video URL")));
+});
+
+test("[TRUE TEST] an invalid Slides URL is rejected with a specific error naming the column", () => {
+  const { input, errors } = validateCampaignLessonRow({ ...BASE_ROW, slides_url: "not a url" });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Slides URL")));
+});
+
+test("[TRUE TEST] a javascript: URL is rejected for Video URL, not just malformed text", () => {
+  const { input, errors } = validateCampaignLessonRow({ ...BASE_ROW, video_url: "javascript:alert(1)" });
+  assert.equal(input, null);
+  assert.ok(errors.some((e) => e.includes("Video URL")));
+});

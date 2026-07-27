@@ -88,6 +88,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(initialLesson.featuredImageUrl);
   const [thumbnailAlt, setThumbnailAlt] = useState(initialLesson.featuredImageAlt ?? "");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(initialLesson.backgroundImageUrl ?? "");
   const [removeExistingThumbnail, setRemoveExistingThumbnail] = useState(false);
   const [thumbnailUniqueId] = useState(() => crypto.randomUUID());
 
@@ -224,6 +225,10 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setError("One of your media links doesn't look like a valid web address.");
       return;
     }
+    if (!isValidMediaUrl(backgroundImageUrl)) {
+      setError("Background Image URL doesn't look like a valid web address.");
+      return;
+    }
 
     // Checked before the lesson row itself is saved (unlike media/experience links below, which
     // stay best-effort after save) -- a host choosing a correct answer and having it silently fail
@@ -292,6 +297,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       keepExistingThumbnail: keepExisting,
       featuredImageUrl: resolvedImageUrl,
       featuredImageAlt: resolvedImageAlt,
+      backgroundImageUrl: backgroundImageUrl.trim() || null,
       media: provided,
       existingMediaIds: existingMediaIdsRef.current,
     });
@@ -406,6 +412,19 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
             onAltChange={setThumbnailAlt}
             disabled={submitting}
           />
+
+          <div>
+            <Field label="Background Image URL">
+              <input
+                value={backgroundImageUrl}
+                onChange={(e) => setBackgroundImageUrl(e.target.value)}
+                placeholder="https://..."
+                disabled={submitting}
+                className="qk-input"
+              />
+            </Field>
+            <p className="text-[11px] text-muted mt-1.5">Large lesson detail page background -- separate from the thumbnail above.</p>
+          </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <Field label="Lesson Title" required>

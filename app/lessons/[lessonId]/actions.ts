@@ -14,6 +14,11 @@ export interface UpdateLessonThumbnailInput {
   churchSlug: string;
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
+  // Optional -- submit_lesson_draft (0003_functions.sql) has no parameter for this, so like the
+  // thumbnail itself, a background image is applied as a second, deferred update immediately
+  // after creation rather than as part of the creation RPC. undefined means "don't touch it"
+  // (the edit form's own save calls this without passing background_image_url at all).
+  backgroundImageUrl?: string | null;
 }
 
 export interface UpdateLessonThumbnailResult {
@@ -21,17 +26,16 @@ export interface UpdateLessonThumbnailResult {
 }
 
 // Plain RLS-gated update, same shape as publishLesson below: lessons_update_managed already
-// allows a Host/Admin to touch any column (including featured_image_url/featured_image_alt) on a
-// lesson belonging to a church they manage, so no RPC or privilege bypass is needed here.
+// allows a Host/Admin to touch any column (including featured_image_url/featured_image_alt/
+// background_image_url) on a lesson belonging to a church they manage, so no RPC or privilege
+// bypass is needed here.
 export async function updateLessonThumbnail(input: UpdateLessonThumbnailInput): Promise<UpdateLessonThumbnailResult> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("lessons")
-      .update({ featured_image_url: input.featuredImageUrl, featured_image_alt: input.featuredImageAlt })
-      .eq("id", input.lessonId)
-      .select("id")
-      .maybeSingle();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const patch: Record<string, any> = { featured_image_url: input.featuredImageUrl, featured_image_alt: input.featuredImageAlt };
+    if (input.backgroundImageUrl !== undefined) patch.background_image_url = input.backgroundImageUrl;
+    const { data, error } = await supabase.from("lessons").update(patch).eq("id", input.lessonId).select("id").maybeSingle();
     if (error) return { error: error.message };
     if (!data) return { error: "You are not authorized to update this lesson's thumbnail." };
 

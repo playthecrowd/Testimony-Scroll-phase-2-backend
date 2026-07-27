@@ -4,50 +4,51 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Upload, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import {
-  generateCampaignLessonCsvTemplate,
-  parseAndValidateCampaignLessonCsv,
-  ParsedCampaignLessonRow,
-} from "@/lib/campaignLessonCsv";
-import { importCampaignLessonsCsvAction } from "./importActions";
+import { Field } from "@/components/ui/FormField";
+import { generateRegularLessonCsvTemplate, parseAndValidateRegularLessonCsv, ParsedRegularLessonRow } from "@/lib/regularLessonCsv";
+import { PublishedChurch } from "@/types";
+import { importRegularLessonsCsvAction } from "./importActions";
 
 function downloadTemplate() {
-  const csv = generateCampaignLessonCsvTemplate();
+  const csv = generateRegularLessonCsvTemplate();
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "campaign-lessons-template.csv";
+  link.download = "lessons-template.csv";
   link.click();
   URL.revokeObjectURL(url);
 }
 
-export function CampaignLessonImportClient() {
+// Church-scoped counterpart to CampaignLessonImportClient.tsx (platform-admin-only) -- same
+// download/upload/preview/import shape, but every import targets exactly one of the signed-in
+// Host's own churches (picked below, never typed/guessed), and the server action re-verifies that
+// church membership itself before importing anything.
+export function ImportRegularLessonsClient({ churches }: { churches: PublishedChurch[] }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [churchId, setChurchId] = useState(churches[0]?.id ?? "");
   const [fileName, setFileName] = useState("");
   const [csvText, setCsvText] = useState("");
-  const [rows, setRows] = useState<ParsedCampaignLessonRow[]>([]);
+  const [rows, setRows] = useState<ParsedRegularLessonRow[]>([]);
   const [headerErrors, setHeaderErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [importedTitles, setImportedTitles] = useState<string[] | null>(null);
-  const [questionWarnings, setQuestionWarnings] = useState<string[]>([]);
-  const [mediaWarnings, setMediaWarnings] = useState<string[]>([]);
+  const [rowWarnings, setRowWarnings] = useState<string[]>([]);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportError("");
     setImportedTitles(null);
-    setQuestionWarnings([]);
-    setMediaWarnings([]);
+    setRowWarnings([]);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
       setCsvText(text);
-      const result = parseAndValidateCampaignLessonCsv(text);
+      const result = parseAndValidateRegularLessonCsv(text);
       setRows(result.rows);
       setHeaderErrors(result.headerErrors);
     };
@@ -56,20 +57,20 @@ export function CampaignLessonImportClient() {
 
   const validRows = rows.filter((r) => r.errors.length === 0);
   const invalidRows = rows.filter((r) => r.errors.length > 0);
-  const canImport = csvText && headerErrors.length === 0 && rows.length > 0 && invalidRows.length === 0 && !importing;
+  const canImport = !!churchId && csvText && headerErrors.length === 0 && rows.length > 0 && invalidRows.length === 0 && !importing;
 
   async function handleImport() {
     setImporting(true);
     setImportError("");
-    const result = await importCampaignLessonsCsvAction(csvText);
+    const result = await importRegularLessonsCsvAction(csvText, churchId);
     setImporting(false);
     if (result.error) {
       setImportError(result.error);
       return;
     }
     if (result.rowErrors) {
-      // Server-side re-validation found something the client-side preview missed -- surface it
-      // the same way, never import silently.
+      // Server-side re-validation found something the client-side preview missed -- surface it the
+      // same way, never import silently.
       setRows((prev) =>
         prev.map((r) => {
           const serverError = result.rowErrors!.find((e) => e.rowNumber === r.rowNumber);
@@ -80,8 +81,7 @@ export function CampaignLessonImportClient() {
       return;
     }
     setImportedTitles(result.importedTitles ?? []);
-    setQuestionWarnings(result.questionWarnings ?? []);
-    setMediaWarnings(result.mediaWarnings ?? []);
+    setRowWarnings(result.rowWarnings ?? []);
     setCsvText("");
     setRows([]);
     setFileName("");
@@ -89,8 +89,30 @@ export function CampaignLessonImportClient() {
     router.refresh();
   }
 
+  if (churches.length === 0) {
+    return (
+      <div className="qk-card p-5">
+        <p className="text-sm text-foreground font-medium">Complete your church setup before bulk-uploading lessons.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      {churches.length > 1 && (
+        <div className="qk-card p-5">
+          <Field label="Import into" required>
+            <select value={churchId} onChange={(e) => setChurchId(e.target.value)} className="qk-input">
+              {churches.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+      )}
+
       <div className="qk-card p-5">
         <h2 className="text-sm font-semibold text-foreground mb-1">1. Download the template</h2>
         <p className="text-xs text-muted mb-3">
@@ -163,39 +185,25 @@ export function CampaignLessonImportClient() {
       {importedTitles && (
         <div className="qk-card p-5 border-accent-blue-light/30">
           <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
-            <CheckCircle2 size={15} className="text-accent-blue-light" /> Imported {importedTitles.length} campaign lesson{importedTitles.length === 1 ? "" : "s"}
+            <CheckCircle2 size={15} className="text-accent-blue-light" /> Imported {importedTitles.length} lesson{importedTitles.length === 1 ? "" : "s"}
           </p>
           <p className="text-xs text-muted">
-            All imported as drafts -- feature, highlight, and publish them from the{" "}
-            <a href="/admin/campaign-lessons" className="text-accent-blue-light hover:underline">
-              Featured Campaign Lessons list
+            Rows without <span className="text-foreground">Published = true</span> were imported as drafts -- publish them from{" "}
+            <a href="/experience-builder" className="text-accent-blue-light hover:underline">
+              Your Lessons
             </a>
             .
           </p>
-          {questionWarnings.length > 0 && (
+          {rowWarnings.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border-subtle">
               <p className="text-xs font-semibold text-amber-300 mb-1.5 flex items-center gap-1.5">
-                <AlertTriangle size={13} /> Some study questions failed to import
+                <AlertTriangle size={13} /> Some rows had issues
               </p>
               <ul className="text-xs text-amber-300 list-disc list-inside space-y-0.5">
-                {questionWarnings.map((w) => (
+                {rowWarnings.map((w) => (
                   <li key={w}>{w}</li>
                 ))}
               </ul>
-              <p className="text-[11px] text-muted mt-1.5">The lesson itself imported fine -- edit it to re-add its questions.</p>
-            </div>
-          )}
-          {mediaWarnings.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-border-subtle">
-              <p className="text-xs font-semibold text-amber-300 mb-1.5 flex items-center gap-1.5">
-                <AlertTriangle size={13} /> Some video/slides links failed to import
-              </p>
-              <ul className="text-xs text-amber-300 list-disc list-inside space-y-0.5">
-                {mediaWarnings.map((w) => (
-                  <li key={w}>{w}</li>
-                ))}
-              </ul>
-              <p className="text-[11px] text-muted mt-1.5">The lesson itself imported fine -- edit it to re-add its video/slides links.</p>
             </div>
           )}
         </div>

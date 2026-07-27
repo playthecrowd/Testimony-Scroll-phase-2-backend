@@ -37,6 +37,7 @@ export interface UpdateLessonExperienceInput {
   keepExistingThumbnail: boolean;
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
+  backgroundImageUrl: string | null;
   media: EditableMediaItem[];
   existingMediaIds: string[];
 }
@@ -132,6 +133,7 @@ export async function updateLessonExperience(input: UpdateLessonExperienceInput)
       updatePayload.featured_image_url = input.featuredImageUrl;
       updatePayload.featured_image_alt = input.featuredImageAlt;
     }
+    updatePayload.background_image_url = input.backgroundImageUrl || null;
 
     // .select().maybeSingle() after the update matters here exactly like publishLesson: if RLS
     // silently blocks an unauthorized update, Postgres reports 0 rows affected rather than an

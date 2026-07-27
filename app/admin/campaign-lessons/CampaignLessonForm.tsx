@@ -6,8 +6,9 @@ import { Save } from "lucide-react";
 import { Field } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
-import { CampaignLessonInput } from "@/services/supabase/lessons";
+import { CampaignLessonInput, replaceLessonMediaByTypes } from "@/services/supabase/lessons";
 import { replaceLessonQuestions } from "@/services/supabase/questions";
+import { isValidMediaUrl } from "@/lib/lessonForm";
 import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs, questionsToDrafts } from "@/components/lessons/QuestionsEditor";
 import { PublishedLesson } from "@/types";
 import { createCampaignLessonAction, updateCampaignLessonAction } from "./actions";
@@ -34,6 +35,9 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
   const [campaignSpeakerBio, setCampaignSpeakerBio] = useState(lesson?.campaignSpeakerBio ?? "");
   const [campaignSpeakerImageUrl, setCampaignSpeakerImageUrl] = useState(lesson?.campaignSpeakerImageUrl ?? "");
   const [featuredImageUrl, setFeaturedImageUrl] = useState(lesson?.featuredImageUrl ?? "");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(lesson?.backgroundImageUrl ?? "");
+  const [videoUrl, setVideoUrl] = useState(() => lesson?.media.find((m) => m.mediaType === "video")?.url ?? "");
+  const [slidesUrl, setSlidesUrl] = useState(() => lesson?.media.find((m) => m.mediaType === "slides")?.url ?? "");
   const [isFeatured, setIsFeatured] = useState(lesson?.featured ?? false);
   const [isHighlighted, setIsHighlighted] = useState(lesson?.isHighlighted ?? false);
   const [isPublished, setIsPublished] = useState(lesson?.status === "published");
@@ -56,6 +60,14 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
       setError(questionErrors[0]);
       return;
     }
+    if (!isValidMediaUrl(videoUrl)) {
+      setError("Video URL doesn't look like a valid web address.");
+      return;
+    }
+    if (!isValidMediaUrl(slidesUrl)) {
+      setError("Slides URL doesn't look like a valid web address.");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -75,6 +87,7 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
       campaignSpeakerBio,
       campaignSpeakerImageUrl,
       featuredImageUrl,
+      backgroundImageUrl,
       isFeatured,
       isHighlighted,
       sortOrder: sortOrder ? Number(sortOrder) : 0,
@@ -92,12 +105,24 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
     }
 
     const savedId = lesson ? lesson.id : result.id!;
+    const supabase = createClient();
     try {
-      await replaceLessonQuestions(createClient(), savedId, toQuestionInputs(questions));
+      await replaceLessonQuestions(supabase, savedId, toQuestionInputs(questions));
     } catch (err) {
       console.error("[CampaignLessonForm] Failed to save questions:", err);
       setSubmitting(false);
       setError("Campaign lesson saved, but questions failed to save. Please try again.");
+      return;
+    }
+    try {
+      await replaceLessonMediaByTypes(supabase, savedId, [
+        { mediaType: "video", url: videoUrl },
+        { mediaType: "slides", url: slidesUrl },
+      ]);
+    } catch (err) {
+      console.error("[CampaignLessonForm] Failed to save video/slides:", err);
+      setSubmitting(false);
+      setError("Campaign lesson saved, but the video/slides links failed to save. Please try again.");
       return;
     }
 
@@ -162,6 +187,24 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
           <Field label="Thumbnail / Image URL">
             <input value={featuredImageUrl} onChange={(e) => setFeaturedImageUrl(e.target.value)} placeholder="https://..." className="qk-input" />
           </Field>
+          <div>
+            <Field label="Background Image URL">
+              <input value={backgroundImageUrl} onChange={(e) => setBackgroundImageUrl(e.target.value)} placeholder="https://..." className="qk-input" />
+            </Field>
+            <p className="text-[11px] text-muted mt-1.5">Large lesson detail page background -- separate from the card thumbnail above.</p>
+          </div>
+          <div>
+            <Field label="Video URL">
+              <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://..." className="qk-input" />
+            </Field>
+            <p className="text-[11px] text-muted mt-1.5">Shown under the lesson&apos;s Video tab.</p>
+          </div>
+          <div>
+            <Field label="Slides URL">
+              <input value={slidesUrl} onChange={(e) => setSlidesUrl(e.target.value)} placeholder="https://..." className="qk-input" />
+            </Field>
+            <p className="text-[11px] text-muted mt-1.5">Shown under the lesson&apos;s Slides tab.</p>
+          </div>
         </div>
       </div>
 

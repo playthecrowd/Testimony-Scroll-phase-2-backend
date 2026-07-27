@@ -1,5 +1,6 @@
 import { CampaignLessonInput } from "@/services/supabase/lessons";
 import { QuestionInput } from "@/services/supabase/questions";
+import { isValidMediaUrl } from "@/lib/lessonForm";
 
 const MAX_CSV_QUESTIONS = 5;
 
@@ -20,7 +21,7 @@ export const CAMPAIGN_LESSON_CSV_COLUMNS: CampaignLessonCsvColumn[] = [
   { key: "campaign_name", header: "Campaign Name", required: true, example: "Kingdom Harvest" },
   { key: "sprint_season", header: "Sprint/Season", required: false, example: "Year 1" },
   { key: "month", header: "Month", required: true, example: "September" },
-  { key: "month_number", header: "Month Number (1-12)", required: true, example: "1" },
+  { key: "month_number", header: "Month Number (1-12)", required: true, example: "9" },
   { key: "week_number", header: "Week Number", required: true, example: "1" },
   { key: "monthly_theme", header: "Monthly Theme", required: false, example: "Call to Follow" },
   { key: "monthly_verse", header: "Monthly Bible Verse", required: false, example: "Matthew 4:19" },
@@ -32,6 +33,9 @@ export const CAMPAIGN_LESSON_CSV_COLUMNS: CampaignLessonCsvColumn[] = [
   { key: "speaker_bio", header: "Speaker Bio", required: false, example: "Lead Pastor at Grace Community Church." },
   { key: "speaker_image_url", header: "Speaker Image URL", required: false, example: "https://example.com/speaker.jpg" },
   { key: "thumbnail_url", header: "Thumbnail/Image URL", required: false, example: "https://example.com/lesson.jpg" },
+  { key: "background_image_url", header: "Background Image URL", required: false, example: "" },
+  { key: "video_url", header: "Video URL", required: false, example: "" },
+  { key: "slides_url", header: "Slides URL", required: false, example: "" },
   { key: "is_featured", header: "Is Featured (true/false)", required: false, example: "false" },
   { key: "is_highlighted", header: "Is Highlighted (true/false)", required: false, example: "false" },
   { key: "published", header: "Published (true/false)", required: false, example: "false" },
@@ -122,6 +126,11 @@ export interface ParsedCampaignLessonRow {
   // row exists. Always [] when input is null (a row with lesson-field errors doesn't get its
   // questions parsed at all -- see the errors.length short-circuit in validateCampaignLessonRow).
   questions: QuestionInput[];
+  // Video/slides, same reasoning as questions above: saved via replaceLessonMediaByTypes after the
+  // lesson row exists, not part of the lessons-table CampaignLessonInput. Only ever contains
+  // entries for columns that were actually filled in -- an empty Video URL with a filled Slides URL
+  // produces a single-item array, not a blank video entry.
+  media: { mediaType: "video" | "slides"; url: string }[];
   errors: string[];
 }
 
@@ -140,7 +149,9 @@ function columnHeader(key: string): string {
   return CAMPAIGN_LESSON_CSV_COLUMNS.find((c) => c.key === key)?.header ?? key;
 }
 
-export function validateCampaignLessonRow(raw: Record<string, string>): { input: CampaignLessonInput | null; questions: QuestionInput[]; errors: string[] } {
+export function validateCampaignLessonRow(
+  raw: Record<string, string>
+): { input: CampaignLessonInput | null; questions: QuestionInput[]; media: { mediaType: "video" | "slides"; url: string }[]; errors: string[] } {
   const errors: string[] = [];
   const get = (key: string) => (raw[key] ?? "").trim();
 
@@ -204,7 +215,26 @@ export function validateCampaignLessonRow(raw: Record<string, string>): { input:
     errors.push(`"${columnHeader("display_start_date")}" must be in YYYY-MM-DD format.`);
   }
 
-  if (errors.length > 0) return { input: null, questions: [], errors };
+  // All three are optional, but must be a real http(s) URL if a value is provided at all --
+  // matches the manual admin form's own validation (isValidMediaUrl, shared with church lessons).
+  const backgroundImageUrl = get("background_image_url");
+  if (backgroundImageUrl && !isValidMediaUrl(backgroundImageUrl)) {
+    errors.push(`"${columnHeader("background_image_url")}" must be a valid web address.`);
+  }
+  const videoUrl = get("video_url");
+  if (videoUrl && !isValidMediaUrl(videoUrl)) {
+    errors.push(`"${columnHeader("video_url")}" must be a valid web address.`);
+  }
+  const slidesUrl = get("slides_url");
+  if (slidesUrl && !isValidMediaUrl(slidesUrl)) {
+    errors.push(`"${columnHeader("slides_url")}" must be a valid web address.`);
+  }
+
+  if (errors.length > 0) return { input: null, questions: [], media: [], errors };
+
+  const media: { mediaType: "video" | "slides"; url: string }[] = [];
+  if (videoUrl) media.push({ mediaType: "video", url: videoUrl });
+  if (slidesUrl) media.push({ mediaType: "slides", url: slidesUrl });
 
   const input: CampaignLessonInput = {
     campaignName: get("campaign_name"),
@@ -222,13 +252,14 @@ export function validateCampaignLessonRow(raw: Record<string, string>): { input:
     campaignSpeakerBio: get("speaker_bio"),
     campaignSpeakerImageUrl: get("speaker_image_url"),
     featuredImageUrl: get("thumbnail_url"),
+    backgroundImageUrl,
     isFeatured: parseBoolean(get("is_featured")),
     isHighlighted: parseBoolean(get("is_highlighted")),
     sortOrder: sortOrder ?? 0,
     displayStartDate,
     linkedExperienceId: get("linked_experience_id") || null,
   };
-  return { input, questions, errors: [] };
+  return { input, questions, media, errors: [] };
 }
 
 export interface ParsedCampaignLessonCsv {
@@ -254,8 +285,8 @@ export function parseAndValidateCampaignLessonCsv(text: string): ParsedCampaignL
       const col = CAMPAIGN_LESSON_CSV_COLUMNS.find((c) => c.header === header);
       if (col) raw[col.key] = cells[colIndex] ?? "";
     });
-    const { input, questions, errors } = validateCampaignLessonRow(raw);
-    return { rowNumber: i + 2, raw, input, questions, errors }; // +2: row 1 is the header, data starts at row 2
+    const { input, questions, media, errors } = validateCampaignLessonRow(raw);
+    return { rowNumber: i + 2, raw, input, questions, media, errors }; // +2: row 1 is the header, data starts at row 2
   });
 
   return { rows, headerErrors: [] };

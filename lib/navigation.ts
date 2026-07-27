@@ -12,6 +12,7 @@ import {
   Building2,
   HeartHandshake,
   Megaphone,
+  UploadCloud,
 } from "lucide-react";
 
 // Single source of truth for the "is this link Host-only" question, consulted by both Sidebar
@@ -53,6 +54,7 @@ export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
+  { href: "/experience-builder/import", label: "Bulk Upload Lessons", icon: UploadCloud, hostOnly: true },
   { href: "/host-dashboard/experiences", label: "Experiences", icon: HeartHandshake, hostOnly: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/events", label: "Events", icon: CalendarHeart },

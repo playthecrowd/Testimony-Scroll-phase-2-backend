@@ -10,7 +10,7 @@ const EXPERIENCE_FIELDS = "id, name, description, preview_image_url";
 const LESSON_SELECT = `
   id, slug, title, short_description, about_text, topic, subject, ministry_category,
   date, duration_label, lesson_type, primary_scripture, supporting_scriptures, tags,
-  featured_image_url, featured_image_alt, quest_url, quest_level, xp_reward, status, contributors_count, featured, created_at, updated_at,
+  featured_image_url, featured_image_alt, background_image_url, quest_url, quest_level, xp_reward, status, contributors_count, featured, created_at, updated_at,
   is_campaign_lesson, campaign_name, campaign_sprint_season, campaign_month, campaign_month_number,
   campaign_week_number, campaign_monthly_theme, campaign_monthly_verse, campaign_weekly_verse,
   campaign_speaker_name, campaign_speaker_bio, campaign_speaker_image_url, is_highlighted,
@@ -43,6 +43,7 @@ function mapLesson(row: any): PublishedLesson {
     tags: row.tags ?? [],
     featuredImageUrl: row.featured_image_url,
     featuredImageAlt: row.featured_image_alt,
+    backgroundImageUrl: row.background_image_url ?? null,
     questUrl: row.quest_url,
     questLevel: row.quest_level,
     xpReward: row.xp_reward,
@@ -120,6 +121,96 @@ export async function addLessonMediaItem(
 ): Promise<void> {
   const { error } = await supabase.from("lesson_media").insert({ lesson_id: lessonId, media_type: mediaType, url });
   if (error) throw error;
+}
+
+// Regular (church) lesson CSV bulk-import path -- the host/manager counterpart to
+// createCampaignLessonsBatch. Deliberately calls the existing submit_lesson_draft RPC once per row
+// (not a single multi-row insert) rather than a parallel lighter-weight write path: the RPC already
+// owns slug generation, speaker/ministry find-or-create, the lesson_hosts row, and the p_media
+// insert, and reusing it here is exactly what keeps a bulk-imported lesson byte-for-byte identical
+// to a manually-created one ("a campaign lesson is not a separate experience" applies equally to a
+// bulk-imported one). Every row runs under the CALLER's own security-invoker permissions --
+// authorization (is this caller actually a host/admin of churchId) is enforced by
+// lessons_insert_managed_draft_only RLS on the RPC's own internal insert, the same real boundary
+// submitLessonDraft (app/experience-builder/actions.ts) already relies on for manual creation.
+// Not all-or-nothing: each row is its own RPC call/transaction (true cross-row atomicity isn't
+// available over N separate PostgREST calls), so failures are collected per row rather than thrown,
+// matching the same best-effort-after-validation reasoning importCampaignLessonsCsvAction already
+// uses for its own post-creation question/media saves.
+export interface RegularLessonBatchInput {
+  title: string;
+  shortDescription: string;
+  aboutText: string;
+  primaryScripture: string;
+  speakerName: string;
+  media: { mediaType: "video" | "slides"; url: string }[];
+}
+
+export interface RegularLessonBatchResult {
+  rowIndex: number;
+  lessonId: string | null;
+  slug: string | null;
+  error: string | null;
+}
+
+export async function createRegularLessonsBatch(
+  supabase: SupabaseClient,
+  churchId: string,
+  inputs: RegularLessonBatchInput[]
+): Promise<RegularLessonBatchResult[]> {
+  const results: RegularLessonBatchResult[] = [];
+  for (let i = 0; i < inputs.length; i++) {
+    const input = inputs[i];
+    const { data, error } = await supabase.rpc("submit_lesson_draft", {
+      p_church_id: churchId,
+      p_title: input.title,
+      p_short_description: input.shortDescription || null,
+      p_about_text: input.aboutText || null,
+      p_topic: null,
+      p_subject: null,
+      p_ministry_name: null,
+      p_speaker_name: input.speakerName || null,
+      p_date: null,
+      p_lesson_type: null,
+      p_primary_scripture: input.primaryScripture || null,
+      p_supporting_scriptures: [],
+      p_tags: [],
+      p_quest_url: null,
+      p_media: input.media.map((m) => ({ media_type: m.mediaType, url: m.url, content: null, title: null })),
+    });
+    if (error) {
+      results.push({ rowIndex: i, lessonId: null, slug: null, error: error.message });
+    } else {
+      results.push({ rowIndex: i, lessonId: data.id, slug: data.slug, error: null });
+    }
+  }
+  return results;
+}
+
+// Campaign lessons author video/slides as single, flat "Video URL"/"Slides URL" fields (matching
+// the CSV's flat column shape) rather than through the open-ended MediaItemsEditor church lessons
+// use -- but both write into the exact same lesson_media table/RLS/tab-rendering machinery, so a
+// campaign lesson is never a separate experience from a member's point of view (see
+// docs/REQUIRED_FEATURES.md). Delete-then-reinsert, same reasoning as replaceLessonQuestions: no
+// externally-referenced id depends on one of these two rows surviving an edit. Scoped to exactly
+// the media types passed in, so it can never touch some other media type a lesson might carry
+// (e.g. a notes row added through a different path) -- callers here only ever pass video/slides.
+export async function replaceLessonMediaByTypes(
+  supabase: SupabaseClient,
+  lessonId: string,
+  items: { mediaType: "video" | "slides"; url: string }[]
+): Promise<void> {
+  const types = Array.from(new Set(items.map((i) => i.mediaType)));
+  if (types.length > 0) {
+    const { error: deleteError } = await supabase.from("lesson_media").delete().eq("lesson_id", lessonId).in("media_type", types);
+    if (deleteError) throw deleteError;
+  }
+
+  const toInsert = items.filter((i) => i.url.trim().length > 0).map((i) => ({ lesson_id: lessonId, media_type: i.mediaType, url: i.url.trim() }));
+  if (toInsert.length === 0) return;
+
+  const { error: insertError } = await supabase.from("lesson_media").insert(toInsert);
+  if (insertError) throw insertError;
 }
 
 export async function updateLessonFeatured(supabase: SupabaseClient, lessonId: string, featured: boolean): Promise<void> {
@@ -270,6 +361,7 @@ export interface CampaignLessonInput {
   campaignSpeakerBio: string;
   campaignSpeakerImageUrl: string;
   featuredImageUrl: string;
+  backgroundImageUrl: string;
   isFeatured: boolean;
   isHighlighted: boolean;
   sortOrder: number;
@@ -332,6 +424,7 @@ function buildCampaignLessonInsertRow(input: CampaignLessonInput, slug: string):
     campaign_speaker_bio: input.campaignSpeakerBio.trim() || null,
     campaign_speaker_image_url: input.campaignSpeakerImageUrl.trim() || null,
     featured_image_url: input.featuredImageUrl.trim() || null,
+    background_image_url: input.backgroundImageUrl.trim() || null,
     featured: input.isFeatured,
     is_highlighted: input.isHighlighted,
     sort_order: input.sortOrder,
@@ -355,18 +448,35 @@ export async function createCampaignLesson(supabase: SupabaseClient, input: Camp
 // SQL statement (unlike a loop of individual creates, where a failure partway through would leave
 // some rows imported and others not). Every input is expected to already be validated by the
 // caller (see lib/campaignLessonCsv.ts) -- this function's job is slugging + the atomic write.
+//
+// IMPORTANT: a multi-row `insert(...).select(...)` has no ORDER BY on its RETURNING clause, so
+// Postgres/PostgREST does NOT guarantee the returned rows come back in the same order as the
+// VALUES list submitted (confirmed in production: a 48-row import came back in exactly reversed
+// order). Callers like importActions.ts zip this function's return value against `inputs` by
+// index to attach each row's CSV questions to the right lesson -- silently trusting insert order
+// here previously caused every imported lesson to receive a completely different lesson's
+// questions. Slugs are generated per-row above with a uniqueness guarantee within this batch (the
+// `taken` Set), which makes slug a safe correlation key to re-sort the returned rows back into the
+// exact order `inputs` was passed in, regardless of what order the database returns them.
 export async function createCampaignLessonsBatch(supabase: SupabaseClient, inputs: CampaignLessonInput[]): Promise<PublishedLesson[]> {
   if (inputs.length === 0) return [];
   const taken = new Set<string>();
   const rows = [];
+  const slugsInInputOrder: string[] = [];
   for (const input of inputs) {
     const slug = await generateUniqueCampaignSlug(supabase, input.title, taken);
     taken.add(slug);
     rows.push(buildCampaignLessonInsertRow(input, slug));
+    slugsInInputOrder.push(slug);
   }
   const { data, error } = await supabase.from("lessons").insert(rows).select(LESSON_SELECT);
   if (error) throw error;
-  return (data ?? []).map(mapLesson);
+  const bySlug = new Map((data ?? []).map((row) => [row.slug as string, row]));
+  return slugsInInputOrder.map((slug) => {
+    const row = bySlug.get(slug);
+    if (!row) throw new Error(`createCampaignLessonsBatch: inserted row for slug "${slug}" was not returned by the database`);
+    return mapLesson(row);
+  });
 }
 
 export type CampaignLessonUpdateInput = Partial<CampaignLessonInput> & { status?: "draft" | "published" };
@@ -394,6 +504,7 @@ export async function updateCampaignLesson(
   if (input.campaignSpeakerBio !== undefined) patch.campaign_speaker_bio = input.campaignSpeakerBio.trim() || null;
   if (input.campaignSpeakerImageUrl !== undefined) patch.campaign_speaker_image_url = input.campaignSpeakerImageUrl.trim() || null;
   if (input.featuredImageUrl !== undefined) patch.featured_image_url = input.featuredImageUrl.trim() || null;
+  if (input.backgroundImageUrl !== undefined) patch.background_image_url = input.backgroundImageUrl.trim() || null;
   if (input.isFeatured !== undefined) patch.featured = input.isFeatured;
   if (input.isHighlighted !== undefined) patch.is_highlighted = input.isHighlighted;
   if (input.sortOrder !== undefined) patch.sort_order = input.sortOrder;
