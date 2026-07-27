@@ -6,6 +6,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { getMyHostChurches, getChurchMinistries } from "@/services/supabase/churches";
 import { ChurchMinistry } from "@/types";
 import { ChurchProfileForm } from "./ChurchProfileForm";
+import { CopySpeakerLinkCard } from "@/components/hostDashboard/CopySpeakerLinkCard";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,10 @@ export default async function ChurchProfilePage() {
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
       <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Church Profile</h1>
       <p className="text-muted text-sm mb-6">Edit the information members and visitors see about {church.name}.</p>
-      <ChurchProfileForm church={church} ministries={ministries} />
+      <div className="grid lg:grid-cols-[1fr_320px] gap-5 items-start">
+        <ChurchProfileForm church={church} ministries={ministries} />
+        <CopySpeakerLinkCard churchSlug={church.slug} />
+      </div>
     </div>
   );
 }

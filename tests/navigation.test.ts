@@ -25,3 +25,15 @@ test("Sidebar's Host link set includes Build Experience", () => {
   const labels = SIDEBAR_HOST_LINKS.map((l) => l.label);
   assert.ok(labels.includes("Build Experience"));
 });
+
+// Regression: Campaign Lessons admin link must be reachable from both sidebar link sets (a
+// platform admin's accountType can be "member" or "host") but flagged platformAdminOnly so a
+// non-admin viewer of either set never sees it -- Sidebar.tsx is responsible for filtering it out.
+test("Campaign Lessons admin link is present in both sidebar link sets, flagged platformAdminOnly", () => {
+  for (const links of [SIDEBAR_MEMBER_LINKS, SIDEBAR_HOST_LINKS]) {
+    const link = links.find((l) => l.href === "/admin/campaign-lessons");
+    assert.ok(link, "Campaign Lessons link missing from sidebar link set");
+    assert.equal(link?.label, "Campaign Lessons");
+    assert.equal(link?.platformAdminOnly, true);
+  }
+});

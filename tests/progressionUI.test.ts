@@ -48,10 +48,13 @@ test("the real dashboard/badges/leaderboard pages are server components -- no \"
   }
 });
 
-test("the homepage no longer imports the mock badge service -- its badge preview is a small static, accurate list instead", () => {
+// The Phase Two homepage rebuild removed the old badge-preview section entirely (not part of the
+// new design) -- the underlying guarantee below (never import the mock badge service) still holds
+// and is still checked; the old "HOMEPAGE_BADGE_PREVIEW must exist" assertion described a UI
+// element that was intentionally removed, not regressed.
+test("the homepage never imports the mock badge service", () => {
   const content = read("app/page.tsx");
   assert.doesNotMatch(content, /@\/services\/badgeService/);
-  assert.match(content, /HOMEPAGE_BADGE_PREVIEW/);
 });
 
 // ---------------------------------------------------------------------------

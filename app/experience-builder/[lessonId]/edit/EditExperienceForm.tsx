@@ -16,7 +16,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { Field } from "@/components/ui/FormField";
 import { ThumbnailUploadField } from "@/components/lessons/ThumbnailUploadField";
 import { MediaItemsEditor, MediaItemFormRow } from "@/components/lessons/MediaItemsEditor";
-import { QuestionsEditor } from "@/components/lessons/QuestionsEditor";
+import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs, questionsToDrafts } from "@/components/lessons/QuestionsEditor";
 import { ExperienceConnectionSelector, ExperienceSelection } from "@/components/lessons/ExperienceConnectionSelector";
 import { PublishedLesson, Experience } from "@/types";
 
@@ -63,7 +63,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
   const [mediaItems, setMediaItems] = useState<MediaItemFormRow[]>(() => mediaRowsFromLesson(initialLesson));
   const existingMediaIdsRef = useRef(initialLesson.media.map((m) => m.id));
 
-  const [questions, setQuestions] = useState<string[]>(() => initialLesson.questions.map((q) => q.question));
+  const [questions, setQuestions] = useState<QuestionDraft[]>(() => questionsToDrafts(initialLesson.questions));
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [experienceSelections, setExperienceSelections] = useState<ExperienceSelection[]>(() =>
     initialLesson.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
@@ -88,6 +88,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(initialLesson.featuredImageUrl);
   const [thumbnailAlt, setThumbnailAlt] = useState(initialLesson.featuredImageAlt ?? "");
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(initialLesson.backgroundImageUrl ?? "");
   const [removeExistingThumbnail, setRemoveExistingThumbnail] = useState(false);
   const [thumbnailUniqueId] = useState(() => crypto.randomUUID());
 
@@ -197,6 +198,15 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       return;
     }
 
+    // This form only ever renders for a host-editable, church-owned lesson (the page-level gate
+    // in page.tsx already excludes campaign lessons, which have no church) -- this is a defensive
+    // type guard, not an expected runtime path.
+    if (!lesson.church) {
+      setError("This lesson has no owning church and cannot be edited here.");
+      return;
+    }
+    const church = lesson.church;
+
     const preparedMedia = mediaItems.map((item) => ({
       id: item.id,
       mediaType: item.mediaType,
@@ -215,6 +225,19 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setError("One of your media links doesn't look like a valid web address.");
       return;
     }
+    if (!isValidMediaUrl(backgroundImageUrl)) {
+      setError("Background Image URL doesn't look like a valid web address.");
+      return;
+    }
+
+    // Checked before the lesson row itself is saved (unlike media/experience links below, which
+    // stay best-effort after save) -- a host choosing a correct answer and having it silently fail
+    // to persist is worse than being blocked here on an obviously-incomplete question.
+    const questionErrors = validateQuestionDrafts(questions);
+    if (questionErrors.length > 0) {
+      setError(questionErrors[0]);
+      return;
+    }
 
     if (action === "unpublish") {
       const confirmed = window.confirm(
@@ -231,7 +254,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     let keepExisting = true;
 
     if (thumbnailFile) {
-      const path = buildThumbnailPath(lesson.church.id, lesson.id, thumbnailUniqueId, thumbnailFile.name);
+      const path = buildThumbnailPath(church.id, lesson.id, thumbnailUniqueId, thumbnailFile.name);
       const uploadResult = await uploadLessonThumbnail(supabase, path, thumbnailFile);
       if (!uploadResult.ok) {
         // The original thumbnail is untouched -- we haven't written anything to the database yet.
@@ -251,8 +274,8 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     const result = await updateLessonExperience({
       lessonId: lesson.id,
       lessonSlug: lesson.slug,
-      churchId: lesson.church.id,
-      churchSlug: lesson.church.slug,
+      churchId: church.id,
+      churchSlug: church.slug,
       currentStatus,
       action,
       title,
@@ -274,6 +297,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       keepExistingThumbnail: keepExisting,
       featuredImageUrl: resolvedImageUrl,
       featuredImageAlt: resolvedImageAlt,
+      backgroundImageUrl: backgroundImageUrl.trim() || null,
       media: provided,
       existingMediaIds: existingMediaIdsRef.current,
     });
@@ -293,7 +317,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
     // Best-effort, same as the create wizard: the lesson's core fields are already confirmed
     // saved above, so a failure here must not look like the whole save failed.
     try {
-      await replaceLessonQuestions(supabase, lesson.id, questions);
+      await replaceLessonQuestions(supabase, lesson.id, toQuestionInputs(questions));
     } catch (err) {
       console.error("[EditExperienceForm] Failed to save questions:", err);
     }
@@ -334,7 +358,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setXpReward(fresh.xpReward != null ? String(fresh.xpReward) : "");
       setMediaItems(mediaRowsFromLesson(fresh));
       existingMediaIdsRef.current = fresh.media.map((m) => m.id);
-      setQuestions(fresh.questions.map((q) => q.question));
+      setQuestions(questionsToDrafts(fresh.questions));
       setExperienceSelections(
         fresh.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
       );
@@ -372,7 +396,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
         </span>
       </div>
       <p className="text-muted text-sm mt-1 mb-5">
-        Editing &ldquo;{lesson.title}&rdquo; for {lesson.church.name}.
+        Editing &ldquo;{lesson.title}&rdquo; for {lesson.church?.name ?? "your church"}.
       </p>
 
       <div className="grid lg:grid-cols-[1fr_340px] gap-5">
@@ -388,6 +412,19 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
             onAltChange={setThumbnailAlt}
             disabled={submitting}
           />
+
+          <div>
+            <Field label="Background Image URL">
+              <input
+                value={backgroundImageUrl}
+                onChange={(e) => setBackgroundImageUrl(e.target.value)}
+                placeholder="https://..."
+                disabled={submitting}
+                className="qk-input"
+              />
+            </Field>
+            <p className="text-[11px] text-muted mt-1.5">Large lesson detail page background -- separate from the thumbnail above.</p>
+          </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <Field label="Lesson Title" required>
@@ -416,7 +453,7 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
               <input value={speakerName} onChange={(e) => setSpeakerName(e.target.value)} className="qk-input" />
             </Field>
             <Field label="Church">
-              <input value={lesson.church.name} disabled className="qk-input opacity-70" />
+              <input value={lesson.church?.name ?? ""} disabled className="qk-input opacity-70" />
             </Field>
           </div>
 

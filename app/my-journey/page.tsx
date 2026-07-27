@@ -92,7 +92,9 @@ export default function MyJourneyPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-3">
                       <h3 className="text-base font-semibold text-foreground truncate">{lesson.title}</h3>
-                      <span className="text-xs text-muted shrink-0">{lesson.church.name}</span>
+                      <span className="text-xs text-muted shrink-0">
+                        {lesson.church?.name ?? (lesson.isCampaignLesson ? lesson.campaignName || "Year-Round Campaign" : "")}
+                      </span>
                     </div>
                     <p className="text-[11px] text-muted mt-0.5">
                       {journey.studiedCompletedAt ? "Studied stage complete" : "Studied stage in progress"}

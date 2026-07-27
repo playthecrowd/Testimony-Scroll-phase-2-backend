@@ -11,18 +11,24 @@ import {
   CalendarHeart,
   Building2,
   HeartHandshake,
+  Megaphone,
+  UploadCloud,
 } from "lucide-react";
 
 // Single source of truth for the "is this link Host-only" question, consulted by both Sidebar
 // (desktop + mobile drawer -- one component, so it was never actually possible for those two to
 // disagree) and TopBar, so the two can't drift into different role rules again. Route protection
 // itself lives server-side in app/experience-builder/page.tsx regardless of what's shown here --
-// this only controls visibility.
+// this only controls visibility. platformAdminOnly follows the same rule for admin-only links
+// (e.g. Campaign Lessons): gated here, not by a separate check re-added in Sidebar.tsx. Unlike
+// hostOnly (which picks between two whole link arrays), platformAdminOnly is orthogonal to
+// accountType, so Sidebar filters it in directly.
 export interface AppNavLink {
   href: string;
   label: string;
   icon?: LucideIcon;
   hostOnly?: boolean;
+  platformAdminOnly?: boolean;
 }
 
 // Events moved earlier in every nav surface per Part 18 #1 ("move Events to a more visible
@@ -41,12 +47,14 @@ export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
+  { href: "/admin/campaign-lessons", label: "Campaign Lessons", icon: Megaphone, platformAdminOnly: true },
 ];
 
 export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
+  { href: "/experience-builder/import", label: "Bulk Upload Lessons", icon: UploadCloud, hostOnly: true },
   { href: "/host-dashboard/experiences", label: "Experiences", icon: HeartHandshake, hostOnly: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/events", label: "Events", icon: CalendarHeart },
@@ -54,6 +62,7 @@ export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
+  { href: "/admin/campaign-lessons", label: "Campaign Lessons", icon: Megaphone, platformAdminOnly: true },
 ];
 
 export const TOPBAR_LINKS: AppNavLink[] = [

@@ -99,7 +99,8 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
       try {
         const supabase = createClient();
         const myChurches = await getMyHostChurches(supabase);
-        if (!cancelled) setCanManageThumbnail(myChurches.some((c) => c.id === lesson.church.id));
+        const churchId = lesson.church?.id;
+        if (!cancelled) setCanManageThumbnail(!!churchId && myChurches.some((c) => c.id === churchId));
       } catch {
         if (!cancelled) setCanManageThumbnail(false);
       }
@@ -107,7 +108,9 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
     return () => {
       cancelled = true;
     };
-  }, [ready, session, lesson.church.id]);
+    // A campaign lesson (no church) can never be thumbnail-managed by a host through this page --
+    // it's admin-only, via /admin/campaign-lessons.
+  }, [ready, session, lesson.church?.id]);
 
   // Read-only: this never creates a journey. The Studied page itself is the one place a journey
   // record is created (getOrCreateJourney's upsert on first load) -- this effect only decides
@@ -154,6 +157,9 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   }
 
   async function handlePublish() {
+    // Only a host-managed, church-owned lesson can be published from this button -- a campaign
+    // lesson (no church) is published exclusively via /admin/campaign-lessons.
+    if (!lesson.church) return;
     setPublishing(true);
     setPublishError("");
     const result = await publishLesson(lesson.id, lesson.slug, lesson.church.slug);
@@ -198,7 +204,19 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
       )}
 
       <div className="grid lg:grid-cols-[1fr_320px] gap-6">
-        <div className="min-w-0">
+        <div className="min-w-0 relative">
+          {/* Lesson-specific hero background -- scoped to this column only (the 320px side panel
+              in <aside> below is a sibling, never covered). backgroundImageUrl first, falling back
+              to the card thumbnail, then to nothing (the page's own dark background already shows
+              through). Every piece of actual content below sits inside an opaque qk-card, so this
+              can never make tabs/buttons/text unreadable regardless of the image. */}
+          {(lesson.backgroundImageUrl || lesson.featuredImageUrl) && (
+            <div className="absolute inset-0 -z-10 overflow-hidden rounded-2xl pointer-events-none" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lesson.backgroundImageUrl || lesson.featuredImageUrl || ""} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-background/80 to-background" />
+            </div>
+          )}
           <div className="grid sm:grid-cols-[220px_1fr] gap-5 mb-6">
             <LessonThumbnail
               src={lesson.featuredImageUrl}
@@ -218,21 +236,39 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
               <p className="text-xs text-accent-blue-light font-medium mb-1">Lesson</p>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground leading-tight">{lesson.title}</h1>
               {lesson.shortDescription && <p className="text-muted text-sm mt-1.5">{lesson.shortDescription}</p>}
-              {lesson.speaker && (
+              {lesson.speaker ? (
                 <div className="flex items-center gap-2 mt-3">
                   {lesson.speaker.avatarUrl && (
                     <img src={lesson.speaker.avatarUrl} className="w-8 h-8 rounded-full" alt="" />
                   )}
                   <div className="text-sm">
                     <span className="text-foreground font-medium">{lesson.speaker.name}</span>
-                    <span className="text-muted"> · {lesson.church.name}</span>
+                    {lesson.church && <span className="text-muted"> · {lesson.church.name}</span>}
                   </div>
                 </div>
+              ) : (
+                lesson.isCampaignLesson &&
+                lesson.campaignSpeakerName && (
+                  <div className="flex items-center gap-2 mt-3">
+                    {lesson.campaignSpeakerImageUrl && (
+                      <img src={lesson.campaignSpeakerImageUrl} className="w-8 h-8 rounded-full object-cover" alt="" />
+                    )}
+                    <div className="text-sm">
+                      <span className="text-foreground font-medium">{lesson.campaignSpeakerName}</span>
+                      {lesson.campaignName && <span className="text-muted"> · {lesson.campaignName}</span>}
+                    </div>
+                  </div>
+                )
               )}
               <div className="flex flex-wrap gap-4 mt-4 text-xs text-muted">
                 {lesson.primaryScripture && (
                   <span>
                     Scripture: <span className="text-foreground">{lesson.primaryScripture}</span>
+                  </span>
+                )}
+                {lesson.isCampaignLesson && lesson.campaignWeeklyVerse && (
+                  <span>
+                    Weekly Verse: <span className="text-foreground">{lesson.campaignWeeklyVerse}</span>
                   </span>
                 )}
                 {lesson.topic && (
@@ -273,8 +309,23 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
 
           {tab === "Overview" && (
             <div className="qk-card p-5">
+              {lesson.isCampaignLesson && (lesson.campaignMonthlyTheme || lesson.campaignMonthlyVerse) && (
+                <div className="mb-4 pb-4 border-b border-border-subtle">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-accent-blue-light mb-1">
+                    {lesson.campaignMonth ? `${lesson.campaignMonth}'s Theme` : "Monthly Theme"}
+                  </p>
+                  {lesson.campaignMonthlyTheme && <p className="text-sm text-foreground font-medium">{lesson.campaignMonthlyTheme}</p>}
+                  {lesson.campaignMonthlyVerse && <p className="text-xs text-muted mt-1">{lesson.campaignMonthlyVerse}</p>}
+                </div>
+              )}
               <h3 className="text-sm font-semibold text-foreground mb-2">About This Lesson</h3>
               {lesson.aboutText && <p className="text-sm text-muted leading-relaxed mb-4">{lesson.aboutText}</p>}
+              {lesson.isCampaignLesson && lesson.campaignSpeakerBio && (
+                <>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">About the Speaker</h3>
+                  <p className="text-sm text-muted leading-relaxed mb-4">{lesson.campaignSpeakerBio}</p>
+                </>
+              )}
               {questions.length > 0 && (
                 <>
                   <h3 className="text-sm font-semibold text-foreground mb-2">What You&apos;ll Learn</h3>
@@ -410,10 +461,28 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
             <div className="qk-card p-5">
               <h3 className="text-sm font-semibold text-foreground mb-3">Study Questions ({questions.length})</h3>
               {questions.length > 0 ? (
-                <ol className="space-y-2.5">
+                <ol className="space-y-4">
                   {questions.map((q, i) => (
-                    <li key={q.id} className="flex items-start gap-2.5 text-sm text-muted">
-                      <span className="text-accent-blue-light font-medium">{i + 1}.</span> {q.question}
+                    <li key={q.id}>
+                      <p className="flex items-start gap-2.5 text-sm text-foreground font-medium">
+                        <span className="text-accent-blue-light shrink-0">{i + 1}.</span> {q.question}
+                      </p>
+                      {/* Reference answer choices only -- host/admin-authored, not a member-answerable
+                          quiz yet. Deliberately never shows which choice is correct here; that stays
+                          host-side reference data. Legacy plain-text questions have zero choices and
+                          simply show no list, unchanged from before. */}
+                      {q.choices.length > 0 && (
+                        <ul className="mt-2 ml-6 space-y-1.5">
+                          {q.choices.map((c, ci) => (
+                            <li key={c.id} className="flex items-center gap-2 text-sm text-muted">
+                              <span className="w-5 h-5 rounded-full border border-border-subtle flex items-center justify-center text-[11px] shrink-0">
+                                {String.fromCharCode(65 + ci)}
+                              </span>
+                              {c.answerText}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ol>
@@ -430,7 +499,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
               <Pencil size={16} /> Edit Experience
             </LinkButton>
           )}
-          {canManageThumbnail && <ThumbnailEditorPanel lesson={lesson} churchId={lesson.church.id} />}
+          {canManageThumbnail && lesson.church && <ThumbnailEditorPanel lesson={lesson} churchId={lesson.church.id} />}
 
           <div className="qk-card p-4">
             {hasJourney ? (

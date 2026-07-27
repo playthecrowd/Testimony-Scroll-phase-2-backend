@@ -50,28 +50,34 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
-          {ready && session.isLoggedIn ? (
-            <>
-              <Link
-                href="/notifications"
-                className="relative p-2 rounded-full hover:bg-white/5 text-muted hover:text-foreground focus-ring"
-                aria-label="Notifications"
-              >
-                <Bell size={19} />
-                {unread > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent-blue text-[10px] flex items-center justify-center text-white">
-                    {unread}
-                  </span>
-                )}
-              </Link>
-              <AccountMenu />
-            </>
-          ) : (
+        <div className="flex items-center gap-2.5">
+          {ready && session.isLoggedIn && (
+            <Link
+              href="/notifications"
+              className="relative p-2 rounded-full hover:bg-white/5 text-muted hover:text-foreground focus-ring"
+              aria-label="Notifications"
+            >
+              <Bell size={19} />
+              {unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-accent-blue text-[10px] flex items-center justify-center text-white">
+                  {unread}
+                </span>
+              )}
+            </Link>
+          )}
+          {!ready || !session.isLoggedIn ? (
             <LinkButton href="/login" size="sm" variant="outline" className="gap-1.5">
               Sign In
             </LinkButton>
+          ) : (
+            <AccountMenu />
           )}
+          {/* Always visible, signed in or not -- /experience-builder's own page-level gate
+              (host-only) already handles a non-host or signed-out visitor correctly; no new
+              authorization surface needed here. */}
+          <LinkButton href="/experience-builder" size="sm" variant="gold" className="hidden sm:inline-flex">
+            Create Experience
+          </LinkButton>
         </div>
       </div>
     </header>

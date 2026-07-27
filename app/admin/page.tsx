@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import { FileText, MessageSquareQuote, CalendarDays, Clapperboard, Users, Church, Star, ScrollText } from "lucide-react";
+import { FileText, MessageSquareQuote, CalendarDays, Clapperboard, Users, Church, Star, ScrollText, CalendarRange, Mic } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { getPlatformAdminGate } from "@/lib/adminAuth";
@@ -10,6 +10,7 @@ import { NotAuthorized } from "@/components/admin/NotAuthorized";
 import { getPendingPublicLessonRequests } from "@/services/supabase/lessonRequests";
 import { getPendingPublicTestimonies } from "@/services/supabase/testimonies";
 import { getPendingEvents } from "@/services/supabase/events";
+import { getSpeakerRequestsForAdmin } from "@/services/supabase/speakerRequests";
 
 export const dynamic = "force-dynamic";
 
@@ -48,15 +49,18 @@ export default async function AdminHomePage() {
   let pendingLessonRequests = 0;
   let pendingTestimonies = 0;
   let pendingEvents = 0;
+  let pendingSpeakerRequests = 0;
   try {
-    const [lessonRequests, testimonies, events] = await Promise.all([
+    const [lessonRequests, testimonies, events, speakerRequests] = await Promise.all([
       getPendingPublicLessonRequests(supabase),
       getPendingPublicTestimonies(supabase),
       getPendingEvents(supabase),
+      getSpeakerRequestsForAdmin(supabase),
     ]);
     pendingLessonRequests = lessonRequests.length;
     pendingTestimonies = testimonies.length;
     pendingEvents = events.length;
+    pendingSpeakerRequests = speakerRequests.filter((r) => r.status === "submitted").length;
   } catch (err) {
     console.error("[AdminHomePage] Failed to load pending counts:", err);
   }
@@ -106,6 +110,19 @@ export default async function AdminHomePage() {
       label: "Featured Lessons",
       description: "Choose which published lessons are emphasized on the Lessons page.",
       icon: Star,
+    },
+    {
+      href: "/admin/campaign-lessons",
+      label: "Featured Campaign Lessons",
+      description: "Create, edit, publish, feature, highlight, and bulk-upload Year-Round Campaign Lessons.",
+      icon: CalendarRange,
+    },
+    {
+      href: "/admin/speaker-requests",
+      label: "Speaker Requests",
+      description: "Review people who submitted a \"Become a Speaker\" request.",
+      icon: Mic,
+      count: pendingSpeakerRequests,
     },
     {
       href: "/admin/audit-log",

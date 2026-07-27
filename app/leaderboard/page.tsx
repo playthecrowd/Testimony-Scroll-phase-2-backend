@@ -30,14 +30,43 @@ export default async function LeaderboardPage() {
   let configError: SupabaseConfigError | null = null;
   let loadFailed = false;
 
+  // createClient() and the data-loading Promise.all each get their own try/catch so a thrown
+  // redirect() signal (Next.js's internal control-flow throw) never lands inside a catch that
+  // would swallow it and misreport a signed-out visit as a generic load failure.
+  let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/login?next=%2Fleaderboard");
-    myProfileId = user.id;
+    supabase = await createClient();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) {
+      configError = err;
+    } else {
+      console.error("[LeaderboardPage] Failed to initialize Supabase client:", err);
+      loadFailed = true;
+    }
+  }
 
+  if (configError) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message={configError.message} />
+      </div>
+    );
+  }
+  if (loadFailed || !supabase) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-24">
+        <ErrorState message="We couldn't load the leaderboard right now. Please try again shortly." />
+      </div>
+    );
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=%2Fleaderboard");
+  myProfileId = user.id;
+
+  try {
     const [global, myChurches, gRank] = await Promise.all([
       getGlobalLeaderboard(supabase, 25),
       getMyChurches(supabase),

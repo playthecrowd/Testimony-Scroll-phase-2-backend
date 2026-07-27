@@ -73,7 +73,16 @@ export function ExperiencesBrowser({ experiences, ministries }: { experiences: C
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState message="No Experiences match your filters yet." />
+        // Distinguish "nothing published at this church yet" (the real empty state -- no gating
+        // exists, this is just describing what's already true) from "your filters narrowed a
+        // real, non-empty list down to nothing" -- the two need different copy.
+        <EmptyState
+          message={
+            experiences.length === 0
+              ? "Complete a lesson to unlock and join a Kingdom Experience."
+              : "No Experiences match your filters yet."
+          }
+        />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {filtered.map((experience) => (

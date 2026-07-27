@@ -6,12 +6,14 @@ import { AccountType, User } from "@/types";
 export interface Session {
   isLoggedIn: boolean;
   accountType: AccountType;
+  isPlatformAdmin: boolean;
   user: User;
 }
 
 export const defaultSession: Session = {
   isLoggedIn: false,
   accountType: "member",
+  isPlatformAdmin: false,
   user: { id: "", fullName: "", email: "", accountType: "member", avatarUrl: "", createdAt: "" },
 };
 
@@ -64,7 +66,7 @@ export async function getCurrentSession(supabase: SupabaseClient = createClient(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, email, account_type, avatar_url, created_at")
+    .select("id, full_name, email, account_type, avatar_url, created_at, is_platform_admin")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) return defaultSession;
@@ -81,6 +83,7 @@ export async function getCurrentSession(supabase: SupabaseClient = createClient(
   return {
     isLoggedIn: true,
     accountType,
+    isPlatformAdmin: !!profile.is_platform_admin,
     user: {
       id: profile.id,
       fullName: profile.full_name ?? "",

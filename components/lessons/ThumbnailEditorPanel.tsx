@@ -54,6 +54,13 @@ export function ThumbnailEditorPanel({ lesson, churchId }: { lesson: PublishedLe
       return;
     }
 
+    // This panel is only ever rendered for a church-owned lesson (see LessonDetailClient's
+    // `lesson.church &&` gate around it) -- defensive type guard, not an expected runtime path.
+    if (!lesson.church) {
+      setSaving(false);
+      setError("This lesson has no owning church.");
+      return;
+    }
     const updateResult = await updateLessonThumbnail({
       lessonId: lesson.id,
       lessonSlug: lesson.slug,
@@ -85,6 +92,11 @@ export function ThumbnailEditorPanel({ lesson, churchId }: { lesson: PublishedLe
     setSavedMessage("");
     const previousUrl = currentUrl;
 
+    if (!lesson.church) {
+      setSaving(false);
+      setError("This lesson has no owning church.");
+      return;
+    }
     const updateResult = await updateLessonThumbnail({
       lessonId: lesson.id,
       lessonSlug: lesson.slug,

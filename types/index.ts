@@ -383,6 +383,10 @@ export interface PublishedLesson {
   tags: string[];
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
+  // Large lesson-detail-page background/hero image, distinct from featuredImageUrl (the card/
+  // list/homepage thumbnail). Null for the vast majority of existing lessons -- the detail page
+  // falls back to featuredImageUrl, then to the current dark background, when unset.
+  backgroundImageUrl: string | null;
   questUrl: string | null;
   questLevel: number | null;
   xpReward: number | null;
@@ -391,19 +395,47 @@ export interface PublishedLesson {
   featured: boolean;
   createdAt: string;
   updatedAt: string;
-  church: PublishedChurch;
+  // A campaign lesson (isCampaignLesson: true) has no owning church -- church is null for those
+  // rows. Every non-campaign lesson still has a real church, same as before.
+  church: PublishedChurch | null;
   speaker: PublishedSpeaker | null;
   media: LessonMedia[];
   hosts: PublishedLessonHost[];
   ministries: Ministry[];
   questions: LessonQuestion[];
   experiences: LessonExperienceLink[];
+  isCampaignLesson: boolean;
+  campaignName: string | null;
+  campaignSprintSeason: string | null;
+  campaignMonth: string | null;
+  campaignMonthNumber: number | null;
+  campaignWeekNumber: number | null;
+  campaignMonthlyTheme: string | null;
+  campaignMonthlyVerse: string | null;
+  campaignWeeklyVerse: string | null;
+  campaignSpeakerName: string | null;
+  campaignSpeakerBio: string | null;
+  campaignSpeakerImageUrl: string | null;
+  isHighlighted: boolean;
+  sortOrder: number;
+  displayStartDate: string | null;
+  linkedExperienceId: string | null;
+}
+
+export interface QuestionChoice {
+  id: string;
+  answerText: string;
+  sortOrder: number;
+  isCorrect: boolean;
 }
 
 export interface LessonQuestion {
   id: string;
   question: string;
   sortOrder: number;
+  // Empty for legacy plain-text-only questions authored before this field existed -- always a
+  // safe, renderable shape, never null.
+  choices: QuestionChoice[];
 }
 
 export interface Experience {
@@ -888,4 +920,23 @@ export interface ProgressionLeaderboardEntry {
   currentLevel: number;
   rank: number;
   churchId?: string;
+}
+
+export type SpeakerRequestStatus = "submitted" | "reviewed" | "contacted" | "declined";
+
+export interface SpeakerRequest {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  churchAffiliation: string | null;
+  churchId: string | null;
+  churchName: string | null;
+  topic: string | null;
+  bio: string | null;
+  message: string | null;
+  headshotUrl: string | null;
+  status: SpeakerRequestStatus;
+  createdAt: string;
+  updatedAt: string;
 }

@@ -233,6 +233,10 @@ async function buildManifest(churchIds: string[], profileIds: string[]): Promise
     rows.push({ table, count: lessonIds.length ? await countWhereIn(table, "lesson_id", lessonIds) : 0 });
   }
 
+  // Three-hop: children of QA lesson_questions (the multiple-choice answer rows, migration 0039).
+  const questionIds = lessonIds.length ? await idsWhereIn("lesson_questions", "lesson_id", lessonIds) : [];
+  rows.push({ table: "lesson_question_choices (via lesson_questions)", count: questionIds.length ? await countWhereIn("lesson_question_choices", "question_id", questionIds) : 0 });
+
   // Two-hop: children of QA lesson_journeys.
   const journeyIds = await idsWhereIn("lesson_journeys", "user_id", profileIds);
   rows.push({ table: "lesson_journey_items", count: journeyIds.length ? await countWhereIn("lesson_journey_items", "journey_id", journeyIds) : 0 });

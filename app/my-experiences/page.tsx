@@ -17,16 +17,14 @@ export const dynamic = "force-dynamic";
 export default async function MyExperiencesPage() {
   let items: MyRegistrationWithDetails[] = [];
   let loadError = "";
+  // createClient() and the data-loading below each get their own try/catch so a thrown redirect()
+  // signal (Next.js's internal control-flow throw) never lands inside a catch that would swallow
+  // it and misreport a signed-out visit as a generic load failure. createClient() itself throws
+  // SupabaseConfigError when env vars are missing -- it must stay inside its own try so that
+  // failure renders the graceful branded error state below.
+  let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
   try {
-    // createClient() itself throws SupabaseConfigError when env vars are missing -- it must stay
-    // inside this try so that failure renders the graceful branded error state below.
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/login?next=%2Fmy-experiences");
-
-    items = await getMyRegistrationsWithDetails(supabase);
+    supabase = await createClient();
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       return (
@@ -35,8 +33,29 @@ export default async function MyExperiencesPage() {
         </div>
       );
     }
-    console.error("[MyExperiencesPage] Failed to load registrations:", err);
+    console.error("[MyExperiencesPage] Failed to initialize Supabase client:", err);
     loadError = "We couldn't load your Experiences right now. Please try again shortly.";
+  }
+
+  if (!loadError && supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) redirect("/login?next=%2Fmy-experiences");
+
+    try {
+      items = await getMyRegistrationsWithDetails(supabase);
+    } catch (err) {
+      if (err instanceof SupabaseConfigError) {
+        return (
+          <div className="max-w-lg mx-auto px-4 py-24">
+            <ErrorState message={err.message} />
+          </div>
+        );
+      }
+      console.error("[MyExperiencesPage] Failed to load registrations:", err);
+      loadError = "We couldn't load your Experiences right now. Please try again shortly.";
+    }
   }
 
   const upcoming = items.filter((i) => isFutureOccurrence(i.occurrence.startsAt) && i.registration.status !== "cancelled");

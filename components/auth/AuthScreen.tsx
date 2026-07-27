@@ -10,6 +10,7 @@ import { useSession } from "@/context/SessionContext";
 import { AccountType } from "@/types";
 import { cn } from "@/lib/utils";
 import { photo } from "@/lib/images";
+import { backgrounds } from "@/data/backgrounds";
 import { stages } from "@/components/journey/stageMeta";
 import Link from "next/link";
 
@@ -25,6 +26,12 @@ function getNextDestination(): string | null {
 }
 
 export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) {
+  // Keyed off the route the visitor actually landed on (initialTab), not the client-side signin/
+  // signup toggle below -- so the background never swaps mid-interaction if someone flips tabs,
+  // and /signup keeps its original placeholder hero, untouched, per the request that the new
+  // photo is a /login-only change.
+  const isLoginPage = initialTab === "signin";
+  const heroImageSrc = isLoginPage ? backgrounds.loginHero : photo("auth-hero", 900, 1200);
   const [tab, setTab] = useState<"signin" | "signup">(initialTab);
   const [accountType, setAccountType] = useState<AccountType>("member");
   const [fullName, setFullName] = useState("");
@@ -102,13 +109,30 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="relative min-h-screen grid lg:grid-cols-2">
+      {/* Below `lg`, the two-column layout collapses to a single centered form column (see the
+          form panel's own div further down) and the dedicated hero panel below is hidden -- so on
+          mobile/tablet this full-bleed layer is the only thing showing the photo. It sits behind
+          the whole screen (-z-10), and the form inputs are opaque (--surface-2), so it can never
+          hurt legibility regardless of screen size. Login-only, same reasoning as heroImageSrc
+          above. */}
+      {isLoginPage && (
+        <div className="absolute inset-0 -z-10 overflow-hidden lg:hidden" aria-hidden="true">
+          <Image src={backgrounds.loginHero} alt="" fill sizes="100vw" priority className="object-cover opacity-30" />
+          {/* Stronger than the desktop panel's own overlay: there's no side-by-side dark column to
+              anchor contrast against here, and the photo's own bright sky/sun-glare region sits
+              right behind the tab bar and logo -- from-black/65 keeps that top strip readable
+              instead of just the ~40% used further down the page. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-background/92 to-background" />
+        </div>
+      )}
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
         <Image
-          src={photo("auth-hero", 900, 1200)}
+          src={heroImageSrc}
           alt=""
           fill
           sizes="50vw"
+          priority
           className="object-cover opacity-70"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
