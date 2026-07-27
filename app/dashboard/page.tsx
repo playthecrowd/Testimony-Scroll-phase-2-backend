@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState, EmptyState } from "@/components/ui/AsyncState";
 import { SectionCard } from "@/components/ui/StatPill";
+import { PageBackground } from "@/components/layout/PageBackground";
+import { backgrounds } from "@/data/backgrounds";
 import { XpProgressBar } from "@/components/progression/XpProgressBar";
 import {
   getMyProgressionSummary,
@@ -133,89 +135,96 @@ export default async function DashboardPage() {
     .sort((a, b) => a.displayOrder - b.displayOrder)[0];
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">My Dashboard</h1>
-      <p className="text-muted text-sm mb-6">Your Kingdom progress at a glance.</p>
+    <div className="relative">
+      {/* Full-bleed edge-to-edge background behind the whole dashboard route (matches the
+          homepage's own PageBackground usage) -- the max-w container below stays constrained for
+          readable content width, only the background itself stretches full width. Every card here
+          is qk-card/SectionCard (opaque), so none of them need extra treatment to stay readable. */}
+      <PageBackground src={backgrounds.homeDashboardHero} opacity={0.5} />
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">My Dashboard</h1>
+        <p className="text-muted text-sm mb-6">Your Kingdom progress at a glance.</p>
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-        <div className="qk-card px-4 py-3.5">
-          <p className="text-xs text-muted mb-2">Level &amp; XP</p>
-          <XpProgressBar xpTotal={xpTotal} thresholds={thresholds} />
-        </div>
-        <div className="qk-card px-4 py-3.5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent-gold/15 border border-accent-gold/30 flex items-center justify-center text-accent-gold shrink-0">
-            <Trophy size={18} />
+        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+          <div className="qk-card px-4 py-3.5">
+            <p className="text-xs text-muted mb-2">Level &amp; XP</p>
+            <XpProgressBar xpTotal={xpTotal} thresholds={thresholds} />
           </div>
-          <div>
-            <p className="text-xl font-bold text-foreground leading-none">{pointsTotal.toLocaleString()}</p>
-            <p className="text-xs text-muted mt-1">Lifetime Points</p>
-            <p className="text-[10px] text-muted mt-0.5">Your leaderboard score -- never spent</p>
-          </div>
-        </div>
-        <Link href="/leaderboard" className="qk-card px-4 py-3.5 flex items-center gap-3 hover:border-accent-blue-light/50 transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center text-accent-blue-light shrink-0">
-            <BarChart3 size={18} />
-          </div>
-          <div>
-            <p className="text-xl font-bold text-foreground leading-none">{globalRank ? `#${globalRank.rank}` : "—"}</p>
-            <p className="text-xs text-muted mt-1">Global Rank</p>
-          </div>
-        </Link>
-        <Link href="/leaderboard" className="qk-card px-4 py-3.5 flex items-center gap-3 hover:border-accent-blue-light/50 transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-accent-purple/15 border border-accent-purple/30 flex items-center justify-center text-accent-purple shrink-0">
-            <Crown size={18} />
-          </div>
-          <div>
-            <p className="text-xl font-bold text-foreground leading-none">{hasChurch ? (churchRank ? `#${churchRank.rank}` : "—") : "—"}</p>
-            <p className="text-xs text-muted mt-1">{hasChurch ? "Church Rank" : "No Church Yet"}</p>
-          </div>
-        </Link>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-4">
-        <SectionCard title="Recent Badges" action="View all" actionHref="/badges" icon={Award}>
-          {recentBadgeAwards.length === 0 ? (
-            <EmptyState message="No badges earned yet. Keep studying, serving, and sharing your story." />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {recentBadgeAwards.map((a) => {
-                const badge = badgesById.get(a.badgeId);
-                return (
-                  <div key={a.id} className="qk-card p-3 text-center">
-                    <div className="w-10 h-10 mx-auto rounded-full bg-accent-gold/15 border border-accent-gold/30 flex items-center justify-center mb-2 text-accent-gold">
-                      {badge?.category === "trophy" ? <Trophy size={16} /> : <Award size={16} />}
-                    </div>
-                    <p className="text-xs font-medium text-foreground leading-tight">{badge?.name ?? "Badge"}</p>
-                    <p className="text-[10px] text-muted mt-1">{formatDate(a.awardedAt)}</p>
-                  </div>
-                );
-              })}
+          <div className="qk-card px-4 py-3.5 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-accent-gold/15 border border-accent-gold/30 flex items-center justify-center text-accent-gold shrink-0">
+              <Trophy size={18} />
             </div>
-          )}
-          {nextBadge && (
-            <p className="text-[11px] text-muted mt-3 flex items-center gap-1.5">
-              <Sparkles size={12} className="text-accent-blue-light shrink-0" /> Next milestone: {nextBadge.name}
-            </p>
-          )}
-        </SectionCard>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{pointsTotal.toLocaleString()}</p>
+              <p className="text-xs text-muted mt-1">Lifetime Points</p>
+              <p className="text-[10px] text-muted mt-0.5">Your leaderboard score -- never spent</p>
+            </div>
+          </div>
+          <Link href="/leaderboard" className="qk-card px-4 py-3.5 flex items-center gap-3 hover:border-accent-blue-light/50 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center text-accent-blue-light shrink-0">
+              <BarChart3 size={18} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{globalRank ? `#${globalRank.rank}` : "—"}</p>
+              <p className="text-xs text-muted mt-1">Global Rank</p>
+            </div>
+          </Link>
+          <Link href="/leaderboard" className="qk-card px-4 py-3.5 flex items-center gap-3 hover:border-accent-blue-light/50 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-accent-purple/15 border border-accent-purple/30 flex items-center justify-center text-accent-purple shrink-0">
+              <Crown size={18} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-foreground leading-none">{hasChurch ? (churchRank ? `#${churchRank.rank}` : "—") : "—"}</p>
+              <p className="text-xs text-muted mt-1">{hasChurch ? "Church Rank" : "No Church Yet"}</p>
+            </div>
+          </Link>
+        </div>
 
-        <SectionCard title="Recent Activity" icon={BarChart3}>
-          {recentAwards.length === 0 ? (
-            <EmptyState message="No progression activity yet." />
-          ) : (
-            <ul className="space-y-2.5">
-              {recentAwards.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-foreground">{PROGRESSION_EVENT_LABELS[a.eventType] ?? a.eventType}</span>
-                  <span className="text-xs text-muted shrink-0">
-                    {a.pointsAwarded > 0 && <span className="text-accent-gold">+{a.pointsAwarded} pts </span>}
-                    {a.xpAwarded > 0 && <span className="text-accent-blue-light">+{a.xpAwarded} XP</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </SectionCard>
+        <div className="grid lg:grid-cols-2 gap-4">
+          <SectionCard title="Recent Badges" action="View all" actionHref="/badges" icon={Award}>
+            {recentBadgeAwards.length === 0 ? (
+              <EmptyState message="No badges earned yet. Keep studying, serving, and sharing your story." />
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {recentBadgeAwards.map((a) => {
+                  const badge = badgesById.get(a.badgeId);
+                  return (
+                    <div key={a.id} className="qk-card p-3 text-center">
+                      <div className="w-10 h-10 mx-auto rounded-full bg-accent-gold/15 border border-accent-gold/30 flex items-center justify-center mb-2 text-accent-gold">
+                        {badge?.category === "trophy" ? <Trophy size={16} /> : <Award size={16} />}
+                      </div>
+                      <p className="text-xs font-medium text-foreground leading-tight">{badge?.name ?? "Badge"}</p>
+                      <p className="text-[10px] text-muted mt-1">{formatDate(a.awardedAt)}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {nextBadge && (
+              <p className="text-[11px] text-muted mt-3 flex items-center gap-1.5">
+                <Sparkles size={12} className="text-accent-blue-light shrink-0" /> Next milestone: {nextBadge.name}
+              </p>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Recent Activity" icon={BarChart3}>
+            {recentAwards.length === 0 ? (
+              <EmptyState message="No progression activity yet." />
+            ) : (
+              <ul className="space-y-2.5">
+                {recentAwards.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-foreground">{PROGRESSION_EVENT_LABELS[a.eventType] ?? a.eventType}</span>
+                    <span className="text-xs text-muted shrink-0">
+                      {a.pointsAwarded > 0 && <span className="text-accent-gold">+{a.pointsAwarded} pts </span>}
+                      {a.xpAwarded > 0 && <span className="text-accent-blue-light">+{a.xpAwarded} XP</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

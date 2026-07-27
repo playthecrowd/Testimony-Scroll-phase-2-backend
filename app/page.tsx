@@ -88,7 +88,7 @@ export default async function HomePage() {
 
   return (
     <div className="relative">
-      <PageBackground src={backgrounds.ticketedExperiences} opacity={0.5} />
+      <PageBackground src={backgrounds.homeDashboardHero} opacity={0.5} />
 
       {/* Hero */}
       <section className="max-w-[1200px] mx-auto px-4 md:px-8 pt-12 md:pt-16 pb-10 text-center">
