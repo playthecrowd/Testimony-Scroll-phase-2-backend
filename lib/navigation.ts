@@ -13,6 +13,8 @@ import {
   HeartHandshake,
   Megaphone,
   UploadCloud,
+  Castle,
+  Users2,
 } from "lucide-react";
 
 // Single source of truth for the "is this link Host-only" question, consulted by both Sidebar
@@ -40,12 +42,14 @@ export interface AppNavLink {
 export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
   { href: "/my-journey", label: "My Journey", icon: Map },
+  { href: "/kingdom-scrolls", label: "The Kingdom Scrolls", icon: Castle },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/experiences", label: "Experiences", icon: HeartHandshake },
   { href: "/events", label: "Events", icon: CalendarHeart },
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
+  { href: "/characters", label: "Characters", icon: Users2 },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
   { href: "/admin/campaign-lessons", label: "Campaign Lessons", icon: Megaphone, platformAdminOnly: true },
 ];
@@ -53,6 +57,7 @@ export const SIDEBAR_MEMBER_LINKS: AppNavLink[] = [
 export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/host-dashboard", label: "Host Dashboard", icon: Building2 },
   { href: "/dashboard", label: "My Dashboard", icon: LayoutGrid },
+  { href: "/kingdom-scrolls", label: "The Kingdom Scrolls", icon: Castle },
   { href: "/experience-builder", label: "Build Experience", icon: Target, hostOnly: true },
   { href: "/experience-builder/import", label: "Bulk Upload Lessons", icon: UploadCloud, hostOnly: true },
   { href: "/host-dashboard/experiences", label: "Experiences", icon: HeartHandshake, hostOnly: true },
@@ -61,6 +66,7 @@ export const SIDEBAR_HOST_LINKS: AppNavLink[] = [
   { href: "/leaderboard", label: "Leaderboard", icon: BarChart3 },
   { href: "/kingdom-scroll", label: "Kingdom Scroll", icon: ScrollText },
   { href: "/story", label: "Full Story", icon: BookMarked },
+  { href: "/characters", label: "Characters", icon: Users2 },
   { href: "/episodes", label: "Episodes", icon: Clapperboard },
   { href: "/admin/campaign-lessons", label: "Campaign Lessons", icon: Megaphone, platformAdminOnly: true },
 ];

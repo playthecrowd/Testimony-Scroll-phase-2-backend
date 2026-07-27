@@ -8,6 +8,9 @@ import { Footer } from "./Footer";
 import { useSession } from "@/context/SessionContext";
 
 const BARE_ROUTES = ["/login", "/signup"];
+// Prefix match, not exact -- The Kingdom Scrolls owns its own full-screen HUD (top bar, side
+// panels, layer navigator) and must never be boxed in by the standard TopBar/Sidebar chrome.
+const BARE_ROUTE_PREFIXES = ["/kingdom-scrolls"];
 
 export function PageShell({ children }: { children: React.ReactNode }) {
   const { session, ready } = useSession();
@@ -15,7 +18,7 @@ export function PageShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const showSidebar = ready && session.isLoggedIn;
 
-  if (BARE_ROUTES.includes(pathname)) {
+  if (BARE_ROUTES.includes(pathname) || BARE_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return <main className="flex-1 min-w-0">{children}</main>;
   }
 

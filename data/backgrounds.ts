@@ -10,6 +10,7 @@ export const backgrounds = {
   ticketedExperiences: "/images/backgrounds/08_featured_ticketed_experiences.png",
   loginHero: "/images/backgrounds/09_login_kingdom_gathering.png",
   homeDashboardHero: "/images/backgrounds/10_homepage_dashboard_kingdom_gates.png",
+  kingdomScrollsEarthLands: "/images/backgrounds/11_kingdom_scrolls_earth_lands.png",
 } as const;
 
 // Page assignments per your notes:
