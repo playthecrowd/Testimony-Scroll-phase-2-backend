@@ -41,13 +41,16 @@ export function SeekerPanel({ collapsed, onToggle }: { collapsed: boolean; onTog
         )}
       </aside>
 
-      {/* Mobile: bottom-sheet trigger + drawer, matching the responsive spec's "Seeker drawer" */}
+      {/* Mobile: bottom-sheet trigger + drawer, matching the responsive spec's "Seeker drawer".
+          bottom-32 (not bottom-24) so this stays clear of the InventoryTray when a mobile user
+          expands it -- the tray's expanded height (h-28/112px) would otherwise overlap a button
+          anchored at bottom-24/96px by ~16px. */}
       <div className="md:hidden ks-theme">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
           aria-label="View Seekers"
-          className="ks-dock-panel border fixed left-3 bottom-24 z-20 w-10 h-10 rounded-full flex items-center justify-center focus-ring"
+          className="ks-dock-panel border fixed left-3 bottom-32 z-20 w-10 h-10 rounded-full flex items-center justify-center focus-ring"
           style={{ color: "var(--ks-gold)" }}
         >
           <Users size={18} />
