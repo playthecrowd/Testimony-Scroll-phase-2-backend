@@ -136,13 +136,16 @@ export function KingdomScrollsWorld(props: KingdomScrollsWorldProps) {
           />
 
           {/* Mini-map -- bottom-left, matching the reference layout. Schematic, reads the real
-              live camera state (see MiniMap.tsx), not a decorative image. */}
-          <div className="absolute left-3 bottom-3 z-10">
+              live camera state (see MiniMap.tsx), not a decorative image. Hidden below md: at
+              narrow widths it would sit directly under the horizontal mobile LayerNavigator
+              (also bottom-anchored, centered) and visually collide with it. */}
+          <div className="hidden md:block absolute left-3 bottom-3 z-10">
             <MiniMap camera={camera} level={level} viewportSizePx={viewportSize} />
           </div>
 
-          {/* Zoom controls -- stacked to the right of the mini-map, matching the reference. */}
-          <div className="absolute left-[152px] bottom-3 flex flex-col gap-1.5 z-10">
+          {/* Zoom controls -- stacked to the right of the mini-map on desktop/tablet; back at the
+              left edge on mobile since the mini-map isn't there to make room for. */}
+          <div className="absolute left-3 md:left-[152px] bottom-3 flex flex-col gap-1.5 z-10">
             <button type="button" onClick={() => flyTo({ ...camera, scale: clampZoom(camera.scale + 0.2) }, true)} aria-label="Zoom in" className="ks-btn w-9 h-9 focus-ring">
               <Plus size={16} />
             </button>
