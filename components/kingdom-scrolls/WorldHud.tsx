@@ -46,8 +46,7 @@ export function WorldHud({
           <button
             key={label}
             type="button"
-            className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md focus-ring transition-colors"
-            style={{ color: "var(--ks-text-dim)" }}
+            className="ks-nav-link flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-md focus-ring"
           >
             <Icon size={14} /> {label}
           </button>

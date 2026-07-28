@@ -88,6 +88,17 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Top-nav links (World Map / Lessons / Inventory / etc.) -- plain text buttons, not full .ks-btn
+   chrome, but still need visible hover feedback. Defined as a class (not inline style) since
+   inline styles can't express :hover. */
+.ks-nav-link {
+  color: var(--ks-text-dim);
+  transition: color 150ms;
+}
+.ks-nav-link:hover {
+  color: var(--ks-gold-light);
+}
 .ks-btn[aria-current="true"],
 .ks-btn.ks-btn-active {
   background: linear-gradient(180deg, #4a3a10 0%, #2a2008 100%);

@@ -145,6 +145,7 @@ export function MapViewport({
               location={selectedLocation}
               screenX={selectedLocation.x}
               screenY={selectedLocation.y}
+              cameraScale={camera.scale}
               onClose={() => setSelectedLocationKey(null)}
             />
           )}
