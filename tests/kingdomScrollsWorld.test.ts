@@ -67,9 +67,14 @@ test("[SOURCE SCAN] SeekerPanel shows an honest empty state, not fabricated seek
   assert.doesNotMatch(source, /Ava M\.|Marcus T\.|Lily R\./, "must not hard-code placeholder seeker names that could be mistaken for real users");
 });
 
-test("[SOURCE SCAN] InventoryTray shows an honest empty state, not fabricated relic/item data", () => {
+// Checkpoint 1 (approved rendering-POC deliverable) intentionally replaces the pure empty state
+// with illustrative representative items, so the tray's visual language can be reviewed before
+// the real 48-relic set exists -- the rule this guards is now "never presented as real data,"
+// not "never show anything."
+test("[SOURCE SCAN] InventoryTray's representative items are explicitly labeled as a fixture, never presented as the Seeker's real inventory", () => {
   const source = read("components/kingdom-scrolls/InventoryTray.tsx");
-  assert.match(source, /empty|coming in a future update/i);
+  assert.match(source, /fixture/i, "representative items must be labeled as a development fixture");
+  assert.match(source, /FIXTURE_ITEMS/, "expected the fixture data to be named/scoped as a fixture, not presented as a live query result");
 });
 
 test("[SOURCE SCAN] the Kingdom Scrolls route is registered as a bare (chrome-free) route in PageShell", () => {

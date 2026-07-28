@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import "./theme.css";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Minus, LocateFixed, Maximize } from "lucide-react";
 import { WorldHud } from "./WorldHud";
@@ -9,6 +10,7 @@ import { InfoPanel, DailyLessonInfo } from "./InfoPanel";
 import { InventoryTray } from "./InventoryTray";
 import { LayerNavigator } from "./LayerNavigator";
 import { MapViewport } from "./MapViewport";
+import { MiniMap } from "./MiniMap";
 import { useWorldCamera } from "./useWorldCamera";
 import { WorldLevel, CAMERA_PRESETS, getPlotCameraTarget, getPlotWorldPosition, clampZoom } from "@/lib/kingdomScrollsWorld";
 
@@ -43,6 +45,18 @@ export function KingdomScrollsWorld(props: KingdomScrollsWorldProps) {
   const { camera, isFlying, flyTo, onPointerDown, onPointerMove, onPointerUp, onWheel } = useWorldCamera(CAMERA_PRESETS.upper);
 
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewportSize, setViewportSize] = useState({ width: 1200, height: 800 });
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setViewportSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const disabledLevels = hasChurch
     ? undefined
@@ -82,7 +96,7 @@ export function KingdomScrollsWorld(props: KingdomScrollsWorldProps) {
   const plot = profileId && hasChurch ? { ...getPlotWorldPosition(profileId), label: isSignedIn ? "My Plot" : "" } : null;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#04060c] overflow-hidden">
+    <div className="ks-theme fixed inset-0 flex flex-col bg-[#04060c] overflow-hidden">
       <WorldHud
         displayName={props.displayName}
         avatarUrl={props.avatarUrl}
@@ -121,18 +135,24 @@ export function KingdomScrollsWorld(props: KingdomScrollsWorldProps) {
             }}
           />
 
-          {/* Zoom controls -- bottom-left on desktop, matching the reference screenshots */}
-          <div className="absolute left-3 bottom-3 flex flex-col gap-1.5 z-10">
-            <button type="button" onClick={() => flyTo({ ...camera, scale: clampZoom(camera.scale + 0.2) }, true)} aria-label="Zoom in" className="qk-card w-9 h-9 rounded-lg flex items-center justify-center text-foreground hover:text-accent-blue-light focus-ring">
+          {/* Mini-map -- bottom-left, matching the reference layout. Schematic, reads the real
+              live camera state (see MiniMap.tsx), not a decorative image. */}
+          <div className="absolute left-3 bottom-3 z-10">
+            <MiniMap camera={camera} level={level} viewportSizePx={viewportSize} />
+          </div>
+
+          {/* Zoom controls -- stacked to the right of the mini-map, matching the reference. */}
+          <div className="absolute left-[152px] bottom-3 flex flex-col gap-1.5 z-10">
+            <button type="button" onClick={() => flyTo({ ...camera, scale: clampZoom(camera.scale + 0.2) }, true)} aria-label="Zoom in" className="ks-btn w-9 h-9 focus-ring">
               <Plus size={16} />
             </button>
-            <button type="button" onClick={() => flyTo({ ...camera, scale: clampZoom(camera.scale - 0.2) }, true)} aria-label="Zoom out" className="qk-card w-9 h-9 rounded-lg flex items-center justify-center text-foreground hover:text-accent-blue-light focus-ring">
+            <button type="button" onClick={() => flyTo({ ...camera, scale: clampZoom(camera.scale - 0.2) }, true)} aria-label="Zoom out" className="ks-btn w-9 h-9 focus-ring">
               <Minus size={16} />
             </button>
-            <button type="button" onClick={() => goToLevel(level)} aria-label="Center on current level" className="qk-card w-9 h-9 rounded-lg flex items-center justify-center text-foreground hover:text-accent-blue-light focus-ring">
+            <button type="button" onClick={() => goToLevel(level)} aria-label="Center on current level" className="ks-btn w-9 h-9 focus-ring">
               <LocateFixed size={16} />
             </button>
-            <button type="button" onClick={() => goToLevel("upper")} aria-label="Fit whole world" className="qk-card w-9 h-9 rounded-lg flex items-center justify-center text-foreground hover:text-accent-blue-light focus-ring">
+            <button type="button" onClick={() => goToLevel("upper")} aria-label="Fit whole world" className="ks-btn w-9 h-9 focus-ring">
               <Maximize size={16} />
             </button>
           </div>

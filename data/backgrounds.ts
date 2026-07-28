@@ -11,6 +11,16 @@ export const backgrounds = {
   loginHero: "/images/backgrounds/09_login_kingdom_gathering.png",
   homeDashboardHero: "/images/backgrounds/10_homepage_dashboard_kingdom_gates.png",
   kingdomScrollsEarthLands: "/images/backgrounds/11_kingdom_scrolls_earth_lands.png",
+  // Checkpoint 1 theme assets -- see the rendering-POC deliverable's asset manifest. Stored under
+  // images/kingdom-scrolls/ (not images/backgrounds/) since these are game-world UI assets, not
+  // full-page backgrounds like everything else in this file. The foreground depth layer and cloud
+  // layer both went through one rejected generation pass (green/magenta keying spill, one was an
+  // outright failed generation) before this corrected pass -- verified via sharp raw-alpha pixel
+  // sampling (archway interiors now alpha=0, zero green/magenta-spill pixels found in a full scan)
+  // before being wired in, not just visual inspection.
+  kingdomScrollsTestimonyScroll: "/images/kingdom-scrolls/testimony-scroll-device.png",
+  kingdomScrollsUpperForeground: "/images/kingdom-scrolls/upper-kingdom-foreground.png",
+  kingdomScrollsCloudLayer: "/images/kingdom-scrolls/cloud-layer.png",
 } as const;
 
 // Page assignments per your notes:

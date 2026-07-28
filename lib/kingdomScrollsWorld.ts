@@ -43,20 +43,26 @@ export function clampZoom(scale: number): number {
 export interface UpperKingdomLocation {
   key: string;
   label: string;
+  purpose: string;
   x: number;
   y: number;
+  // Six of nine spec'd locations already map to a real, published route -- see the approved plan's
+  // §10. Kingdom Hub has no destination of its own (orientation/recenter only), so href is null;
+  // Inventory Vault, Testimony Dispatch, and Mission Gateways aren't placed yet since they depend
+  // on schema that doesn't exist (relics/missions), not because they were forgotten.
+  href: string | null;
 }
 
 // Static location layout matching Section 4's Upper Kingdom location list. Positions are
 // hand-placed around the upper band's center so markers read as "a city with named districts,"
 // not a grid. Purely presentational -- no lesson/relic/member data is attached to these yet.
 export const UPPER_KINGDOM_LOCATIONS: UpperKingdomLocation[] = [
-  { key: "kingdom-hub", label: "Kingdom Hub", x: WORLD_WIDTH / 2, y: 550 },
-  { key: "scroll-archive", label: "Scroll Archive", x: WORLD_WIDTH / 2 - 520, y: 700 },
-  { key: "wisdom-halls", label: "Wisdom Halls", x: WORLD_WIDTH / 2, y: 850 },
-  { key: "training-courts", label: "Training Courts", x: WORLD_WIDTH / 2 + 520, y: 700 },
-  { key: "light-keep", label: "Light Keep", x: WORLD_WIDTH / 2 - 720, y: 420 },
-  { key: "unity-plaza", label: "Unity Plaza", x: WORLD_WIDTH / 2 + 720, y: 420 },
+  { key: "kingdom-hub", label: "Kingdom Hub", purpose: "The Upper Kingdom's central gathering point.", x: WORLD_WIDTH / 2, y: 550, href: null },
+  { key: "scroll-archive", label: "Scroll Archive", purpose: "Browse testimonies added to the Kingdom Scroll.", x: WORLD_WIDTH / 2 - 520, y: 700, href: "/kingdom-scroll" },
+  { key: "wisdom-halls", label: "Wisdom Halls", purpose: "Browse every lesson available to Scroll Seekers.", x: WORLD_WIDTH / 2, y: 850, href: "/lessons" },
+  { key: "training-courts", label: "Training Courts", purpose: "Join live Experiences hosted by churches.", x: WORLD_WIDTH / 2 + 520, y: 700, href: "/experiences" },
+  { key: "light-keep", label: "Light Keep", purpose: "See where Seekers rank on the Kingdom leaderboard.", x: WORLD_WIDTH / 2 - 720, y: 420, href: "/leaderboard" },
+  { key: "unity-plaza", label: "Unity Plaza", purpose: "Explore every church and organization in the Kingdom.", x: WORLD_WIDTH / 2 + 720, y: 420, href: "/churches" },
 ];
 
 // Deterministic (not random) plot placement within the Home Land, keyed by the member's own

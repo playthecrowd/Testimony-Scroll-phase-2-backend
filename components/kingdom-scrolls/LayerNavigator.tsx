@@ -36,7 +36,7 @@ export function LayerNavigator({
   return (
     <div
       className={cn(
-        "qk-card p-1.5 flex gap-1.5 items-center",
+        "ks-panel p-1.5 flex gap-1.5 items-center",
         orientation === "vertical" ? "flex-col" : "flex-row"
       )}
       role="group"
@@ -47,7 +47,8 @@ export function LayerNavigator({
         onClick={() => step(-1)}
         disabled={currentIndex <= 0}
         aria-label="Move up one level"
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground disabled:opacity-30 disabled:hover:text-muted focus-ring"
+        className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 focus-ring"
+        style={{ color: "var(--ks-text-dim)" }}
       >
         <ArrowUp size={15} />
       </button>
@@ -65,14 +66,14 @@ export function LayerNavigator({
             aria-label={disabledReason ? `${level.label} (${disabledReason})` : level.label}
             aria-current={isActive ? "true" : undefined}
             title={disabledReason ?? level.label}
-            className={cn(
-              "w-11 h-11 rounded-full border flex items-center justify-center transition-colors focus-ring shrink-0",
+            className="w-11 h-11 rounded-full border-2 flex items-center justify-center transition-colors focus-ring shrink-0"
+            style={
               isActive
-                ? "bg-accent-blue text-white border-accent-blue-light qk-glow-blue"
+                ? { background: "linear-gradient(180deg, #4a3a10 0%, #2a2008 100%)", borderColor: "var(--ks-gold)", color: "var(--ks-gold-light)", boxShadow: "0 0 0 1px rgba(212,165,61,0.45), 0 0 20px rgba(212,165,61,0.3)" }
                 : disabledReason
-                  ? "border-border-subtle text-muted/40 cursor-not-allowed"
-                  : "border-border-subtle text-muted hover:text-foreground hover:border-accent-blue-light/50"
-            )}
+                  ? { borderColor: "var(--ks-bronze-dim)", color: "var(--ks-text-dim)", opacity: 0.4, cursor: "not-allowed" }
+                  : { borderColor: "var(--ks-bronze)", color: "var(--ks-text-dim)" }
+            }
           >
             <Icon size={18} />
           </button>
@@ -84,7 +85,8 @@ export function LayerNavigator({
         onClick={() => step(1)}
         disabled={currentIndex >= LEVELS.length - 1}
         aria-label="Move down one level"
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground disabled:opacity-30 disabled:hover:text-muted focus-ring"
+        className="w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-30 focus-ring"
+        style={{ color: "var(--ks-text-dim)" }}
       >
         <ArrowDown size={15} />
       </button>
