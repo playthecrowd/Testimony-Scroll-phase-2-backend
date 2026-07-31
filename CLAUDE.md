@@ -31,6 +31,13 @@ Concretely, this means:
 - Branch conventions, migration numbering (`supabase/migrations/000N_*.sql`), and RLS patterns are
   established in existing migrations -- follow the existing shape (e.g. `private.is_church_manager`
   for church-scoped access) rather than inventing a new authorization pattern.
-- No large test framework is installed; regression tests use Node's built-in `node:test` runner
-  via `tsx` (`npm test`, `tests/*.test.ts`). Don't add Jest/Vitest/Playwright without first
-  reporting why it's needed.
+- Unit / helper regression tests use Node's built-in `node:test` runner via `tsx`
+  (`npm test`, `tests/*.test.ts`). Don't add Jest or Vitest without first reporting why.
+- Playwright is the established E2E harness (`e2e/`, `playwright.config.ts`). Extend it for new
+  browser/smoke/visual coverage rather than introducing another E2E stack.
+  - First-time browsers: `npm run test:e2e:install`
+  - Run: `npm run test:e2e` (UI: `npm run test:e2e:ui`)
+  - Refresh visual baselines: `npm run test:e2e:update` (committed under `e2e/**/*-snapshots/`)
+  - Default target is `https://production.quest4thekingdom.com` (`PLAYWRIGHT_BASE_URL` overrides;
+    localhost starts `npm run dev` via Playwright's `webServer`). Host/member credentials live in
+    `.env` as `HOST_MEMBER_*` / `MEMBER_*` — see `.env.example` and README §7.

@@ -226,6 +226,7 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                data-testid="auth-email"
                 className="w-full bg-surface-2 border border-border-subtle rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus-ring"
               />
             </div>
@@ -239,6 +240,7 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
                   placeholder={tab === "signin" ? "Enter your password" : "Create a strong password"}
                   required
                   minLength={6}
+                  data-testid="auth-password"
                   className="w-full bg-surface-2 border border-border-subtle rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted focus-ring"
                 />
                 <button
@@ -261,7 +263,13 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
 
             {error && <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{error}</p>}
 
-            <Button type="submit" size="lg" className="w-full" disabled={submitting || (tab === "signup" && !agreed)}>
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={submitting || (tab === "signup" && !agreed)}
+              data-testid="auth-submit"
+            >
               {submitting ? (
                 "Please wait..."
               ) : tab === "signin" ? (

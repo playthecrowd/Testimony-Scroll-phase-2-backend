@@ -23,6 +23,7 @@ export function AccountMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
+        data-testid="account-menu"
         className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-white/5 focus-ring"
       >
         <Image src={session.user.avatarUrl} alt={session.user.fullName} width={32} height={32} className="rounded-full" />
@@ -58,6 +59,7 @@ export function AccountMenu() {
               setOpen(false);
               window.location.href = "/";
             }}
+            data-testid="sign-out"
             className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-300 hover:bg-red-500/10"
           >
             <LogOut size={15} /> Sign Out

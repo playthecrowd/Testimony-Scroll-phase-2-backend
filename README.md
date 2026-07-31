@@ -30,6 +30,7 @@ You'll need [Node.js](https://nodejs.org) version 18.18 or newer installed on yo
 5. Open **http://localhost:3000** in your browser.
 
 To create a production build:
+
 ```bash
 npm run build
 npm run start
@@ -100,13 +101,13 @@ lesson, starting a journey, completing a quest, or submitting/approving a testim
 
 ## 4. Key Simulated Systems
 
-| System | How it's simulated |
-| --- | --- |
-| AI lesson processing | Cosmetic "AI Processing Preview" panel on `/capture` |
-| 3D Quest completion | "Simulate Quest Completion" dev button generates a randomized score, time, and leaderboard entry |
-| Testimony review | "Dev: Approve Testimony" button on the Applied stage and Host Dashboard |
+| System                        | How it's simulated                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| AI lesson processing          | Cosmetic "AI Processing Preview" panel on `/capture`                                                    |
+| 3D Quest completion           | "Simulate Quest Completion" dev button generates a randomized score, time, and leaderboard entry        |
+| Testimony review              | "Dev: Approve Testimony" button on the Applied stage and Host Dashboard                                 |
 | AI story/character generation | `services/storyService.ts` deterministically turns an approved testimony into a character + story entry |
-| Badges | `services/badgeService.ts` awards badges automatically as journey stages complete |
+| Badges                        | `services/badgeService.ts` awards badges automatically as journey stages complete                       |
 
 ---
 
@@ -133,3 +134,30 @@ are real.
 
 See `docs/SUPABASE_SETUP.md` for how the now-real pieces (auth, Capture, Lessons Library, Lesson Detail,
 Church Archive) are configured and tested.
+
+---
+
+## 7. E2E tests
+
+Playwright smoke tests cover homepage → login → dashboard → sign out for both account types,
+including visual snapshots at each key screen.
+
+1. **Install browsers** (first time only):
+   ```bash
+   npm run test:e2e:install
+   ```
+2. **Add credentials** to `.env` (see `.env.example`):
+   - `HOST_MEMBER_EMAIL` / `HOST_MEMBER_PASSWORD` — Church Host test account (must have completed church onboarding)
+   - `MEMBER_EMAIL` / `MEMBER_PASSWORD` — Kingdom Member test account
+   - `PLAYWRIGHT_BASE_URL` — optional; defaults to `https://production.quest4thekingdom.com`. Set to `http://localhost:3000` to run against a local dev server (Playwright will start `npm run dev` automatically).
+3. **Run tests:**
+   ```bash
+   npm run test:e2e
+   ```
+4. **Update visual baselines** after intentional UI changes:
+   ```bash
+   npm run test:e2e:update
+   ```
+   Baseline PNGs live under `e2e/**/*-snapshots/` and should be committed.
+
+Interactive mode: `npm run test:e2e:ui`
