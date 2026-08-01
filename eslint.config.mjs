@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Throwaway local QA tooling (Playwright mobile-verification scripts, saved session state) --
+    // plain Node/CommonJS scripts, never shipped, not part of the application.
+    ".playwright-qa/**",
   ]),
 ]);
 

@@ -39,6 +39,11 @@ export function MobileMemberPlotControls({
   dailyLessonTitle,
   dailyLessonScripture,
   dailyLessonHref,
+  // Caller-supplied so the mockup and the production Inventory Land harness can each show copy
+  // appropriate to what they actually are, without duplicating this whole component. Defaults to
+  // the original mockup wording so MemberPlotSliceHarness.tsx (which doesn't pass this prop) is
+  // completely unaffected.
+  inventoryDescription = 'Development fixture -- these are the 6 initial Lesson Relics, not the real 48-relic catalog or real ownership data.',
 }: {
   buildMode: boolean;
   roadToolActive: boolean;
@@ -65,6 +70,7 @@ export function MobileMemberPlotControls({
   dailyLessonTitle: string | null;
   dailyLessonScripture: string | null;
   dailyLessonHref: string | null;
+  inventoryDescription?: string;
 }) {
   const isPlacingRelic = buildMode && !roadToolActive && (!!selectedPlaceableId || !!movingInstanceId);
   const isRoadToolShowing = buildMode && roadToolActive;
@@ -292,8 +298,7 @@ export function MobileMemberPlotControls({
         ariaLabel="Seeker Inventory -- select an item to place on your plot"
       >
         <p className="text-[11px] mb-3" style={{ color: "var(--ks-text-dim)" }}>
-          Development fixture -- these are the 6 initial Lesson Relics, not the real 48-relic
-          catalog or real ownership data. {buildMode ? "Tap one, then tap a green cell to preview its placement." : "Enter Build mode to place these on your plot."}
+          {inventoryDescription} {buildMode ? "Tap one, then tap a green cell to preview its placement." : "Enter Build mode to place these on your plot."}
         </p>
         <div className="grid grid-cols-2 gap-2 mb-4">
           {PLACEABLE_CATALOG.map((item) => (

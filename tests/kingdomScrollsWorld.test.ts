@@ -77,20 +77,45 @@ test("[SOURCE SCAN] InventoryTray's representative items are explicitly labeled 
   assert.match(source, /FIXTURE_ITEMS/, "expected the fixture data to be named/scoped as a fixture, not presented as a live query result");
 });
 
-test("[SOURCE SCAN] the Kingdom Scrolls route is registered as a bare (chrome-free) route in PageShell", () => {
+// The full-screen-HUD sub-routes (Inventory Land, the world-map mockup/render-poc pages) remain
+// bare/chrome-free -- only the exact top-level "/kingdom-scrolls" route changed. That route is now
+// the Trailer/Introduction Gateway, an ordinary content page meant to sit inside normal site
+// chrome (see components/layout/PageShell.tsx's own updated comment for the reasoning), so it was
+// deliberately EXCLUDED from the prefix match via a trailing slash.
+test("[SOURCE SCAN] Kingdom Scrolls sub-routes (Inventory Land, mockup, render-poc) stay bare/chrome-free, but the top-level Gateway route does not", () => {
   const source = read("components/layout/PageShell.tsx");
-  assert.match(source, /BARE_ROUTE_PREFIXES[\s\S]*?"\/kingdom-scrolls"/);
+  assert.match(source, /BARE_ROUTE_PREFIXES[\s\S]*?"\/kingdom-scrolls\/"/);
 });
 
 test("[SOURCE SCAN] the daily lesson panel links to the real existing lesson route, not a new disconnected one", () => {
   const source = read("components/kingdom-scrolls/InfoPanel.tsx");
-  // dailyLesson.href is built in app/kingdom-scrolls/page.tsx as `/lessons/${slug}` -- this just
-  // confirms InfoPanel renders whatever href it's given via a real <Link>, not a hard-coded path.
+  // dailyLesson.href is built as `/lessons/${slug}` (both by the still-untouched WorldMap page and
+  // by the Inventory Land page below) -- this just confirms InfoPanel renders whatever href it's
+  // given via a real <Link>, not a hard-coded path.
   assert.match(source, /<Link href=\{dailyLesson\.href\}/);
 });
 
-test("[SOURCE SCAN] app/kingdom-scrolls/page.tsx builds the daily lesson link from the real campaign-lesson slug, not a hard-coded lesson", () => {
-  const source = read("app/kingdom-scrolls/page.tsx");
+test("[SOURCE SCAN] app/kingdom-scrolls/inventory-land/page.tsx builds the daily lesson link from the real campaign-lesson slug, not a hard-coded lesson", () => {
+  const source = read("app/kingdom-scrolls/inventory-land/page.tsx");
   assert.match(source, /getCurrentWeekCampaignLesson/);
   assert.match(source, /`\/lessons\/\$\{currentLesson\.slug\}`/);
+});
+
+// app/kingdom-scrolls/page.tsx is now the Gateway, not the WorldMap -- it builds its "Lessons
+// Available" list from every published lesson plus the member's own real journey/completion
+// state, not a single daily-spotlight lesson, and gates progress on completed_at (server-computed,
+// immutable, migration 0042), never current_stage (which can be 'experienced' without the lesson
+// actually being fully complete -- see 0042's own header for why that distinction matters).
+test("[SOURCE SCAN] the Kingdom Scrolls Gateway builds its lesson list from real published lessons and real per-member journey state, not fabricated/hard-coded data", () => {
+  const source = read("app/kingdom-scrolls/page.tsx");
+  assert.match(source, /getPublishedLessons/);
+  assert.match(source, /getUserJourneysWithLessons/);
+  assert.match(source, /`\/lessons\/\$\{row\.slug\}`/);
+});
+
+test("[SOURCE SCAN] the Kingdom Scrolls Gateway's unlock progress is driven by completed_at, never current_stage", () => {
+  const source = read("app/kingdom-scrolls/page.tsx");
+  assert.match(source, /getMyCompletedLessonCount/);
+  assert.doesNotMatch(source, /current_stage/);
+  assert.doesNotMatch(source, /currentStage/);
 });
