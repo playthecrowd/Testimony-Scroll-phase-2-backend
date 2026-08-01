@@ -40,3 +40,29 @@ migrations, or manual developer setup.
 - No `/journey/` link may ever point at a missing route -- a stage whose page isn't built yet
   (`experienced`, `applied`, `added-to-story`, `captured`) shows a branded coming-soon state
   instead of a 404.
+
+## Study questions (multiple choice, member-facing)
+
+- Choice-based questions render only inside the Study flow (`StudiedClient.tsx`'s Questions tab),
+  never on a lesson card, preview, the public lesson detail page, or any pre-lesson modal.
+- The correct answer (`lesson_question_choices.is_correct`) is never sent to a learner's browser
+  in any form -- not in page props, not in a client JS bundle, not in a public API response.
+  Grading happens only via the `check_lesson_question_answer` SECURITY DEFINER RPC (migration
+  0043), which takes just `(question_id, choice_id)` and returns a bare boolean. Column-level
+  SELECT on `is_correct` is revoked from `anon`/`authenticated` at the database level, not just
+  avoided by app code -- reading it directly via the REST API is not possible either.
+- A question is marked complete only after a genuine correct server verdict; opening the tab or
+  selecting an answer without submitting never completes it. The aggregate `questions` checklist
+  item completes only once every question in the lesson is answered correctly.
+- Host/admin editing (`QuestionsEditor`, via `get_lesson_questions_for_edit`) is the only other
+  reader of `is_correct`, gated on `private.is_church_manager` inside that same RPC.
+
+## Password recovery
+
+- "Forgot password?" on the Sign In tab (`/login`) leads to `/forgot-password`, which always shows
+  the same neutral "check your email" response regardless of whether the address is registered
+  (Supabase's own `resetPasswordForEmail` never reveals this either).
+- The recovery link reuses the existing `/auth/confirm` callback (`type=recovery`) and hands off to
+  `/reset-password`, which requires an active (recovery-established) session -- visiting it
+  without one shows an invalid/expired-link state, never a crash, with a path back to
+  `/forgot-password` or `/login`.

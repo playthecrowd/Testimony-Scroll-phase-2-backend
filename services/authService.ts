@@ -58,6 +58,23 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
+// Supabase's resetPasswordForEmail never reveals whether the address is registered -- it resolves
+// without an error either way -- so surfacing error.message here stays neutral by construction; it
+// only ever fires for genuine problems (bad email format, rate limiting), never account existence.
+export async function requestPasswordReset(email: string): Promise<AuthResult> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  return error ? { error: error.message } : {};
+}
+
+// Requires an active session -- either a normal signed-in session, or the temporary one Supabase
+// establishes after verifyOtp({ type: "recovery" }) succeeds in app/auth/confirm/route.ts.
+export async function updatePassword(password: string): Promise<AuthResult> {
+  const supabase = createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  return error ? { error: error.message } : {};
+}
+
 export async function getCurrentSession(supabase: SupabaseClient = createClient()): Promise<Session> {
   const {
     data: { user },
@@ -97,8 +114,10 @@ export async function getCurrentSession(supabase: SupabaseClient = createClient(
 }
 
 // Where to send a signed-in user right after auth succeeds (sign-in, immediate post-signup
-// session, or the email-confirmation callback). A host with no church membership yet is sent
-// to onboarding instead of straight to a dashboard.
+// session, or the email-confirmation callback). A host or organization account with no entity
+// membership yet is sent to the matching onboarding flow instead of straight to a dashboard --
+// both land on the same reused /host-dashboard once onboarded, per the "one dashboard, dynamic
+// labels" design (lib/entityLabel.ts), not a separate Organization dashboard route.
 export async function resolvePostAuthDestination(supabase: SupabaseClient): Promise<string> {
   const {
     data: { user },
@@ -111,13 +130,14 @@ export async function resolvePostAuthDestination(supabase: SupabaseClient): Prom
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.account_type === "host") {
+  if (profile?.account_type === "host" || profile?.account_type === "organization") {
     const { count } = await supabase
       .from("church_memberships")
       .select("id", { count: "exact", head: true })
       .eq("profile_id", user.id)
       .in("role", ["host", "admin"]);
-    return count && count > 0 ? "/host-dashboard" : "/onboarding/church";
+    if (count && count > 0) return "/host-dashboard";
+    return profile.account_type === "organization" ? "/onboarding/organization" : "/onboarding/church";
   }
 
   return "/dashboard";

@@ -63,3 +63,31 @@ authorization. See `tests/` for the automated subset (`npm test`).
       visibility.
 - [ ] Existing lesson editing, Churches, Lessons, onboarding, thumbnails, and profiles do not
       regress.
+
+## Study questions (multiple choice, member-facing)
+
+- [ ] Questions never appear on a lesson card, preview, the public lesson detail page, or a
+      pre-lesson modal -- only inside the Study flow's Questions tab.
+- [ ] Selecting an answer without submitting never marks a question (or the aggregate item)
+      complete; opening the tab never does either.
+- [ ] An incorrect answer gives clear feedback and allows retry without penalty or lockout.
+- [ ] A correct answer marks that question complete; the aggregate `questions` checklist item
+      completes only once every question in the lesson is correct.
+- [ ] `is_correct` is not present in the page source/RSC payload of the public lesson page or the
+      Study page, and a direct REST read of `lesson_question_choices.is_correct` is denied.
+- [ ] Host/admin editing still shows and preserves each question's chosen correct answer across a
+      save-and-reload.
+- [ ] A reload after genuinely completing all questions does not re-demand answering them again;
+      a reload before completion does not silently grant credit.
+
+## Password recovery
+
+- [ ] "Forgot password?" is reachable from the Sign In tab and survives switching between Sign
+      In/Create Account.
+- [ ] Submitting `/forgot-password` shows the same success message for a registered and an
+      unregistered email.
+- [ ] The email's reset link signs the visitor in and lands them on `/reset-password`, where a new
+      password (matching existing password rules, with confirmation) can be set and takes effect.
+- [ ] Visiting `/reset-password` without a valid recovery session shows an error state, not a
+      crash, with a way back to `/forgot-password` and `/login`.
+- [ ] Member/Church/Organization accounts all authenticate identically after a password reset.
