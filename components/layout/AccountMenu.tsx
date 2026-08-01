@@ -5,9 +5,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, User, LogOut, Shield } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
+import { isEntityManagerAccountType } from "@/lib/accountType";
+
+function managerLabel(accountType: string): string {
+  return accountType === "organization" ? "Organization Manager" : "Church Host";
+}
+
+function dashboardLabel(accountType: string): string {
+  return accountType === "organization" ? "Organization Dashboard" : "Church Dashboard";
+}
 
 export function AccountMenu() {
   const { session, logout } = useSession();
+  const isManager = isEntityManagerAccountType(session.accountType);
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
@@ -44,7 +54,7 @@ export function AccountMenu() {
         <span className="hidden md:block text-left leading-tight">
           <span className="block text-sm font-semibold text-foreground whitespace-nowrap">{session.user.fullName}</span>
           <span className="block text-[11px] text-muted whitespace-nowrap">
-            {session.accountType === "host" ? "Church Host" : "Kingdom Member"}
+            {isManager ? managerLabel(session.accountType) : "Kingdom Member"}
           </span>
         </span>
         <ChevronDown size={16} className="text-muted" />
@@ -59,11 +69,11 @@ export function AccountMenu() {
             <User size={15} /> Profile
           </Link>
           <Link
-            href={session.accountType === "host" ? "/host-dashboard" : "/dashboard"}
+            href={isManager ? "/host-dashboard" : "/dashboard"}
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5"
           >
-            <Shield size={15} /> {session.accountType === "host" ? "Host Dashboard" : "My Dashboard"}
+            <Shield size={15} /> {isManager ? dashboardLabel(session.accountType) : "My Dashboard"}
           </Link>
 
           <div className="my-2 border-t border-border-subtle" />

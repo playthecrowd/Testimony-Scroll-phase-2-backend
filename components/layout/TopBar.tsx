@@ -10,13 +10,14 @@ import { useSession } from "@/context/SessionContext";
 import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
 import { visibleTopBarLinks } from "@/lib/navigation";
+import { isEntityManagerAccountType } from "@/lib/accountType";
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { session, ready } = useSession();
   const pathname = usePathname();
   const unread = ready && session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
-  const isHost = ready && session.isLoggedIn && session.accountType === "host";
-  const navLinks = visibleTopBarLinks(isHost);
+  const isEntityManager = ready && session.isLoggedIn && isEntityManagerAccountType(session.accountType);
+  const navLinks = visibleTopBarLinks(isEntityManager);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border-subtle bg-background/85 backdrop-blur">

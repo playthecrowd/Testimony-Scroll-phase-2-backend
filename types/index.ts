@@ -1,7 +1,7 @@
 // Central type definitions for Quest for the Kingdom
 // Phase Two will map these directly onto Supabase tables.
 
-export type AccountType = "host" | "member";
+export type AccountType = "host" | "member" | "organization";
 
 export interface User {
   id: string;
@@ -323,6 +323,11 @@ export interface PublishedChurch {
   contactPhone: string | null;
   churchType: string | null;
   bannerUrl: string | null;
+  // "church" or "organization" -- see supabase/migrations/0041_organization_entity_type.sql.
+  // Defaults to "church" only via the DB column default; every row selected here always has an
+  // explicit value, this optional marker exists solely because a handful of older mock/demo
+  // objects constructed by hand (data/churches.ts, tests) predate this field.
+  entityType?: "church" | "organization";
 }
 
 export interface ChurchMinistry {

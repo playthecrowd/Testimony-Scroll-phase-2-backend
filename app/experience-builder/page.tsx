@@ -5,7 +5,8 @@ import { ErrorState } from "@/components/ui/AsyncState";
 import { getMyHostChurches } from "@/services/supabase/churches";
 import { getManagedLessonsByChurch } from "@/services/supabase/lessons";
 import { HostLessonManagementList } from "@/components/lessons/HostLessonManagementList";
-import { PublishedLesson } from "@/types";
+import { PublishedLesson, AccountType } from "@/types";
+import { isEntityManagerAccountType } from "@/lib/accountType";
 import { ExperienceBuilderForm } from "./ExperienceBuilderForm";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function ExperienceBuilderPage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profile?.account_type !== "host") redirect("/dashboard");
+    if (!profile || !isEntityManagerAccountType(profile.account_type as AccountType)) redirect("/dashboard");
 
     const { count } = await supabase
       .from("church_memberships")
@@ -40,7 +41,7 @@ export default async function ExperienceBuilderPage() {
       .eq("profile_id", user.id)
       .in("role", ["host", "admin"]);
 
-    if (!count) redirect("/onboarding/church");
+    if (!count) redirect(profile.account_type === "organization" ? "/onboarding/organization" : "/onboarding/church");
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       return (

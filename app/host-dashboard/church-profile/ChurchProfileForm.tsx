@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { Field } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import { PublishedChurch, ChurchMinistry } from "@/types";
+import { entityLabel } from "@/lib/entityLabel";
 import { updateChurchProfileAction } from "./actions";
 
 export function ChurchProfileForm({ church, ministries }: { church: PublishedChurch; ministries: ChurchMinistry[] }) {
   const router = useRouter();
+  const entityType = church.entityType ?? "church";
   const [name, setName] = useState(church.name);
   const [description, setDescription] = useState(church.description ?? "");
   const [city, setCity] = useState(church.city ?? "");
@@ -57,7 +59,7 @@ export function ChurchProfileForm({ church, ministries }: { church: PublishedChu
 
   return (
     <form onSubmit={handleSubmit} className="qk-card p-5 md:p-6 space-y-4 max-w-2xl">
-      <Field label="Church Name" required>
+      <Field label={entityLabel(entityType, "nameField")} required>
         <input value={name} onChange={(e) => setName(e.target.value)} required className="qk-input" />
       </Field>
       <Field label="Description">
@@ -65,13 +67,13 @@ export function ChurchProfileForm({ church, ministries }: { church: PublishedChu
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          placeholder="What visitors and members should know about your church."
+          placeholder={`What visitors and members should know about your ${entityLabel(entityType, "entityName").toLowerCase()}.`}
           className="qk-input"
         />
       </Field>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Church Type / Tradition">
+        <Field label={entityLabel(entityType, "typeField")}>
           <input
             list="church-type-suggestions"
             value={churchType}
@@ -164,10 +166,10 @@ export function ChurchProfileForm({ church, ministries }: { church: PublishedChu
       </div>
 
       {error && <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{error}</p>}
-      {saved && !error && <p className="text-sm text-accent-blue-light">Church profile saved.</p>}
+      {saved && !error && <p className="text-sm text-accent-blue-light">{entityLabel(entityType, "profile")} saved.</p>}
 
       <Button type="submit" disabled={submitting}>
-        {submitting ? "Saving..." : "Save Church Profile"}
+        {submitting ? "Saving..." : `Save ${entityLabel(entityType, "profile")}`}
       </Button>
     </form>
   );

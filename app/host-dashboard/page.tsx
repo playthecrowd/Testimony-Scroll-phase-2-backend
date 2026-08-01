@@ -12,7 +12,9 @@ import { StatPill, SectionCard } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { formatDate, isWithin } from "@/lib/utils";
-import { PublishedLesson } from "@/types";
+import { PublishedLesson, AccountType } from "@/types";
+import { isEntityManagerAccountType } from "@/lib/accountType";
+import { entityLabel } from "@/lib/entityLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,7 @@ export default async function HostDashboardPage() {
   if (!user) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host to view this dashboard.</p>
+        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host or Organization manager to view this dashboard.</p>
         <LinkButton href="/login">Sign In</LinkButton>
       </div>
     );
@@ -58,10 +60,10 @@ export default async function HostDashboardPage() {
 
   const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
 
-  if (profile?.account_type !== "host") {
+  if (!profile || !isEntityManagerAccountType(profile.account_type as AccountType)) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">This dashboard is for Church Hosts.</p>
+        <p className="text-foreground font-semibold mb-2">This dashboard is for Church Hosts and Organization managers.</p>
         <LinkButton href="/dashboard">Go to My Dashboard</LinkButton>
       </div>
     );
@@ -78,7 +80,9 @@ export default async function HostDashboardPage() {
       </div>
     );
   }
-  if (churches.length === 0) redirect("/onboarding/church");
+  if (churches.length === 0) {
+    redirect(profile.account_type === "organization" ? "/onboarding/organization" : "/onboarding/church");
+  }
 
   // A host can manage more than one church in the data model; this dashboard shows the first one
   // for now (matches the single-church-id assumption already used by resolvePostAuthDestination
@@ -110,6 +114,7 @@ export default async function HostDashboardPage() {
   const publishedCount = lessons.filter((l) => l.status === "published").length;
   const draftCount = lessons.filter((l) => l.status === "draft").length;
   const recentLessons = lessons.slice(0, 8);
+  const entityType = church.entityType ?? "church";
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
@@ -124,7 +129,7 @@ export default async function HostDashboardPage() {
         )}
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Building2 size={22} className="text-accent-blue-light" /> {church.name} Host Dashboard
+            <Building2 size={22} className="text-accent-blue-light" /> {church.name} {entityLabel(entityType, "dashboard")}
           </h1>
           <p className="text-muted text-sm">
             {[church.city, church.region].filter(Boolean).join(", ")}
@@ -133,7 +138,7 @@ export default async function HostDashboardPage() {
           </p>
         </div>
         <Link href="/host-dashboard/church-profile" className="sm:ml-auto text-xs text-accent-blue-light hover:underline shrink-0">
-          Edit Church Profile
+          Edit {entityLabel(entityType, "profile")}
         </Link>
       </div>
 
@@ -143,7 +148,7 @@ export default async function HostDashboardPage() {
         <StatPill icon={BookOpen} value={lessons.length} label="Total Lessons" href="/experience-builder" />
         <StatPill icon={Send} value={publishedCount} label="Published" href="/experience-builder" />
         <StatPill icon={PencilLine} value={draftCount} label="Drafts" href="/experience-builder" />
-        <StatPill icon={Users2} value={memberCount} label="Church Members" href="/host-dashboard/members" />
+        <StatPill icon={Users2} value={memberCount} label={entityLabel(entityType, "members")} href="/host-dashboard/members" />
       </div>
 
       {lessons.length === 0 && !loadError && (
@@ -162,7 +167,7 @@ export default async function HostDashboardPage() {
       )}
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <SectionCard title="Grow Your Church" icon={UserPlus}>
+        <SectionCard title={`Grow Your ${entityLabel(entityType, "entityName")}`} icon={UserPlus}>
           <div className="space-y-2.5">
             <p className="text-xs text-muted">Invite the people at {church.name} to join Quest for the Kingdom.</p>
             <LinkButton href="/host-dashboard/members" variant="secondary" size="sm">

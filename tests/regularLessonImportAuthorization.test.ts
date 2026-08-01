@@ -51,12 +51,17 @@ test("the regular lesson bulk-upload page lives under /experience-builder, not i
   assert.match(source, /getMyHostChurches/, "must scope church selection to the signed-in Host's own churches");
 });
 
-test("the regular lesson bulk-upload page uses the same host/church-membership server guard as the main Experience Builder page", () => {
+test("the regular lesson bulk-upload page uses the same host/organization-membership server guard as the main Experience Builder page", () => {
+  // Phase 10D1: both pages' churchless-fallback redirect became entity-aware (organization
+  // accounts land on /onboarding/organization, church/host accounts still land on
+  // /onboarding/church) -- the destination is no longer a single bare redirect() call, so this
+  // checks both branches of that ternary are present rather than one literal call.
   const importPage = read("app/experience-builder/import/page.tsx");
   const builderPage = read("app/experience-builder/page.tsx");
   for (const source of [importPage, builderPage]) {
     assert.match(source, /redirect\("\/login"\)/);
     assert.match(source, /redirect\("\/dashboard"\)/);
-    assert.match(source, /redirect\("\/onboarding\/church"\)/);
+    assert.match(source, /"\/onboarding\/church"/, "a churchless Host must still land on /onboarding/church");
+    assert.match(source, /"\/onboarding\/organization"/, "an orgless Organization account must land on /onboarding/organization");
   }
 });

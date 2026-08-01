@@ -11,6 +11,12 @@ import { getMyTestimonies } from "@/services/supabase/testimonies";
 import { StatPill } from "@/components/ui/StatPill";
 import { LinkButton } from "@/components/ui/Button";
 
+function accountTypeLabel(accountType: string): string {
+  if (accountType === "host") return "Church Host";
+  if (accountType === "organization") return "Organization Manager";
+  return "Kingdom Member";
+}
+
 // Phase 11.5 (docs/PHASE11_5_AUDIT.md SS11) deliberately deferred migrating this page's identity
 // model (name/email/avatar/church, still on the client SessionContext/data/churches.ts layer) as a
 // "casual piecemeal migration" risk -- that decision is respected here and NOT touched. What *is*
@@ -62,7 +68,7 @@ export default function ProfilePage() {
         <div className="text-center sm:text-left">
           <h1 className="text-2xl font-bold text-foreground">{session.user.fullName}</h1>
           <p className="text-sm text-accent-blue-light font-medium">
-            {session.accountType === "host" ? "Church Host" : "Kingdom Member"}
+            {accountTypeLabel(session.accountType)}
           </p>
           <div className="flex flex-wrap justify-center sm:justify-start gap-4 mt-3 text-xs text-muted">
             <span className="flex items-center gap-1.5">
@@ -90,7 +96,7 @@ export default function ProfilePage() {
         <div className="space-y-2 text-sm">
           <Row label="Full Name" value={session.user.fullName} />
           <Row label="Email" value={session.user.email} />
-          <Row label="Account Type" value={session.accountType === "host" ? "Church Host" : "Kingdom Member"} />
+          <Row label="Account Type" value={accountTypeLabel(session.accountType)} />
           <Row label="Member Since" value={new Date(session.user.createdAt).toLocaleDateString()} />
         </div>
         <p className="text-[11px] text-muted mt-4">

@@ -6,6 +6,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { getMyHostChurches, getChurchMembers, getChurchInvites } from "@/services/supabase/churches";
 import { ChurchMembersManager } from "@/components/host-dashboard/ChurchMembersManager";
 import { ChurchMember, ChurchInvite } from "@/types";
+import { entityLabel } from "@/lib/entityLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +36,13 @@ export default async function HostMembersPage() {
   if (!user) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host to manage members.</p>
+        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host or Organization manager to manage members.</p>
         <LinkButton href="/login">Sign In</LinkButton>
       </div>
     );
   }
+
+  const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
 
   let churches;
   try {
@@ -52,8 +55,11 @@ export default async function HostMembersPage() {
       </div>
     );
   }
-  if (churches.length === 0) redirect("/onboarding/church");
+  if (churches.length === 0) {
+    redirect(profile?.account_type === "organization" ? "/onboarding/organization" : "/onboarding/church");
+  }
   const church = churches[0];
+  const entityType = church.entityType ?? "church";
 
   let members: ChurchMember[] = [];
   let invites: ChurchInvite[] = [];
@@ -67,7 +73,7 @@ export default async function HostMembersPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Church Members</h1>
+      <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">{entityLabel(entityType, "members")}</h1>
       <p className="text-muted text-sm mb-6">Invite and manage the people at {church.name}.</p>
       {loadError ? <ErrorState message={loadError} /> : <ChurchMembersManager church={church} members={members} invites={invites} />}
     </div>
