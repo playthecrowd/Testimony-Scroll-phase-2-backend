@@ -474,7 +474,24 @@ export function StudiedClient({
             </div>
           )}
 
-          {isStudiedComplete && (
+          {isStudiedComplete && journey.completedAt && (
+            // Server-confirmed full completion (migration 0042: completed_at is only ever set once
+            // Study is done AND every required-linked Experience, if any, is satisfied) -- not just
+            // "Studied stage complete." Routes to the Kingdom Scrolls Gateway, where real progress
+            // toward the two-lesson unlock is computed from this same completed_at signal.
+            <div className="qk-card p-4 qk-glow-blue">
+              <p className="text-sm font-semibold text-foreground mb-1">Lesson complete!</p>
+              <p className="text-xs text-muted mb-3">This lesson now counts toward your Kingdom Scrolls progress.</p>
+              <LinkButton href="/kingdom-scrolls" className="w-full justify-center" aria-label="Go To Inventory Plot">
+                <Box size={16} /> Go To Inventory Plot
+              </LinkButton>
+            </div>
+          )}
+
+          {isStudiedComplete && !journey.completedAt && (
+            // Study is done but a required Experience is still pending (completed_at not yet set) --
+            // unchanged link into the existing Experienced-stage flow, which is a separate,
+            // still-mocked system (see experienced/page.tsx) that this checkpoint does not rebuild.
             <div className="qk-card p-4 qk-glow-blue">
               <p className="text-sm font-semibold text-foreground mb-1">Great job, keep going!</p>
               <p className="text-xs text-muted mb-3">The next stage of your journey is on its way.</p>

@@ -3,7 +3,7 @@ import { LessonJourney, LessonJourneyItem, PublishedLesson } from "@/types";
 import { ChecklistItemKey } from "@/lib/journeyChecklist";
 import { getLessonsByIds } from "./lessons";
 
-const JOURNEY_SELECT = "id, lesson_id, current_stage, studied_started_at, studied_completed_at, last_opened_at";
+const JOURNEY_SELECT = "id, lesson_id, current_stage, studied_started_at, studied_completed_at, last_opened_at, completed_at";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapJourney(row: any): LessonJourney {
@@ -14,6 +14,7 @@ function mapJourney(row: any): LessonJourney {
     studiedStartedAt: row.studied_started_at,
     studiedCompletedAt: row.studied_completed_at,
     lastOpenedAt: row.last_opened_at,
+    completedAt: row.completed_at,
   };
 }
 
@@ -113,6 +114,30 @@ export async function markStudiedComplete(supabase: SupabaseClient, journeyId: s
     .single();
   if (error) throw error;
   return mapJourney(data);
+}
+
+// Kingdom Scrolls Gateway unlock count. Computed as count(distinct lesson_id) explicitly in code
+// (a Set, not a bare row count) so the "never counts one lesson twice" property is self-evident
+// from reading this function, not something that has to be inferred from a separate schema
+// constraint. lesson_journeys' unique(user_id, lesson_id) (0008) already makes a duplicate
+// impossible today, so the Set never actually collapses anything in practice -- this is defense in
+// depth, not a workaround for a real duplication path. completed_at is server-computed and
+// immutable (0042), so this count cannot be inflated by anything a client controls.
+export async function getMyCompletedLessonCount(supabase: SupabaseClient): Promise<number> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { data, error } = await supabase
+    .from("lesson_journeys")
+    .select("lesson_id")
+    .eq("user_id", user.id)
+    .not("completed_at", "is", null);
+  if (error) throw error;
+
+  const distinctLessonIds = new Set((data ?? []).map((row: { lesson_id: string }) => row.lesson_id));
+  return distinctLessonIds.size;
 }
 
 export interface UserJourneyWithLesson {

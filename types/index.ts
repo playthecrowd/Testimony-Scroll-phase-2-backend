@@ -466,6 +466,11 @@ export interface LessonJourney {
   studiedStartedAt: string;
   studiedCompletedAt: string | null;
   lastOpenedAt: string;
+  // Server-computed, immutable full-lesson-completion timestamp (migration 0042) -- distinct from
+  // currentStage/studiedCompletedAt. Null until Study is complete AND every required-linked
+  // Experience (if any) is satisfied; a lesson with no required Experience gets this set the
+  // moment Study completes. Never cleared once set.
+  completedAt: string | null;
 }
 
 export interface LessonJourneyItem {
