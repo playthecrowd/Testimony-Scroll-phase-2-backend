@@ -1,0 +1,35 @@
+{
+  "cookies": [
+    {
+      "name": "sb-ytnftubajizhuylhmsib-auth-token.0",
+      "value": "base64-eyJhY2Nlc3NfdG9rZW4iOiJleUpoYkdjaU9pSkZVekkxTmlJc0ltdHBaQ0k2SW1VeE9ESmtNVFE1TFRoa1l6SXRORGRtWXkwNE0yWTJMVEUxTldZeVlXUTBaREl4TXlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKcGMzTWlPaUpvZEhSd2N6b3ZMM2wwYm1aMGRXSmhhbWw2YUhWNWJHaHRjMmxpTG5OMWNHRmlZWE5sTG1OdkwyRjFkR2d2ZGpFaUxDSnpkV0lpT2lKaE5XSXlPRFkyT1MxaU56STNMVFJsWXpBdFlUSTFaaTFqT0RRNFpXSXdOVGsyWXpJaUxDSmhkV1FpT2lKaGRYUm9aVzUwYVdOaGRHVmtJaXdpWlhod0lqb3hOemcxTlRNMU1UQXhMQ0pwWVhRaU9qRTNPRFUxTXpFMU1ERXNJbVZ0WVdsc0lqb2ljR3h2ZEdGaWJITjBkV1JwYnl0cmMyTm9kWEpqYUVCbmJXRnBiQzVqYjIwaUxDSndhRzl1WlNJNklpSXNJbUZ3Y0Y5dFpYUmhaR0YwWVNJNmV5SndjbTkyYVdSbGNpSTZJbVZ0WVdsc0lpd2ljSEp2ZG1sa1pYSnpJanBiSW1WdFlXbHNJbDE5TENKMWMyVnlYMjFsZEdGa1lYUmhJanA3SW1GalkyOTFiblJmZEhsd1pTSTZJbWh2YzNRaUxDSmxiV0ZwYkNJNkluQnNiM1JoWW14emRIVmthVzhyYTNOamFIVnlZMmhBWjIxaGFXd3VZMjl0SWl3aVpXMWhhV3hmZG1WeWFXWnBaV1FpT25SeWRXVXNJbVoxYkd4ZmJtRnRaU0k2SWxGQklGUmxjM1FnUTJoMWNtTm9JRWh2YzNRaUxDSndhRzl1WlY5MlpYSnBabWxsWkNJNlptRnNjMlVzSW5OMVlpSTZJbUUxWWpJNE5qWTVMV0kzTWpjdE5HVmpNQzFoTWpWbUxXTTRORGhsWWpBMU9UWmpNaUo5TENKeWIyeGxJam9pWVhWMGFHVnVkR2xqWVhSbFpDSXNJbUZoYkNJNkltRmhiREVpTENKaGJYSWlPbHQ3SW0xbGRHaHZaQ0k2SW5CaGMzTjNiM0prSWl3aWRHbHRaWE4wWVcxd0lqb3hOemcxTlRNeE5UQXhmVjBzSW5ObGMzTnBiMjVmYVdRaU9pSTBaV00wWm1SbE1TMHhORE16TFRRell6TXRZamN5TWkwMk1ERTNOVGxqWW1Rd09XUWlMQ0pwYzE5aGJtOXVlVzF2ZFhNaU9tWmhiSE5sZlEuZU9uYXVKdUd2dlZOWFpVMlJfZ3oyS0RXVm9yS1FFRFpzNE9ZQ2M0cHc3MGk4Q2VmelVUUzJ1ZWZKYTFLV01kMWpqRDFvWEw2N19LZVI4cDRsbzlRWmciLCJ0b2tlbl90eXBlIjoiYmVhcmVyIiwiZXhwaXJlc19pbiI6MzYwMCwiZXhwaXJlc19hdCI6MTc4NTUzNTEwMSwicmVmcmVzaF90b2tlbiI6InR3cTRxZXo3ZTNxaCIsInVzZXIiOnsiaWQiOiJhNWIyODY2OS1iNzI3LTRlYzAtYTI1Zi1jODQ4ZWIwNTk2YzIiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJlbWFpbCI6InBsb3RhYmxzdHVkaW8ra3NjaHVyY2hAZ21haWwuY29tIiwiZW1haWxfY29uZmlybWVkX2F0IjoiMjAyNi0wNy0zMVQxOTo0MDoyNy41NDIxNzJaIiwicGhvbmUiOiIiLCJjb25maXJtYXRpb25fc2VudF9hdCI6IjIwMjYtMDctMzFUMTk6Mzk6MzUuNjg1MzQzWiIsImNvbmZpcm1lZF9hdCI6IjIwMjYtMDctMzFUMTk6NDA6MjcuNTQyMTcyWiIsImxhc3Rfc2lnbl9pbl9hdCI6IjIwMjYtMDctMzFUMjA6NTg6MjEuMjU0MTY4MzI4WiIsImFwcF9tZXRhZGF0YSI6eyJwcm92aWRlciI6ImVtYWlsIiwicHJvdmlkZXJzIjpbImVtYWlsIl19LCJ1c2VyX21ldGFkYXRhIjp7ImFjY291bnRfdHlwZSI6Imhvc3QiLCJlbWFpbCI6InBsb3RhYmxzdHVkaW8ra3NjaHVyY2hAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZ1bGxfbmFtZSI6IlFBIFRlc3QgQ2h1cmNoIEhvc3QiLCJwaG9uZV92ZXJpZmllZCI6ZmFsc2UsInN1YiI6ImE1YjI4NjY5LWI3MjctNGVjMC1hMjVmLWM4NDhlYjA1OTZjMiJ9LCJpZGVudGl0aWVzIjpbeyJpZGVudGl0eV9pZCI6Ijk4NWI5OWM3LTlhMWYtNDY0Zi04MDgzLWQ5N2JkNDk1OTQ1OCIsImlkIjoiYTViMjg2NjktYjcyNy00ZWMwLWEyNWYtYzg0OGViMDU5NmMyIiwidXNlcl9pZCI6ImE1YjI4NjY5LWI3MjctNGVjMC1hMjVmLWM4NDhlYjA1OTZjMiIsImlkZW50aXR5X2RhdGEiOnsiYWNjb3VudF90eXBlIjoiaG9zdCIsImVtYWlsIjoicGxvdGFibHN0dWRpbytrc2NodXJjaEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiZnVsbF9uYW1lIjoiUUEgVGVzdCBDaHVyY2ggSG9zdCIsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYTViMjg2NjktYjcyNy00ZWMwLWEyNWYtYzg0OGViMDU5NmMyIn0sInByb3ZpZGVyIjoiZW1haWwiLCJsYXN0X3NpZ25faW5fYXQiOiIyMDI2LTA3LTMxVDE5OjM5OjM1LjY2NTA1NVoiLCJjcmVhdGVkX2F0IjoiMjAyNi0wNy0zMVQxOTozOTozNS42NjUxMTZaIiwidXBkYXRlZF9hdCI6IjIwMjYtMDctMzFUMTk6Mzk6MzUuNjY1MTE2WiIsImVtYWlsIjoicGxvdGFibHN0dWRpbytrc2NodXJjaEBnbWFpbC5jb20ifV0sImNyZWF0ZWRfYXQiOiIyMDI2LTA3LTMxVDE5OjM5OjM1LjYxMzM0WiIsInVwZ",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1820091498.875291,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sb-ytnftubajizhuylhmsib-auth-token.1",
+      "value": "GF0ZWRfYXQiOiIyMDI2LTA3LTMxVDIwOjU4OjIxLjI4NDM1MVoiLCJpc19hbm9ueW1vdXMiOmZhbHNlfSwid2Vha19wYXNzd29yZCI6bnVsbH0",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1820091498.875536,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "qftk:notifications",
+          "value": "[{\"id\":\"notif-1\",\"userId\":\"user-maya\",\"type\":\"testimony-invitation\",\"title\":\"Testimony invitation\",\"message\":\"Share how \\\"The Narrow Path\\\" applied in your life.\",\"createdAt\":\"2024-05-10\",\"read\":false,\"ctaLabel\":\"Respond\",\"ctaHref\":\"/applied\"},{\"id\":\"notif-2\",\"userId\":\"user-maya\",\"type\":\"testimony-invitation\",\"title\":\"Testimony invitation\",\"message\":\"How has God been faithful in your waiting season?\",\"createdAt\":\"2024-05-06\",\"read\":false,\"ctaLabel\":\"Respond\",\"ctaHref\":\"/applied\"},{\"id\":\"notif-3\",\"userId\":\"user-maya\",\"type\":\"testimony-invitation\",\"title\":\"Testimony invitation\",\"message\":\"Share a moment of courage you walked out in faith.\",\"createdAt\":\"2024-04-28\",\"read\":false,\"ctaLabel\":\"Respond\",\"ctaHref\":\"/applied\"},{\"id\":\"notif-4\",\"userId\":\"user-maya\",\"type\":\"badge-earned\",\"title\":\"Badge earned\",\"message\":\"You earned the Quest Experience Badge for Faith That Moves Mountains.\",\"createdAt\":\"2024-05-12\",\"read\":true},{\"id\":\"notif-5\",\"userId\":\"user-maya\",\"type\":\"review-approved\",\"title\":\"Testimony approved\",\"message\":\"Your testimony was approved and added to the Kingdom Scroll!\",\"createdAt\":\"2024-05-13\",\"read\":true}]"
+        }
+      ]
+    }
+  ]
+}
