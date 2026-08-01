@@ -1,0 +1,284 @@
+[
+  {
+    "name": "mobile-390x844: Gateway no horizontal overflow (initial)",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Lessons Available reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Seeker Inventory reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: ready-for-the-harvest checklist reached 100%",
+    "pass": true,
+    "detail": "progress node: null"
+  },
+  {
+    "name": "mobile-390x844: ready-for-the-harvest marked Studied-complete",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Gateway no horizontal overflow (1/2)",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: 1/2 messaging present",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: faith-in-action checklist reached 100%",
+    "pass": true,
+    "detail": "progress node: null"
+  },
+  {
+    "name": "mobile-390x844: faith-in-action marked Studied-complete",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Gateway no horizontal overflow (2/2)",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Unlocked state renders at 2/2",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Continue to Inventory Land reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Inventory Land loads at mobile width",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Inventory Land no horizontal overflow",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Mobile Seeker Inventory launcher visible",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Mobile Seeker Inventory bottom sheet opens with production copy",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Inventory item selectable",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Rotate/Confirm/Cancel controls accessible",
+    "pass": true,
+    "detail": "rotate=true confirm=true cancel=true"
+  },
+  {
+    "name": "Touch targets >= 44x44px: mobile-390x844 placement toolbar",
+    "pass": true,
+    "detail": "3 checked"
+  },
+  {
+    "name": "mobile-390x844: Item placed via mobile confirm control",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Pan gesture accepted (no crash/error)",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Camera bounds check (visual -- see screenshot 10)",
+    "pass": true
+  },
+  {
+    "name": "mobile-390x844: Reload preserves placed object(s) for this profile",
+    "pass": true,
+    "detail": "before=1 after=1"
+  },
+  {
+    "name": "mobile-390x844: No interactive element trapped offscreen",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "mobile-430x932: Gateway no horizontal overflow (initial)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Lessons Available reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Seeker Inventory reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: ready-for-the-harvest already Studied-complete (idempotent re-check)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Gateway no horizontal overflow (1/2)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: 1/2 messaging present",
+    "pass": false
+  },
+  {
+    "name": "mobile-430x932: faith-in-action already Studied-complete (idempotent re-check)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Gateway no horizontal overflow (2/2)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Unlocked state renders at 2/2",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Continue to Inventory Land reachable",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Inventory Land loads at mobile width",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Inventory Land no horizontal overflow",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Mobile Seeker Inventory launcher visible",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Mobile Seeker Inventory bottom sheet opens with production copy",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Inventory item selectable",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Rotate/Confirm/Cancel controls accessible",
+    "pass": true,
+    "detail": "rotate=true confirm=true cancel=true"
+  },
+  {
+    "name": "Touch targets >= 44x44px: mobile-430x932 placement toolbar",
+    "pass": true,
+    "detail": "3 checked"
+  },
+  {
+    "name": "mobile-430x932: Item placed via mobile confirm control",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Pan gesture accepted (no crash/error)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Camera bounds check (visual -- see screenshot 10)",
+    "pass": true
+  },
+  {
+    "name": "mobile-430x932: Reload preserves placed object(s) for this profile",
+    "pass": true,
+    "detail": "before=1 after=1"
+  },
+  {
+    "name": "mobile-430x932: No interactive element trapped offscreen",
+    "pass": true,
+    "detail": ""
+  },
+  {
+    "name": "tablet-768x1024: Gateway no horizontal overflow (initial)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Lessons Available reachable",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Seeker Inventory reachable",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: ready-for-the-harvest already Studied-complete (idempotent re-check)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Gateway no horizontal overflow (1/2)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: 1/2 messaging present",
+    "pass": false
+  },
+  {
+    "name": "tablet-768x1024: faith-in-action already Studied-complete (idempotent re-check)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Gateway no horizontal overflow (2/2)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Unlocked state renders at 2/2",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Continue to Inventory Land reachable",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Inventory Land loads at mobile width",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Inventory Land no horizontal overflow",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Mobile Seeker Inventory launcher visible",
+    "pass": false
+  },
+  {
+    "name": "tablet-768x1024: Mobile Seeker Inventory bottom sheet opens with production copy",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Inventory item selectable",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Rotate/Confirm/Cancel controls accessible",
+    "pass": false,
+    "detail": "rotate=false confirm=false cancel=false"
+  },
+  {
+    "name": "Touch targets >= 44x44px: tablet-768x1024 placement toolbar",
+    "pass": true,
+    "detail": "0 checked"
+  },
+  {
+    "name": "tablet-768x1024: Pan gesture accepted (no crash/error)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Camera bounds check (visual -- see screenshot 10)",
+    "pass": true
+  },
+  {
+    "name": "tablet-768x1024: Reload preserves placed object(s) for this profile",
+    "pass": true,
+    "detail": "before=1 after=1"
+  },
+  {
+    "name": "tablet-768x1024: No interactive element trapped offscreen",
+    "pass": true,
+    "detail": ""
+  }
+]

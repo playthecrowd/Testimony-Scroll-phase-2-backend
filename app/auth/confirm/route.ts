@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { resolvePostAuthDestination } from "@/services/authService";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 
-// Email confirmation callback. The Supabase "Confirm signup" email template must be set to:
-// {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+// Shared email-verification callback for both flows. The Supabase email templates must be set to:
+// - "Confirm signup": {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+// - "Reset Password": {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery
 // See docs/SUPABASE_SETUP.md.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,6 +22,12 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (error) {
       return NextResponse.redirect(`${origin}/auth/error`);
+    }
+    // Recovery links hand off to the Set New Password page instead of the normal post-auth
+    // destination -- verifyOtp already established a session, but the user still needs to choose
+    // a new password before landing anywhere else.
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/reset-password`);
     }
     const destination = await resolvePostAuthDestination(supabase);
     return NextResponse.redirect(`${origin}${destination}`);

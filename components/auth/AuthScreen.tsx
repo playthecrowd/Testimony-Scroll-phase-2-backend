@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Church, Users, Eye, EyeOff, UserPlus, LogIn, ShieldCheck, MailCheck } from "lucide-react";
+import { Church, Building2, Users, Eye, EyeOff, UserPlus, LogIn, ShieldCheck, MailCheck } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/context/SessionContext";
 import { AccountType } from "@/types";
 import { cn } from "@/lib/utils";
-import { photo } from "@/lib/images";
 import { backgrounds } from "@/data/backgrounds";
 import { stages } from "@/components/journey/stageMeta";
 import Link from "next/link";
@@ -26,12 +25,10 @@ function getNextDestination(): string | null {
 }
 
 export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) {
-  // Keyed off the route the visitor actually landed on (initialTab), not the client-side signin/
-  // signup toggle below -- so the background never swaps mid-interaction if someone flips tabs,
-  // and /signup keeps its original placeholder hero, untouched, per the request that the new
-  // photo is a /login-only change.
-  const isLoginPage = initialTab === "signin";
-  const heroImageSrc = isLoginPage ? backgrounds.loginHero : photo("auth-hero", 900, 1200);
+  // Shared hero image across both /login and /signup -- previously login-only (with signup using
+  // an unrelated random picsum.photos placeholder); the approved Kingdom Scrolls image now covers
+  // the whole authentication experience, not just one entry point.
+  const heroImageSrc = backgrounds.authHero;
   const [tab, setTab] = useState<"signin" | "signup">(initialTab);
   const [accountType, setAccountType] = useState<AccountType>("member");
   const [fullName, setFullName] = useState("");
@@ -114,18 +111,16 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
           form panel's own div further down) and the dedicated hero panel below is hidden -- so on
           mobile/tablet this full-bleed layer is the only thing showing the photo. It sits behind
           the whole screen (-z-10), and the form inputs are opaque (--surface-2), so it can never
-          hurt legibility regardless of screen size. Login-only, same reasoning as heroImageSrc
-          above. */}
-      {isLoginPage && (
-        <div className="absolute inset-0 -z-10 overflow-hidden lg:hidden" aria-hidden="true">
-          <Image src={backgrounds.loginHero} alt="" fill sizes="100vw" priority className="object-cover opacity-30" />
-          {/* Stronger than the desktop panel's own overlay: there's no side-by-side dark column to
-              anchor contrast against here, and the photo's own bright sky/sun-glare region sits
-              right behind the tab bar and logo -- from-black/65 keeps that top strip readable
-              instead of just the ~40% used further down the page. */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-background/92 to-background" />
-        </div>
-      )}
+          hurt legibility regardless of screen size. Shown on both /login and /signup now that
+          both share the same heroImageSrc. */}
+      <div className="absolute inset-0 -z-10 overflow-hidden lg:hidden" aria-hidden="true">
+        <Image src={heroImageSrc} alt="" fill sizes="100vw" priority className="object-cover opacity-30" />
+        {/* Stronger than the desktop panel's own overlay: there's no side-by-side dark column to
+            anchor contrast against here, and the photo's own bright sky/sun-glare region sits
+            right behind the tab bar and logo -- from-black/65 keeps that top strip readable
+            instead of just the ~40% used further down the page. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-background/92 to-background" />
+      </div>
       <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
         <Image
           src={heroImageSrc}
@@ -210,34 +205,57 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
             {tab === "signin" ? "Sign in to continue your journey." : "Choose your account type and join the Kingdom"}
           </p>
 
-          <div className="grid grid-cols-2 gap-3 mb-5">
-            <button
-              onClick={() => setAccountType("host")}
-              className={cn(
-                "qk-card p-4 text-left transition-colors",
-                accountType === "host" && "border-accent-blue-light qk-glow-blue"
-              )}
-            >
-              <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
-                <Church size={18} className="text-accent-blue-light" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">Church Host</p>
-              <p className="text-xs text-muted mt-1">Create and manage your church, capture sermons, and guide your community&apos;s journey.</p>
-            </button>
+          {/* Shown on both Sign In and Create Account -- account_type only matters for signup
+              (handleSignUp reads it below), but the three choices stay visible on Sign In too, as
+              the shared entry point every visitor lands on. Selecting a card never grants access
+              on its own -- an existing user's real destination and permissions always come from
+              resolvePostAuthDestination and their actual church_memberships/role, not this state. */}
+          <div className="grid grid-cols-3 gap-2.5 mb-5">
             <button
               onClick={() => setAccountType("member")}
               className={cn(
-                "qk-card p-4 text-left transition-colors",
+                "qk-card p-3 text-center transition-colors",
                 accountType === "member" && "border-accent-blue-light qk-glow-blue"
               )}
             >
-              <div className="w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
-                <Users size={18} className="text-accent-blue-light" />
+              <div className="w-9 h-9 rounded-full bg-surface-2 flex items-center justify-center mb-2 mx-auto">
+                <Users size={16} className="text-accent-blue-light" />
               </div>
-              <p className="text-sm font-semibold text-foreground">Kingdom Member</p>
-              <p className="text-xs text-muted mt-1">Join your church, track your journey, and grow deeper in God&apos;s Word.</p>
+              <p className="text-xs font-semibold text-foreground">Continue as Member</p>
+            </button>
+            <button
+              onClick={() => setAccountType("host")}
+              className={cn(
+                "qk-card p-3 text-center transition-colors",
+                accountType === "host" && "border-accent-blue-light qk-glow-blue"
+              )}
+            >
+              <div className="w-9 h-9 rounded-full bg-surface-2 flex items-center justify-center mb-2 mx-auto">
+                <Church size={16} className="text-accent-blue-light" />
+              </div>
+              <p className="text-xs font-semibold text-foreground">Continue as Church</p>
+            </button>
+            <button
+              onClick={() => setAccountType("organization")}
+              className={cn(
+                "qk-card p-3 text-center transition-colors",
+                accountType === "organization" && "border-accent-blue-light qk-glow-blue"
+              )}
+            >
+              <div className="w-9 h-9 rounded-full bg-surface-2 flex items-center justify-center mb-2 mx-auto">
+                <Building2 size={16} className="text-accent-blue-light" />
+              </div>
+              <p className="text-xs font-semibold text-foreground">Continue as Organization</p>
             </button>
           </div>
+          <p className="text-xs text-muted mb-5 -mt-3">
+            {accountType === "host" &&
+              "Create lessons and experiences, manage your church community and connect rewards to your content."}
+            {accountType === "organization" &&
+              "Create lessons and experiences, manage your organization community and connect rewards to your content."}
+            {accountType === "member" &&
+              "Complete lessons, earn rewards, build your Seeker Inventory and enter Kingdom Scrolls."}
+          </p>
 
           <form onSubmit={tab === "signin" ? handleSignIn : handleSignUp} className="space-y-4">
             {tab === "signup" && (
@@ -287,6 +305,13 @@ export function AuthScreen({ initialTab }: { initialTab: "signin" | "signup" }) 
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {tab === "signin" && (
+                <p className="text-right mt-1.5">
+                  <Link href="/forgot-password" className="text-xs text-accent-blue-light hover:underline">
+                    Forgot password?
+                  </Link>
+                </p>
+              )}
             </div>
 
             {tab === "signup" && (

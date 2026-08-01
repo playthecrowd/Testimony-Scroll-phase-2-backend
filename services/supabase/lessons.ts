@@ -20,7 +20,7 @@ const LESSON_SELECT = `
   media:lesson_media(id, media_type, url, content, title, sort_order),
   hosts:lesson_hosts(id, status, participant_count, schedule_label, quest_url, church:churches(${CHURCH_FIELDS})),
   lesson_ministries(ministry:ministries(id, name)),
-  questions:lesson_questions(id, question, sort_order, choices:lesson_question_choices(id, answer_text, sort_order, is_correct)),
+  questions:lesson_questions(id, question, sort_order, choices:lesson_question_choices(id, answer_text, sort_order)),
   lesson_experiences(id, relationship_note, experience:experiences(${EXPERIENCE_FIELDS}))
 `;
 

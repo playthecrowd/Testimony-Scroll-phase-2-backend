@@ -36,6 +36,7 @@ import { ExperienceConnectionSelector, ExperienceSelection } from "@/components/
 import { isValidMediaUrl } from "@/lib/lessonForm";
 import { Field } from "@/components/ui/FormField";
 import { PublishedChurch, PublishedLesson, Experience } from "@/types";
+import { isEntityManagerAccountType } from "@/lib/accountType";
 
 const lessonTypes = ["sermon", "bible-study", "youth", "devotional", "series"] as const;
 
@@ -100,7 +101,8 @@ export function ExperienceBuilderForm() {
   const [publishError, setPublishError] = useState("");
   const [published, setPublished] = useState(false);
 
-  const isHost = ready && session.isLoggedIn && session.accountType === "host";
+  const isHost = ready && session.isLoggedIn && isEntityManagerAccountType(session.accountType);
+  const archiveEntityLabel = session.accountType === "organization" ? "Organization" : "Church";
 
   useEffect(() => {
     if (!isHost) return;
@@ -167,16 +169,16 @@ export function ExperienceBuilderForm() {
   if (!session.isLoggedIn) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host to build a lesson experience.</p>
+        <p className="text-foreground font-semibold mb-2">Sign in as a Church Host or Organization manager to build a lesson experience.</p>
         <LinkButton href="/login">Sign In</LinkButton>
       </div>
     );
   }
 
-  if (session.accountType !== "host") {
+  if (!isEntityManagerAccountType(session.accountType)) {
     return (
       <div className="max-w-lg mx-auto py-24 text-center px-4">
-        <p className="text-foreground font-semibold mb-2">Only Church Host accounts can build a lesson experience.</p>
+        <p className="text-foreground font-semibold mb-2">Only Church Host or Organization accounts can build a lesson experience.</p>
         <LinkButton href="/dashboard">Go to Dashboard</LinkButton>
       </div>
     );
@@ -727,7 +729,7 @@ export function ExperienceBuilderForm() {
                 href={`/churches/${churches.find((c) => c.id === churchId)?.slug ?? ""}`}
                 className="inline-flex items-center gap-2 text-sm text-muted hover:text-foreground px-2 py-2.5 ml-auto"
               >
-                <Library size={16} /> View Church Archive
+                <Library size={16} /> View {archiveEntityLabel} Archive
               </Link>
             </div>
           </div>
@@ -748,7 +750,7 @@ export function ExperienceBuilderForm() {
 
             <div className="qk-card p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-foreground">Recent Church Archive</h3>
+                <h3 className="text-sm font-semibold text-foreground">Recent {archiveEntityLabel} Archive</h3>
                 <Link
                   href={`/churches/${churches.find((c) => c.id === churchId)?.slug ?? ""}`}
                   className="text-xs text-accent-blue-light hover:underline"

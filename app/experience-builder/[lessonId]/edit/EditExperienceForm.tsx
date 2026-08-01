@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getLessonBySlug } from "@/services/supabase/lessons";
 import { buildThumbnailPath, uploadLessonThumbnail, deleteLessonThumbnailByUrl } from "@/services/supabase/lessonThumbnails";
 import { getExperiences, replaceLessonExperiences } from "@/services/supabase/experiences";
-import { replaceLessonQuestions } from "@/services/supabase/questions";
+import { replaceLessonQuestions, getLessonQuestionsForEdit } from "@/services/supabase/questions";
 import { validateRequiredLessonFields, isValidMediaUrl } from "@/lib/lessonForm";
 import { LessonEditAction, LessonStatus } from "@/lib/lessonStatus";
 import { updateLessonExperience } from "./actions";
@@ -84,6 +84,26 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       cancelled = true;
     };
   }, []);
+
+  // initialLesson.questions (via getLessonBySlug) never carries real isCorrect values -- migration
+  // 0043 revoked column-level SELECT on that column for anon/authenticated, so the general lesson
+  // fetch always sees it as false. Re-seed the editor from the dedicated, manager-only RPC once
+  // mounted, so an existing lesson's previously-chosen correct answers actually show as selected.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const withAnswers = await getLessonQuestionsForEdit(supabase, initialLesson.id);
+        if (!cancelled) setQuestions(questionsToDrafts(withAnswers));
+      } catch (err) {
+        console.error("[EditExperienceForm] Failed to load question answers:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialLesson.id]);
 
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(initialLesson.featuredImageUrl);
@@ -358,7 +378,12 @@ export function EditExperienceForm({ lesson: initialLesson }: { lesson: Publishe
       setXpReward(fresh.xpReward != null ? String(fresh.xpReward) : "");
       setMediaItems(mediaRowsFromLesson(fresh));
       existingMediaIdsRef.current = fresh.media.map((m) => m.id);
-      setQuestions(questionsToDrafts(fresh.questions));
+      try {
+        const withAnswers = await getLessonQuestionsForEdit(supabase, fresh.id);
+        setQuestions(questionsToDrafts(withAnswers));
+      } catch (err) {
+        console.error("[EditExperienceForm] Failed to reload question answers:", err);
+      }
       setExperienceSelections(
         fresh.experiences.map((e) => ({ experienceId: e.experience.id, relationshipNote: e.relationshipNote ?? "" }))
       );

@@ -3,7 +3,7 @@ import { ChurchInvite, ChurchMember, ChurchMinistry, PublishedChurch } from "@/t
 
 const CHURCH_SELECT =
   "id, name, slug, logo_url, city, region, country, member_count, description, verified, " +
-  "address_line1, website, contact_email, contact_phone, church_type, banner_url";
+  "address_line1, website, contact_email, contact_phone, church_type, banner_url, entity_type";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -26,6 +26,7 @@ export function mapChurch(row: any): PublishedChurch {
     contactPhone: row.contact_phone,
     churchType: row.church_type,
     bannerUrl: row.banner_url,
+    entityType: row.entity_type === "organization" ? "organization" : "church",
   };
 }
 

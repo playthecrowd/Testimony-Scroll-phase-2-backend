@@ -1,0 +1,179 @@
+/* The Kingdom Scrolls -- bronze-and-gold game theme, scoped entirely under .ks-theme so it can
+   never leak into the rest of the app's blue/dark qk-card design system. Only imported by
+   KingdomScrollsWorld.tsx. Palette is drawn directly from the two approved reference screenshots
+   (deep navy panel base, bronze border, warm gold accent/text) rather than the app's existing
+   --accent-blue tokens, which is the whole point of this file existing separately. */
+
+.ks-theme {
+  --ks-bg: #04060c;
+  --ks-panel-top: #10192b;
+  --ks-panel-bottom: #060a14;
+  --ks-bronze: #8a6423;
+  --ks-bronze-dim: #4a3413;
+  --ks-gold: #d4a53d;
+  --ks-gold-light: #f0d68a;
+  --ks-text: #f3e8c8;
+  --ks-text-dim: #a99a72;
+  color: var(--ks-text);
+}
+
+/* Replaces qk-card within this route only: ornate bronze border, corner flourishes via
+   pseudo-elements (four small gold corner marks), a subtle inner highlight line instead of the
+   flat blue glow the rest of the app uses. */
+.ks-panel {
+  position: relative;
+  background: linear-gradient(180deg, var(--ks-panel-top) 0%, var(--ks-panel-bottom) 100%);
+  border: 1px solid var(--ks-bronze);
+  border-radius: 0.4rem;
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 165, 61, 0.12),
+    inset 0 1px 0 rgba(240, 214, 138, 0.08);
+}
+.ks-panel::before,
+.ks-panel::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ks-gold);
+  pointer-events: none;
+  opacity: 0.85;
+}
+.ks-panel::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.ks-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Edge-docked chrome (side panels, header, bottom tray) -- same palette as .ks-panel but no
+   corner-flourish pseudo-elements, since those only read correctly on a fully-bordered floating
+   card, not a panel that's flush against the viewport edge on one or more sides. */
+.ks-dock-panel {
+  background: linear-gradient(180deg, var(--ks-panel-top) 0%, var(--ks-panel-bottom) 100%);
+  border-color: var(--ks-bronze);
+}
+
+.ks-panel-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ks-gold);
+}
+
+.ks-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: linear-gradient(180deg, #2a3550 0%, #141c2e 100%);
+  border: 1px solid var(--ks-bronze);
+  color: var(--ks-text);
+  border-radius: 0.35rem;
+  transition: border-color 150ms, box-shadow 150ms, color 150ms;
+}
+.ks-btn:hover:not(:disabled) {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-light);
+  box-shadow: 0 0 0 1px rgba(212, 165, 61, 0.3), 0 0 16px rgba(212, 165, 61, 0.18);
+}
+.ks-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Top-nav links (World Map / Lessons / Inventory / etc.) -- plain text buttons, not full .ks-btn
+   chrome, but still need visible hover feedback. Defined as a class (not inline style) since
+   inline styles can't express :hover. */
+.ks-nav-link {
+  color: var(--ks-text-dim);
+  transition: color 150ms;
+}
+.ks-nav-link:hover {
+  color: var(--ks-gold-light);
+}
+.ks-btn[aria-current="true"],
+.ks-btn.ks-btn-active {
+  background: linear-gradient(180deg, #4a3a10 0%, #2a2008 100%);
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-light);
+  box-shadow: 0 0 0 1px rgba(212, 165, 61, 0.45), 0 0 20px rgba(212, 165, 61, 0.3);
+}
+
+/* Small dark-and-gold pill used for map labels/marker names, matching the reference screenshots'
+   label treatment (thin gold border, not just a flat dark chip). */
+.ks-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(4, 6, 12, 0.82);
+  border: 1px solid var(--ks-bronze);
+  color: var(--ks-gold-light);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Ornate frame overlay around the whole map viewport -- CSS-drawn (double border + corner
+   flourish), not a raster asset, so it scales cleanly at any viewport size without a new image. */
+.ks-viewport-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 2px solid var(--ks-bronze);
+  box-shadow: inset 0 0 0 5px var(--ks-bg), inset 0 0 0 6px var(--ks-bronze-dim);
+}
+.ks-viewport-frame::before,
+.ks-viewport-frame::after,
+.ks-viewport-frame .ks-corner-tl,
+.ks-viewport-frame .ks-corner-br {
+  content: "";
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--ks-gold);
+}
+.ks-viewport-frame::before {
+  top: 4px;
+  left: 4px;
+  border-right: none;
+  border-bottom: none;
+}
+.ks-viewport-frame::after {
+  bottom: 4px;
+  right: 4px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Gentle gateway-beam pulse -- opacity only, so it never shifts layout or fights the camera
+   transform on the parent. */
+@keyframes ks-beam-pulse {
+  0%, 100% { opacity: 0.75; }
+  50% { opacity: 1; }
+}
+.ks-beam-pulse {
+  animation: ks-beam-pulse 3.5s ease-in-out infinite;
+}
+
+/* Slow horizontal drift for the tiled cloud layer -- one full tile width (1680px, matching the
+   backgroundSize set inline in MapViewport.tsx) over 60s for a seamless loop. */
+@keyframes ks-cloud-drift {
+  from { background-position-x: 0; }
+  to { background-position-x: -1680px; }
+}
+.ks-cloud-drift {
+  animation: ks-cloud-drift 60s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-theme * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -34,10 +34,15 @@ export async function getCharacterById(supabase: SupabaseClient, id: string): Pr
   if (error) throw error;
   if (!data) return null;
 
+  // "Related Lessons" has no direct character_lessons table -- it's derived through the
+  // character's own episodes, reusing episode_lessons (already built for the Episodes feature)
+  // rather than adding a second, largely-duplicate join table for what's fundamentally the same
+  // "this content relates to that lesson" relationship. A character with no episodes yet just
+  // gets an empty relatedLessons array below.
   const [{ data: episodeLinks, error: episodesError }, { data: testimonyLinks, error: testimoniesError }] = await Promise.all([
     supabase
       .from("episode_characters")
-      .select("episode:episodes(id, title, episode_number, season)")
+      .select("episode:episodes(id, title, episode_number, season, episode_lessons(lesson:lessons(id, title, slug)))")
       .eq("character_id", id),
     supabase
       .from("character_testimonies")
@@ -47,18 +52,29 @@ export async function getCharacterById(supabase: SupabaseClient, id: string): Pr
   if (episodesError) throw episodesError;
   if (testimoniesError) throw testimoniesError;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const episodeRows = (episodeLinks ?? []).filter((row: any) => row.episode);
+
+  const relatedLessonsById = new Map<string, { id: string; title: string; slug: string }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const row of episodeRows as any[]) {
+    for (const el of row.episode.episode_lessons ?? []) {
+      if (el.lesson) relatedLessonsById.set(el.lesson.id, { id: el.lesson.id, title: el.lesson.title, slug: el.lesson.slug });
+    }
+  }
+
   return {
     ...mapCharacter(data),
-    episodes: (episodeLinks ?? [])
+    episodes: episodeRows.map(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((row: any) => row.episode)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((row: any) => ({ id: row.episode.id, title: row.episode.title, episodeNumber: row.episode.episode_number, season: row.episode.season })),
+      (row: any) => ({ id: row.episode.id, title: row.episode.title, episodeNumber: row.episode.episode_number, season: row.episode.season })
+    ),
     testimonies: (testimonyLinks ?? [])
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((row: any) => row.testimony)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((row: any) => ({ id: row.testimony.id, title: row.testimony.title, note: row.note })),
+    relatedLessons: Array.from(relatedLessonsById.values()),
   };
 }
 

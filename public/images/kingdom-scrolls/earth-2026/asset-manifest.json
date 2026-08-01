@@ -1,0 +1,915 @@
+{
+  "world": "earth-2026",
+  "generatedAt": "2026-07-28",
+  "assets": [
+    {
+      "assetName": "Member Plot Boundary",
+      "assetId": "earth.grid.member-plot-boundary",
+      "world": "earth-2026",
+      "category": "grid",
+      "description": "Gold-lit member plot boundary overlay diamond, marks an individual member's owned grid cell on the Earth World 2026 map.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 64
+      },
+      "width": 256,
+      "height": 128,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": false,
+      "interactive": false,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.grid.member-plot-boundary.png",
+      "mobileVariant": "earth.grid.member-plot-boundary.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/grid/earth.grid.member-plot-boundary.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Renaissance Church HQ (Modern)",
+      "assetId": "earth.building.church-hq",
+      "world": "earth-2026",
+      "category": "buildings",
+      "description": "Flagship Renaissance Church headquarters reinterpreted as a contemporary glass-and-stone sanctuary: large glass curtain wall, minimal cross, warm interior lighting, roof-mounted solar panels. No medieval or gilded elements.",
+      "gridFootprint": "3x3",
+      "anchorPoint": {
+        "x": 384,
+        "y": 900
+      },
+      "width": 768,
+      "height": 900,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "3x3",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.church-hq.png",
+      "mobileVariant": "earth.building.church-hq.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.church-hq.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Modern Starter Member Home",
+      "assetId": "earth.building.member-home-modern",
+      "world": "earth-2026",
+      "category": "buildings",
+      "description": "Contemporary modern starter home: clean geometric massing, floor-to-ceiling windows, timber cladding accents. Not a medieval cottage.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 550
+      },
+      "width": 512,
+      "height": 550,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.member-home-modern.png",
+      "mobileVariant": "earth.building.member-home-modern.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.member-home-modern.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "notes": "Minor rough alpha edges remain near the base from AI background-removal on fine landscaping (small trees/shrubs); building silhouette itself is clean. Acceptable for checkpoint review; candidate for a touch-up pass before final ship."
+    },
+    {
+      "assetName": "Community Learning Pavilion",
+      "assetId": "earth.building.learning-pavilion",
+      "world": "earth-2026",
+      "category": "buildings",
+      "description": "Modern open-plan learning pavilion: extensive glazing, exposed timber structural beams, flat shading overhang, visible interior tables/chairs.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 576
+      },
+      "width": 512,
+      "height": 576,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.learning-pavilion.png",
+      "mobileVariant": "earth.building.learning-pavilion.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.learning-pavilion.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Counseling Center",
+      "assetId": "earth.building.counseling-center",
+      "world": "earth-2026",
+      "category": "buildings",
+      "description": "Small modern counseling center: warm approachable contemporary architecture, large windows, timber entry canopy, accessible ramp.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 540
+      },
+      "width": 512,
+      "height": 540,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.counseling-center.png",
+      "mobileVariant": "earth.building.counseling-center.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.counseling-center.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Digital Testimony Scroll Kiosk",
+      "assetId": "earth.object.testimony-kiosk",
+      "world": "earth-2026",
+      "category": "objects",
+      "description": "Modern interactive digital kiosk/terminal with a glowing touchscreen for delivering Testimony Scrolls. Explicitly digital, not a scroll-on-pedestal object.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.testimony-kiosk.png",
+      "mobileVariant": "earth.object.testimony-kiosk.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.testimony-kiosk.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "EV Charging Station",
+      "assetId": "earth.object.ev-charger",
+      "world": "earth-2026",
+      "category": "objects",
+      "description": "Modern EV charging pedestal with a glowing teal-green (#2fbf9f) accent display and coiled charging cable.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.ev-charger.png",
+      "mobileVariant": "earth.object.ev-charger.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.ev-charger.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Solar Panel Structure",
+      "assetId": "earth.object.solar-structure",
+      "world": "earth-2026",
+      "category": "objects",
+      "description": "Standalone ground-mounted solar panel array / solar carport on a steel support frame.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.solar-structure.png",
+      "mobileVariant": "earth.object.solar-structure.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.solar-structure.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Community Garden Bed",
+      "assetId": "earth.object.community-garden",
+      "world": "earth-2026",
+      "category": "objects",
+      "description": "Modern raised community garden bed with timber/metal edging, neat vegetable and herb rows, drip irrigation.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.community-garden.png",
+      "mobileVariant": "earth.object.community-garden.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.community-garden.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Prayer Garden",
+      "assetId": "earth.object.prayer-garden",
+      "world": "earth-2026",
+      "category": "objects",
+      "description": "Small modern prayer garden quiet space: contemporary bench, minimalist landscaped planting beds, paved path.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.prayer-garden.png",
+      "mobileVariant": "earth.object.prayer-garden.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.prayer-garden.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Compact Car",
+      "assetId": "earth.vehicle.car",
+      "world": "earth-2026",
+      "category": "vehicles",
+      "description": "Current-model compact sedan, parked, neutral silver paint, contemporary 2026 design.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.vehicle.car.png",
+      "mobileVariant": "earth.vehicle.car.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/vehicles/earth.vehicle.car.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Electric Vehicle",
+      "assetId": "earth.vehicle.ev",
+      "world": "earth-2026",
+      "category": "vehicles",
+      "description": "Modern electric vehicle, aerodynamic crossover silhouette distinct from the regular car, teal accent near the charge port.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.vehicle.ev.png",
+      "mobileVariant": "earth.vehicle.ev.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/vehicles/earth.vehicle.ev.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Road & Sidewalk Tile",
+      "assetId": "earth.terrain.road-sidewalk",
+      "world": "earth-2026",
+      "category": "terrain",
+      "description": "Modern road-and-sidewalk ground tile: asphalt lane with current-style dashed white lane striping and a yellow-and-white crosswalk stripe, bordered by a poured-concrete sidewalk edge.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 64
+      },
+      "width": 256,
+      "height": 128,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "0",
+        "90",
+        "180",
+        "270"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.terrain.road-sidewalk.png",
+      "mobileVariant": "earth.terrain.road-sidewalk.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/terrain/earth.terrain.road-sidewalk.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Modern Campus Grass",
+      "assetId": "earth.terrain.grass-modern",
+      "world": "earth-2026",
+      "category": "terrain",
+      "description": "Bright, manicured modern campus lawn ground tile -- distinctly maintained/mowed, brighter and cleaner than a wild or fantasy grass tile.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 64
+      },
+      "width": 256,
+      "height": 128,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "0",
+        "90",
+        "180",
+        "270"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.terrain.grass-modern.png",
+      "mobileVariant": "earth.terrain.grass-modern.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/terrain/earth.terrain.grass-modern.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "assetName": "Earth -- 2026 World Selector Icon",
+      "assetId": "earth.icon.world-selector",
+      "world": "earth-2026",
+      "category": "icons",
+      "description": "Compact circular emblem for the world-switcher UI: stylized globe with leaf and building silhouette in cool blue/green tones. Grounded and modern, visually distinct from the Upper Kingdom's celestial gold-crest icon.",
+      "gridFootprint": "n/a",
+      "anchorPoint": {
+        "x": 64,
+        "y": 64
+      },
+      "width": 128,
+      "height": 128,
+      "fileFormat": "png",
+      "transparency": true,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": false,
+      "interactive": true,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.icon.world-selector.png",
+      "mobileVariant": "earth.icon.world-selector.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/icons/earth.icon.world-selector.png",
+      "optimizationTarget": "lossless-png",
+      "status": "verified"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Upgraded Member Home",
+      "assetId": "earth.building.member-home-upgraded",
+      "category": "buildings",
+      "description": "Tier-2 upgraded member home: two-story contemporary massing with a cantilevered second story, larger floor-to-ceiling windows, refined manicured landscaping, and warm timber cladding accents. A visibly bigger, more premium version of the modern starter home.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 603
+      },
+      "width": 512,
+      "height": 603,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.member-home-upgraded.png",
+      "mobileVariant": "earth.building.member-home-upgraded.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.member-home-upgraded.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Apartment-Style Member Plot",
+      "assetId": "earth.building.apartment-plot",
+      "category": "buildings",
+      "description": "Small modern multi-unit apartment building on a member plot: 3-4 stacked residential units, boxy flat-roof massing, mixed glass and concrete-panel facade with private balconies. Taller, boxier silhouette clearly distinct from the single-family homes.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 704
+      },
+      "width": 512,
+      "height": 704,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.apartment-plot.png",
+      "mobileVariant": "earth.building.apartment-plot.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.apartment-plot.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Youth Activity Center",
+      "assetId": "earth.building.youth-activity-center",
+      "category": "buildings",
+      "description": "Open-air covered youth sports court: painted basketball-court surface with colorful court markings and hoop, angular steel-and-glass shade canopy overhead. Energetic contemporary design matching the campus material language.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 503
+      },
+      "width": 512,
+      "height": 503,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.youth-activity-center.png",
+      "mobileVariant": "earth.building.youth-activity-center.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.youth-activity-center.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Food Distribution Center",
+      "assetId": "earth.building.food-distribution-center",
+      "category": "buildings",
+      "description": "Modern food-distribution facility: single-story warehouse/pantry-style building with a raised loading dock, roll-up dock door, concrete panel walls, rooftop solar and HVAC units, small glass-fronted office section.",
+      "gridFootprint": "2x2",
+      "anchorPoint": {
+        "x": 256,
+        "y": 479
+      },
+      "width": 512,
+      "height": 479,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "2x2",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.food-distribution-center.png",
+      "mobileVariant": "earth.building.food-distribution-center.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.food-distribution-center.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Gathering Plaza",
+      "assetId": "earth.building.gathering-plaza",
+      "category": "buildings",
+      "description": "Open contemporary public gathering plaza: paved plaza surface with modern bench seating, modular concrete seats, angular slatted wood-and-steel shade pergolas, and potted landscaping. General-purpose community gathering space distinct from the youth sports court.",
+      "gridFootprint": "3x3",
+      "anchorPoint": {
+        "x": 384,
+        "y": 595
+      },
+      "width": 768,
+      "height": 595,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": true,
+      "collisionFootprint": "3x3",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.building.gathering-plaza.png",
+      "mobileVariant": "earth.building.gathering-plaza.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/buildings/earth.building.gathering-plaza.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Landscaping Tree",
+      "assetId": "earth.object.tree",
+      "category": "objects",
+      "description": "Naturalistic, realistic landscaping-grade deciduous tree with a full lush canopy, matching modern manicured campus planting style. Not a fantasy or stylized tree.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.tree.png",
+      "mobileVariant": "earth.object.tree.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.tree.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Landscaped Shrub",
+      "assetId": "earth.object.shrub",
+      "category": "objects",
+      "description": "Manicured landscaped shrub/hedge, neatly rounded trimmed form, healthy naturalistic green foliage -- contemporary campus landscaping accent plant.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.shrub.png",
+      "mobileVariant": "earth.object.shrub.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.shrub.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Landscaping Rock",
+      "assetId": "earth.object.rock",
+      "category": "objects",
+      "description": "Naturalistic landscaping boulder/rock cluster in clean matte gray granite tones -- modern landscape-architecture accent stone, no moss or fantasy carving.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.rock.png",
+      "mobileVariant": "earth.object.rock.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.rock.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Landscaped Pond",
+      "assetId": "earth.object.pond",
+      "category": "objects",
+      "description": "Modern landscaped pond water feature with clean poured-concrete/cut-stone edging, calm reflective water, minimal restrained aquatic planting -- contemporary landscape-architecture style, not a rustic pond.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.pond.png",
+      "mobileVariant": "earth.object.pond.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.pond.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Rain Garden",
+      "assetId": "earth.object.rain-garden",
+      "category": "objects",
+      "description": "Rain garden stormwater-management feature: a shallow planted basin lined with river rock, filled with ornamental grasses and native flowering plants -- functional stormwater layout, distinct from the decorative community/prayer gardens.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.rain-garden.png",
+      "mobileVariant": "earth.object.rain-garden.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.rain-garden.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Bike Rack",
+      "assetId": "earth.object.bike-rack",
+      "category": "objects",
+      "description": "Modern powder-coated dark steel bike rack with 3-4 parking slots, minimal geometric design -- contemporary campus street furniture.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.bike-rack.png",
+      "mobileVariant": "earth.object.bike-rack.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.bike-rack.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "LED Path Light",
+      "assetId": "earth.object.led-path-light",
+      "category": "objects",
+      "description": "Small modern LED path light bollard: matte dark metal cylindrical body with a visibly glowing warm-white LED band and soft light bloom -- contemporary outdoor pathway lighting fixture.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.led-path-light.png",
+      "mobileVariant": "earth.object.led-path-light.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.led-path-light.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Accessible Ramp Segment",
+      "assetId": "earth.object.accessible-ramp",
+      "category": "objects",
+      "description": "Short accessible entrance ramp segment with modern brushed-metal tubular handrails, poured light-gray concrete ramp surface, and a yellow ADA tactile warning strip -- matches the church-HQ/counseling-center material language.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.accessible-ramp.png",
+      "mobileVariant": "earth.object.accessible-ramp.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.accessible-ramp.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Modern Wayfinding Sign",
+      "assetId": "earth.object.modern-sign",
+      "category": "objects",
+      "description": "Modern campus wayfinding/entrance sign: freestanding sign with a concrete/brushed-steel base and a flat backlit panel -- clean contemporary minimalist signage, explicitly not a carved wooden or gilded sign.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 256
+      },
+      "width": 256,
+      "height": 256,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "1x1",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "baked-soft-lower-right",
+      "desktopVariant": "earth.object.modern-sign.png",
+      "mobileVariant": "earth.object.modern-sign.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/objects/earth.object.modern-sign.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Parking Space Tile",
+      "assetId": "earth.terrain.parking-space",
+      "category": "terrain",
+      "description": "Parking-space ground tile: dark matte asphalt surface with crisp white painted parking-stall lines forming a single rectangular parking bay -- distinct from the road-and-sidewalk tile, contemporary 2026 campus paving.",
+      "gridFootprint": "1x1",
+      "anchorPoint": {
+        "x": 128,
+        "y": 64
+      },
+      "width": 256,
+      "height": 128,
+      "rotationOptions": [
+        "0",
+        "90",
+        "180",
+        "270"
+      ],
+      "placeable": true,
+      "interactive": false,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.terrain.parking-space.png",
+      "mobileVariant": "earth.terrain.parking-space.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/terrain/earth.terrain.parking-space.png"
+    },
+    {
+      "world": "earth-2026",
+      "fileFormat": "png",
+      "transparency": true,
+      "optimizationTarget": "lossless-png",
+      "status": "verified",
+      "assetName": "Earth World Mini-Map Treatment",
+      "assetId": "earth.icon.minimap-treatment",
+      "category": "icons",
+      "description": "Small flat marker/badge glyph for how Earth World locations render on the mini-map: a rounded green-leaf-and-blue-accent badge in cool green/blue tones, legible at small sizes. Distinct from the Upper Kingdom's celestial gold-star treatment.",
+      "gridFootprint": "n/a",
+      "anchorPoint": {
+        "x": 32,
+        "y": 32
+      },
+      "width": 64,
+      "height": 64,
+      "rotationOptions": [
+        "none"
+      ],
+      "placeable": false,
+      "interactive": false,
+      "collisionFootprint": "none",
+      "lightDirection": "upper-left",
+      "shadowBehavior": "none",
+      "desktopVariant": "earth.icon.minimap-treatment.png",
+      "mobileVariant": "earth.icon.minimap-treatment.png",
+      "storagePath": "/images/kingdom-scrolls/earth-2026/icons/earth.icon.minimap-treatment.png"
+    }
+  ]
+}

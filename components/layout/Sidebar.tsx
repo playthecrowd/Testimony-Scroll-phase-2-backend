@@ -7,7 +7,7 @@ import { Bell, User, ChevronsLeft, X } from "lucide-react";
 import { useSession } from "@/context/SessionContext";
 import { getUnreadCount } from "@/services/notificationService";
 import { cn } from "@/lib/utils";
-import { SIDEBAR_MEMBER_LINKS, SIDEBAR_HOST_LINKS } from "@/lib/navigation";
+import { getSidebarLinks } from "@/lib/navigation";
 
 export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; onCloseMobile: () => void }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -15,7 +15,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: { mobileOpen: boolean; on
   const pathname = usePathname();
   const unread = session.isLoggedIn ? getUnreadCount(session.user.id) : 0;
 
-  const links = (session.accountType === "host" ? SIDEBAR_HOST_LINKS : SIDEBAR_MEMBER_LINKS).filter(
+  const links = getSidebarLinks(session.accountType).filter(
     (link) => !link.platformAdminOnly || session.isPlatformAdmin
   );
 

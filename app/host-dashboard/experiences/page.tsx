@@ -7,6 +7,8 @@ import { ErrorState, EmptyState } from "@/components/ui/AsyncState";
 import { LinkButton } from "@/components/ui/Button";
 import { getMyHostChurches } from "@/services/supabase/churches";
 import { getManagedExperiences, getExperienceSummaries } from "@/services/supabase/churchExperiences";
+import { isEntityManagerAccountType } from "@/lib/accountType";
+import { AccountType } from "@/types";
 import { ExperienceStatusBadge, ExperienceVisibilityBadge, EXPERIENCE_TYPE_LABELS, EXPERIENCE_FORMAT_LABELS } from "@/components/experiences/ExperienceStatusBadge";
 import { formatDate } from "@/lib/utils";
 
@@ -43,14 +45,14 @@ export default async function HostExperiencesPage() {
     if (!user) redirect("/login");
 
     const { data: profile } = await supabase.from("profiles").select("account_type").eq("id", user.id).maybeSingle();
-    if (profile?.account_type !== "host") redirect("/dashboard");
+    if (!profile || !isEntityManagerAccountType(profile.account_type as AccountType)) redirect("/dashboard");
 
     const { count } = await supabase
       .from("church_memberships")
       .select("id", { count: "exact", head: true })
       .eq("profile_id", user.id)
       .in("role", ["host", "admin"]);
-    if (!count) redirect("/onboarding/church");
+    if (!count) redirect(profile.account_type === "organization" ? "/onboarding/organization" : "/onboarding/church");
   } catch (err) {
     if (err instanceof SupabaseConfigError) {
       return (

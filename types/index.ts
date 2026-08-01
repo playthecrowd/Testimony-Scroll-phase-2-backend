@@ -1,7 +1,7 @@
 // Central type definitions for Quest for the Kingdom
 // Phase Two will map these directly onto Supabase tables.
 
-export type AccountType = "host" | "member";
+export type AccountType = "host" | "member" | "organization";
 
 export interface User {
   id: string;
@@ -323,6 +323,11 @@ export interface PublishedChurch {
   contactPhone: string | null;
   churchType: string | null;
   bannerUrl: string | null;
+  // "church" or "organization" -- see supabase/migrations/0041_organization_entity_type.sql.
+  // Defaults to "church" only via the DB column default; every row selected here always has an
+  // explicit value, this optional marker exists solely because a handful of older mock/demo
+  // objects constructed by hand (data/churches.ts, tests) predate this field.
+  entityType?: "church" | "organization";
 }
 
 export interface ChurchMinistry {
@@ -461,6 +466,11 @@ export interface LessonJourney {
   studiedStartedAt: string;
   studiedCompletedAt: string | null;
   lastOpenedAt: string;
+  // Server-computed, immutable full-lesson-completion timestamp (migration 0042) -- distinct from
+  // currentStage/studiedCompletedAt. Null until Study is complete AND every required-linked
+  // Experience (if any) is satisfied; a lesson with no required Experience gets this set the
+  // moment Study completes. Never cleared once set.
+  completedAt: string | null;
 }
 
 export interface LessonJourneyItem {
@@ -556,9 +566,20 @@ export interface CharacterRelatedTestimony {
   note: string | null;
 }
 
+// Derived transitively through the character's own episodes (episode_characters ->
+// episode_lessons -> lessons) -- there is no direct character_lessons table. A character with no
+// episodes yet simply has an empty array; see services/supabase/characters.ts's own comment for
+// why this reuses episode_lessons instead of adding a new, largely-duplicate join table.
+export interface CharacterRelatedLesson {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 export interface PublishedCharacterWithRelations extends PublishedCharacter {
   episodes: CharacterRelatedEpisode[];
   testimonies: CharacterRelatedTestimony[];
+  relatedLessons: CharacterRelatedLesson[];
 }
 
 export type PublishedEpisodeStatus = "draft" | "published";

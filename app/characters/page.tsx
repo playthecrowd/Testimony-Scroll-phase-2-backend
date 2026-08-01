@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/ui/AsyncState";
 import { PageBackground } from "@/components/layout/PageBackground";
 import { backgrounds } from "@/data/backgrounds";
 import { getCharacters } from "@/services/supabase/characters";
+import { CharacterAvatarImage } from "@/components/characters/CharacterAvatarImage";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +50,7 @@ export default async function CharactersPage() {
           {characters.map((c) => (
             <Link key={c.id} href={`/characters/${c.id}`} className="group">
               <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-surface-2">
-                {c.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
-                )}
+                <CharacterAvatarImage src={c.imageUrl} className="group-hover:scale-105 transition-transform" />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-3">
                   <p className="text-sm font-semibold text-foreground">{c.name}</p>

@@ -98,6 +98,13 @@ email → off**. Signup will then log the user in immediately.
    ```
    {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
    ```
+1b. Do the same for **Authentication → Emails → Reset Password** (used by the "Forgot password?"
+   flow on `/login`), replacing its link with:
+   ```
+   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery
+   ```
+   Both templates point at the same `/auth/confirm` route -- it branches on `type` to send
+   signup confirmations to the user's dashboard and recovery links to `/reset-password`.
 2. Go to **Authentication → URL Configuration** and set:
    - **Site URL**: your real production domain, e.g. `https://your-app.vercel.app`
    - **Redirect URLs** (allow list), add all of:
