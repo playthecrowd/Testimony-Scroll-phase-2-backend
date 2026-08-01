@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,9 +16,12 @@ import {
   Save,
   Box,
   ChevronDown,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setChecklistItemCompletion, touchLastOpened, markStudiedComplete } from "@/services/supabase/journeys";
+import { checkLessonQuestionAnswer } from "@/services/supabase/questions";
 import { getMyProgressionAwardForSourceRow, getMyBadgeAwards } from "@/services/supabase/progression";
 import { getApplicableChecklistItems, ChecklistItemKey } from "@/lib/journeyChecklist";
 import { getYouTubeEmbedUrl } from "@/lib/videoEmbed";
@@ -65,13 +68,27 @@ export function StudiedClient({
   }, [items]);
   const questionsItemCompleted = completionByKey.get("questions")?.completed ?? false;
 
-  // Per-question acknowledgement (local UI state) -- the persisted checklist still only tracks
-  // one "questions" item (lib/journeyChecklist.ts's fixed vocabulary), since lesson_questions rows
-  // are recreated wholesale on every Host edit (no stable id to hang durable per-question progress
-  // off of). Checking every question here is what marks that single persisted item complete.
-  const [checkedQuestionIds, setCheckedQuestionIds] = useState<Set<string>>(
-    () => new Set(questionsItemCompleted ? questions.map((q) => q.id) : [])
-  );
+  // Per-question answer state (local UI state) -- the persisted checklist still only tracks one
+  // "questions" item (lib/journeyChecklist.ts's fixed vocabulary), since lesson_questions rows are
+  // recreated wholesale on every Host edit (no stable id to hang durable per-question progress off
+  // of). If the aggregate item is already complete, every question starts locked-in as "correct"
+  // (which id was actually selected doesn't matter once it's done) so a reload never re-demands an
+  // already-completed learner redo work. If it isn't complete yet, every question starts fresh --
+  // any earlier partial progress this session is lost on reload, but nothing "complete" is ever
+  // erased, since nothing was complete yet.
+  type QuestionAnswerStatus = "unanswered" | "checking" | "correct" | "incorrect";
+  interface QuestionAnswerState {
+    selectedChoiceId: string | null;
+    status: QuestionAnswerStatus;
+  }
+  const [answerStates, setAnswerStates] = useState<Record<string, QuestionAnswerState>>(() => {
+    const initial: Record<string, QuestionAnswerState> = {};
+    questions.forEach((q) => {
+      initial[q.id] = { selectedChoiceId: null, status: questionsItemCompleted ? "correct" : "unanswered" };
+    });
+    return initial;
+  });
+  const [answerErrors, setAnswerErrors] = useState<Record<string, string>>({});
 
   const completedCount = applicableItems.filter((def) => completionByKey.get(def.key)?.completed).length;
   const totalCount = applicableItems.length;
@@ -122,37 +139,113 @@ export function StudiedClient({
     }
   }
 
-  async function toggleQuestionChecked(questionId: string) {
-    const next = new Set(checkedQuestionIds);
-    if (next.has(questionId)) next.delete(questionId);
-    else next.add(questionId);
-    setCheckedQuestionIds(next);
+  function selectChoice(questionId: string, choiceId: string) {
+    setAnswerStates((prev) => {
+      const current = prev[questionId];
+      if (!current || current.status === "correct" || current.status === "checking") return prev;
+      // Choosing a different answer after an incorrect attempt clears that feedback -- the learner
+      // gets a clean slate to try again, never a stale "incorrect" label sitting next to a choice
+      // they haven't submitted yet.
+      return { ...prev, [questionId]: { selectedChoiceId: choiceId, status: "unanswered" } };
+    });
+    setAnswerErrors((prev) => {
+      if (!(questionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  }
 
-    const allChecked = questions.length > 0 && questions.every((q) => next.has(q.id));
-    if (allChecked === questionsItemCompleted) return; // already in sync -- no save needed
-    if (pendingKeys.has("questions")) return;
+  async function submitAnswer(questionId: string) {
+    const current = answerStates[questionId];
+    if (!current || !current.selectedChoiceId) return;
+    if (current.status === "correct" || current.status === "checking") return;
 
-    setPendingKeys((prev) => new Set(prev).add("questions"));
-    setExitMessage("");
+    setAnswerStates((prev) => ({ ...prev, [questionId]: { ...prev[questionId], status: "checking" } }));
+    setAnswerErrors((prev) => {
+      if (!(questionId in prev)) return prev;
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+
+    let correct: boolean;
     try {
       const supabase = createClient();
-      const updated = await setChecklistItemCompletion(supabase, journey.id, "questions", allChecked);
-      setItems((prev) => {
-        const rest = prev.filter((i) => i.itemKey !== "questions");
-        rest.push(updated);
-        return rest;
-      });
+      // Only the three ids the learner actually chose ever leave the browser -- the server (a
+      // SECURITY DEFINER RPC, migration 0043) is the only thing that ever sees or compares against
+      // the real correct answer, and it returns nothing but this boolean.
+      correct = await checkLessonQuestionAnswer(supabase, lesson.id, questionId, current.selectedChoiceId);
     } catch (err) {
-      console.error("[StudiedClient] Failed to save questions acknowledgement:", err);
-      setCompleteError("We couldn't save that item just now. Please try again.");
-    } finally {
-      setPendingKeys((prev) => {
-        const nextPending = new Set(prev);
-        nextPending.delete("questions");
-        return nextPending;
-      });
+      console.error(`[StudiedClient] Failed to check answer for question "${questionId}":`, err);
+      setAnswerStates((prev) => ({ ...prev, [questionId]: { ...prev[questionId], status: "unanswered" } }));
+      setAnswerErrors((prev) => ({ ...prev, [questionId]: "We couldn't check that answer just now. Please try again." }));
+      return;
+    }
+
+    setAnswerStates((prev) => ({
+      ...prev,
+      [questionId]: { ...prev[questionId], status: correct ? "correct" : "incorrect" },
+    }));
+    if (!correct) {
+      setAnswerErrors((prev) => ({ ...prev, [questionId]: "Not quite -- choose an answer and try again." }));
     }
   }
+
+  // Legacy questions authored before migration 0039 (never re-saved since) have zero configured
+  // choices -- nothing to grade server-side. An explicit click here is still required (never
+  // automatic on mount/tab-open) so this can't silently complete the aggregate item just because
+  // the Questions tab was viewed.
+  function markReviewed(questionId: string) {
+    setAnswerStates((prev) => {
+      const current = prev[questionId];
+      if (!current || current.status === "correct") return prev;
+      return { ...prev, [questionId]: { ...current, status: "correct" } };
+    });
+  }
+
+  // Saving the aggregate "questions" completion is a side effect of every question reaching
+  // "correct," not of any single submit -- doing it here (rather than inside submitAnswer's own
+  // setState call) keeps setAnswerStates pure and avoids a double-fire under Strict Mode's dev-only
+  // double-invoke of state updaters. questionsCompletionSavedRef mirrors this file's existing
+  // startedForLessonRef pattern: a ref, not state, so the guard survives the same double-invoke.
+  const questionsCompletionSavedRef = useRef(questionsItemCompleted);
+  const allQuestionsCorrect = questions.length > 0 && questions.every((q) => answerStates[q.id]?.status === "correct");
+  useEffect(() => {
+    if (!allQuestionsCorrect || questionsCompletionSavedRef.current) return;
+    questionsCompletionSavedRef.current = true;
+
+    let cancelled = false;
+    setPendingKeys((prev) => new Set(prev).add("questions"));
+    setExitMessage("");
+    (async () => {
+      try {
+        const supabase = createClient();
+        const updated = await setChecklistItemCompletion(supabase, journey.id, "questions", true);
+        if (cancelled) return;
+        setItems((prev) => {
+          const rest = prev.filter((i) => i.itemKey !== "questions");
+          rest.push(updated);
+          return rest;
+        });
+      } catch (err) {
+        if (cancelled) return;
+        console.error("[StudiedClient] Failed to save questions completion:", err);
+        setCompleteError("We couldn't save your progress just now. Please try again.");
+      } finally {
+        if (!cancelled) {
+          setPendingKeys((prev) => {
+            const next = new Set(prev);
+            next.delete("questions");
+            return next;
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [allQuestionsCorrect, journey.id, questionsCompletionSavedRef]);
 
   async function handleSaveAndExit() {
     if (exiting) return;
@@ -336,32 +429,110 @@ export function StudiedClient({
 
           {activeTab === "Questions" && (
             <div className="qk-card p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-1">Reflection Questions</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-1">Study Questions</h3>
               {questions.length === 0 ? (
                 <p className="text-sm text-muted">No questions were provided for this lesson.</p>
               ) : (
                 <>
-                  <p className="text-xs text-muted mb-3">Check off each question as you reflect on it.</p>
-                  <ol className="space-y-3">
+                  <p className="text-xs text-muted mb-4">Choose an answer and check it to complete each question.</p>
+                  <ol className="space-y-5">
                     {questions.map((q, i) => {
-                      const checked = checkedQuestionIds.has(q.id);
+                      const state = answerStates[q.id] ?? { selectedChoiceId: null, status: "unanswered" as const };
+                      const hasChoices = q.choices.length === 4;
+                      const locked = state.status === "correct" || isStudiedComplete;
+                      const error = answerErrors[q.id];
+
                       return (
-                        <li key={q.id}>
-                          <button
-                            onClick={() => toggleQuestionChecked(q.id)}
-                            disabled={isStudiedComplete || pendingKeys.has("questions")}
-                            aria-pressed={checked}
-                            className="w-full flex items-start gap-2.5 text-left disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {checked ? (
+                        <li key={q.id} className="border-t border-border-subtle pt-4 first:border-t-0 first:pt-0">
+                          <p className="text-sm font-medium text-foreground mb-2.5 flex items-start gap-2">
+                            {state.status === "correct" ? (
                               <CheckCircle2 size={16} className="text-accent-blue-light shrink-0 mt-0.5" />
                             ) : (
-                              <Circle size={16} className="text-muted shrink-0 mt-0.5" />
+                              <span className="text-accent-blue-light shrink-0">{i + 1}.</span>
                             )}
-                            <span className={cn("text-sm", checked ? "text-foreground" : "text-muted")}>
-                              <span className="text-accent-blue-light font-medium">{i + 1}.</span> {q.question}
-                            </span>
-                          </button>
+                            <span>{q.question}</span>
+                          </p>
+
+                          {!hasChoices ? (
+                            <div className="ml-6">
+                              {state.status === "correct" ? (
+                                <p className="text-xs text-accent-blue-light flex items-center gap-1">
+                                  <CheckCircle2 size={13} /> Reviewed
+                                </p>
+                              ) : (
+                                <Button type="button" size="sm" onClick={() => markReviewed(q.id)} disabled={isStudiedComplete}>
+                                  Mark Reviewed
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-2.5">
+                              <fieldset disabled={locked || state.status === "checking"}>
+                                <legend className="sr-only">Answer choices for question {i + 1}</legend>
+                                <div className="space-y-2">
+                                  {q.choices.map((c, ci) => {
+                                    const selected = state.selectedChoiceId === c.id;
+                                    return (
+                                      <label
+                                        key={c.id}
+                                        className={cn(
+                                          "flex items-center gap-3 rounded-lg border px-3 py-2.5 min-h-[44px] transition-colors",
+                                          locked || state.status === "checking" ? "cursor-not-allowed opacity-80" : "cursor-pointer",
+                                          selected
+                                            ? "border-accent-blue-light bg-accent-blue/10"
+                                            : "border-border-subtle hover:border-accent-blue-light/60"
+                                        )}
+                                      >
+                                        <input
+                                          type="radio"
+                                          name={`question-${q.id}`}
+                                          checked={selected}
+                                          onChange={() => selectChoice(q.id, c.id)}
+                                          aria-label={`Question ${i + 1}, answer ${String.fromCharCode(65 + ci)}: ${c.answerText}`}
+                                          className="shrink-0"
+                                        />
+                                        <span className="w-5 h-5 rounded-full border border-border-subtle flex items-center justify-center text-[11px] shrink-0">
+                                          {String.fromCharCode(65 + ci)}
+                                        </span>
+                                        <span className="text-sm text-foreground break-words">{c.answerText}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </fieldset>
+
+                              <div className="flex items-center gap-3">
+                                {state.status !== "correct" && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => submitAnswer(q.id)}
+                                    disabled={!state.selectedChoiceId || state.status === "checking" || isStudiedComplete}
+                                  >
+                                    {state.status === "checking" ? (
+                                      <>
+                                        <Loader2 size={14} className="animate-spin" /> Checking...
+                                      </>
+                                    ) : (
+                                      "Check Answer"
+                                    )}
+                                  </Button>
+                                )}
+                                <div role="status" aria-live="polite" className="text-xs">
+                                  {state.status === "correct" && (
+                                    <span className="text-accent-blue-light flex items-center gap-1">
+                                      <CheckCircle2 size={13} /> Correct
+                                    </span>
+                                  )}
+                                  {state.status === "incorrect" && error && (
+                                    <span className="text-red-300 flex items-center gap-1">
+                                      <XCircle size={13} /> {error}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </li>
                       );
                     })}

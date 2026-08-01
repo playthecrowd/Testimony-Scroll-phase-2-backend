@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import { Field } from "@/components/ui/FormField";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { CampaignLessonInput, replaceLessonMediaByTypes } from "@/services/supabase/lessons";
-import { replaceLessonQuestions } from "@/services/supabase/questions";
+import { replaceLessonQuestions, getLessonQuestionsForEdit } from "@/services/supabase/questions";
 import { isValidMediaUrl } from "@/lib/lessonForm";
 import { QuestionsEditor, QuestionDraft, validateQuestionDrafts, toQuestionInputs, questionsToDrafts } from "@/components/lessons/QuestionsEditor";
 import { PublishedLesson } from "@/types";
@@ -47,6 +47,27 @@ export function CampaignLessonForm({ lesson }: { lesson?: PublishedLesson }) {
   const [questions, setQuestions] = useState<QuestionDraft[]>(() => (lesson ? questionsToDrafts(lesson.questions) : []));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // lesson.questions (via getLessonById) never carries real isCorrect values -- migration 0043
+  // revoked column-level SELECT on that column for anon/authenticated. Re-seed from the dedicated,
+  // manager-only RPC once mounted, so an existing campaign lesson's chosen correct answers show.
+  useEffect(() => {
+    const lessonId = lesson?.id;
+    if (!lessonId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const withAnswers = await getLessonQuestionsForEdit(supabase, lessonId);
+        if (!cancelled) setQuestions(questionsToDrafts(withAnswers));
+      } catch (err) {
+        console.error("[CampaignLessonForm] Failed to load question answers:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [lesson?.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -39,5 +39,10 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ l
 
   if (!lesson) notFound();
 
-  return <LessonDetailClient lesson={lesson} />;
+  // LessonDetailClient never renders questions (they belong only to the Study flow, per
+  // docs/REQUIRED_FEATURES.md) -- but a client component's props still get serialized into the
+  // page's RSC payload regardless of which fields its JSX actually reads. Overriding to an empty
+  // array here means the question/choice text itself never reaches this public page's HTML or
+  // network payload, not just that the UI declines to display it.
+  return <LessonDetailClient lesson={{ ...lesson, questions: [] }} />;
 }

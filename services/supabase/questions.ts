@@ -1,6 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LessonQuestion } from "@/types";
 
+interface EditQuestionRow {
+  question_id: string;
+  question: string;
+  sort_order: number | null;
+  choice_id: string | null;
+  answer_text: string | null;
+  choice_sort_order: number | null;
+  is_correct: boolean | null;
+}
+
 // A question is either legacy-plain (choices: []) or multiple-choice (choices.length === 4,
 // exactly one isCorrect) -- the service layer is the last line of defense for that invariant
 // before a write reaches the DB, which only enforces "at most one correct" (see migration
@@ -61,4 +71,68 @@ export async function replaceLessonQuestions(supabase: SupabaseClient, lessonId:
 
   const { error: choicesError } = await supabase.from("lesson_question_choices").insert(choiceRows);
   if (choicesError) throw choicesError;
+}
+
+// The only read path that ever sees is_correct client-side (besides the answer-check RPC, which
+// returns just a boolean). Migration 0043 revoked column-level SELECT on is_correct for
+// anon/authenticated, so this goes through a SECURITY DEFINER function instead of a plain nested
+// select -- it re-checks private.is_church_manager internally, returning zero rows for anyone who
+// doesn't manage this lesson (never an error, matching this codebase's existing RLS fail-closed
+// convention). Never call this for member-facing rendering -- use the lesson's own embedded
+// `questions` (via getLessonById/getLessonBySlug) for that, where every choice's isCorrect is
+// always false.
+export async function getLessonQuestionsForEdit(supabase: SupabaseClient, lessonId: string): Promise<LessonQuestion[]> {
+  const { data, error } = await supabase.rpc("get_lesson_questions_for_edit", { p_lesson_id: lessonId });
+  if (error) throw error;
+
+  const byQuestion = new Map<string, LessonQuestion>();
+  (data as EditQuestionRow[] | null ?? []).forEach((row) => {
+    let q = byQuestion.get(row.question_id);
+    if (!q) {
+      q = { id: row.question_id, question: row.question, sortOrder: row.sort_order ?? 0, choices: [] };
+      byQuestion.set(row.question_id, q);
+    }
+    if (row.choice_id) {
+      q.choices.push({
+        id: row.choice_id,
+        answerText: row.answer_text ?? "",
+        sortOrder: row.choice_sort_order ?? 0,
+        isCorrect: row.is_correct ?? false,
+      });
+    }
+  });
+
+  return Array.from(byQuestion.values())
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((q) => ({ ...q, choices: q.choices.slice().sort((a, b) => a.sortOrder - b.sortOrder) }));
+}
+
+// Member-facing answer submission. Sends only the three ids the learner actually chose -- never a
+// client-computed "correct" flag -- and the RPC (migration 0043, SECURITY DEFINER) is the only
+// thing that ever compares against is_correct, returning solely this boolean. The lesson_questions
+// lookup here is a defense-in-depth check ("this question belongs to that lesson") on top of what
+// the RPC's own join already scopes -- a fabricated/mismatched pair fails clearly instead of the
+// mismatch being silently ignored.
+export async function checkLessonQuestionAnswer(
+  supabase: SupabaseClient,
+  lessonId: string,
+  questionId: string,
+  choiceId: string
+): Promise<boolean> {
+  const { data: question, error: questionError } = await supabase
+    .from("lesson_questions")
+    .select("lesson_id")
+    .eq("id", questionId)
+    .maybeSingle();
+  if (questionError) throw questionError;
+  if (!question || question.lesson_id !== lessonId) {
+    throw new Error("This question doesn't belong to the specified lesson.");
+  }
+
+  const { data, error } = await supabase.rpc("check_lesson_question_answer", {
+    p_question_id: questionId,
+    p_choice_id: choiceId,
+  });
+  if (error) throw error;
+  return data === true;
 }

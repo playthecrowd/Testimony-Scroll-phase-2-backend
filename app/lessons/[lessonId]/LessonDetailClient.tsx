@@ -10,7 +10,6 @@ import {
   Presentation,
   Headphones,
   Box,
-  CheckCircle2,
   ChevronRight,
   Radio,
   Users2,
@@ -28,8 +27,9 @@ import { LessonThumbnail } from "@/components/lessons/LessonThumbnail";
 import { ThumbnailEditorPanel } from "@/components/lessons/ThumbnailEditorPanel";
 import { getMyHostChurches } from "@/services/supabase/churches";
 import { createClient } from "@/lib/supabase/client";
+import { isEntityManagerAccountType } from "@/lib/accountType";
 
-const tabs = ["Overview", "Notes", "Video", "Slides", "Hosts", "Questions"] as const;
+const tabs = ["Overview", "Notes", "Video", "Slides", "Hosts"] as const;
 
 function isValidUrl(value: string | null | undefined): value is string {
   if (!value) return false;
@@ -93,7 +93,7 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   const [canManageThumbnail, setCanManageThumbnail] = useState(false);
 
   useEffect(() => {
-    if (!ready || !session.isLoggedIn || session.accountType !== "host") return;
+    if (!ready || !session.isLoggedIn || !isEntityManagerAccountType(session.accountType)) return;
     let cancelled = false;
     (async () => {
       try {
@@ -133,10 +133,6 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
   }, [ready, session, lesson.id]);
 
   const selectedHost = selectedHostOverride ?? lesson.hosts[0]?.id ?? null;
-  // Real, per-lesson questions as of Phase 3 (docs/PHASE3_AUDIT.md) -- previously this read from
-  // data/questions.ts, a static mock catalog disconnected from real lessons. Listing them here is
-  // as far as Phase 3 goes; required-response/completion tracking is Phase 4's job.
-  const questions = lesson.questions;
   const activeHost = lesson.hosts.find((h) => h.id === selectedHost) ?? lesson.hosts[0];
 
   const notesMedia = lesson.media.filter((m) => m.mediaType === "notes");
@@ -301,7 +297,6 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
                 )}
               >
                 {t}
-                {t === "Questions" && <span className="text-[10px] bg-surface-2 px-1.5 rounded-full">{questions.length}</span>}
                 {t === "Hosts" && <span className="text-[10px] bg-surface-2 px-1.5 rounded-full">{lesson.hosts.length}</span>}
               </button>
             ))}
@@ -324,18 +319,6 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
                 <>
                   <h3 className="text-sm font-semibold text-foreground mb-2">About the Speaker</h3>
                   <p className="text-sm text-muted leading-relaxed mb-4">{lesson.campaignSpeakerBio}</p>
-                </>
-              )}
-              {questions.length > 0 && (
-                <>
-                  <h3 className="text-sm font-semibold text-foreground mb-2">What You&apos;ll Learn</h3>
-                  <ul className="space-y-2">
-                    {questions.slice(0, 4).map((q) => (
-                      <li key={q.id} className="flex items-start gap-2 text-sm text-muted">
-                        <CheckCircle2 size={14} className="text-accent-blue-light mt-0.5 shrink-0" /> {q.question}
-                      </li>
-                    ))}
-                  </ul>
                 </>
               )}
             </div>
@@ -457,40 +440,6 @@ export function LessonDetailClient({ lesson }: { lesson: PublishedLesson }) {
             </div>
           )}
 
-          {tab === "Questions" && (
-            <div className="qk-card p-5">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Study Questions ({questions.length})</h3>
-              {questions.length > 0 ? (
-                <ol className="space-y-4">
-                  {questions.map((q, i) => (
-                    <li key={q.id}>
-                      <p className="flex items-start gap-2.5 text-sm text-foreground font-medium">
-                        <span className="text-accent-blue-light shrink-0">{i + 1}.</span> {q.question}
-                      </p>
-                      {/* Reference answer choices only -- host/admin-authored, not a member-answerable
-                          quiz yet. Deliberately never shows which choice is correct here; that stays
-                          host-side reference data. Legacy plain-text questions have zero choices and
-                          simply show no list, unchanged from before. */}
-                      {q.choices.length > 0 && (
-                        <ul className="mt-2 ml-6 space-y-1.5">
-                          {q.choices.map((c, ci) => (
-                            <li key={c.id} className="flex items-center gap-2 text-sm text-muted">
-                              <span className="w-5 h-5 rounded-full border border-border-subtle flex items-center justify-center text-[11px] shrink-0">
-                                {String.fromCharCode(65 + ci)}
-                              </span>
-                              {c.answerText}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="text-sm text-muted">Study questions for this lesson are coming soon.</p>
-              )}
-            </div>
-          )}
         </div>
 
         <aside className="space-y-4">
