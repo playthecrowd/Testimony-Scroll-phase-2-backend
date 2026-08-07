@@ -961,3 +961,45 @@ export interface SpeakerRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+// --- Plotabl Workforce (Phase 1: module shell only -- see docs/PLOTABL_WORKFORCE_BUILD_TRACKER.md) ---
+
+export interface WorkforceModuleSettings {
+  churchId: string;
+  enabled: boolean;
+  enabledBy: string | null;
+  enabledAt: string | null;
+}
+
+export interface WorkforceDepartment {
+  id: string;
+  churchId: string;
+  name: string;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+// module_owner/platform_owner are intentionally absent -- they map to existing
+// private.is_church_manager (church_memberships host/admin + profiles.is_platform_admin), not a
+// new role row. See migration 0044's header comment.
+export type WorkforceRole = "stakeholder" | "department_leadership" | "manager" | "employee" | "intern" | "vendor";
+
+export interface WorkforceRoleAssignment {
+  id: string;
+  churchId: string;
+  profileId: string;
+  role: WorkforceRole;
+  departmentId: string | null;
+  createdAt: string;
+}
+
+// What a signed-in profile is allowed to do with Workforce for one org: entitled reflects
+// wf_module_settings.enabled; isManager reflects private.is_church_manager (org admin, so always
+// entitled to configure the module regardless of enabled); roles is every wf_role_assignments row
+// for that profile in that org (empty array is valid -- a manager may hold zero explicit roles).
+export interface WorkforceAccess {
+  churchId: string;
+  entitled: boolean;
+  isManager: boolean;
+  roles: WorkforceRoleAssignment[];
+}
