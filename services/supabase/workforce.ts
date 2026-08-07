@@ -142,14 +142,20 @@ export function getRoleBadgeLabel(access: WorkforceAccess): string {
   return "Member";
 }
 
-// Where /workforce/login sends a signed-in user next -- mirrors authService.ts's
-// resolvePostAuthDestination, but keyed on Workforce entitlement (getMyWorkforceOrganizations)
-// instead of Q4K account_type, since Workforce access is org-membership-based, not a signup-tab
-// choice. No org -> access-pending; exactly one -> straight into its Decision Pool; more than one
-// -> the org picker at /workforce itself.
-export async function resolveWorkforcePostAuthDestination(supabase: SupabaseClient): Promise<string> {
+// Where /workforce/login (and the email-confirmation callback, app/auth/confirm/route.ts) sends a
+// signed-in user next -- mirrors authService.ts's resolvePostAuthDestination, but keyed on
+// Workforce entitlement (getMyWorkforceOrganizations) instead of Q4K account_type, since Workforce
+// access is org-membership-based, not a signup-tab choice. No org -> access-pending (an existing
+// member whose entitlement lapsed); exactly one -> straight into its Decision Pool; more than one
+// -> the org picker at /workforce itself. `freshSignup` distinguishes a brand-new self-signup
+// (no org because they haven't created one yet, matching /workforce/signup's own immediate-session
+// redirect to /workforce/onboarding) from a returning user who genuinely has no access.
+export async function resolveWorkforcePostAuthDestination(
+  supabase: SupabaseClient,
+  opts?: { freshSignup?: boolean }
+): Promise<string> {
   const organizations = await getMyWorkforceOrganizations(supabase);
-  if (organizations.length === 0) return "/workforce/access-pending";
+  if (organizations.length === 0) return opts?.freshSignup ? "/workforce/onboarding" : "/workforce/access-pending";
   if (organizations.length === 1) return `/workforce/decisions?org=${organizations[0].churchId}`;
   return "/workforce";
 }

@@ -29,7 +29,8 @@ export async function signUp(
   fullName: string,
   email: string,
   password: string,
-  accountType: AccountType
+  accountType: AccountType,
+  redirectTo?: string
 ): Promise<SignUpResult> {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -37,6 +38,7 @@ export async function signUp(
     password,
     options: {
       data: { full_name: fullName, account_type: accountType },
+      ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
     },
   });
 
@@ -61,9 +63,9 @@ export async function signOut(): Promise<void> {
 // Supabase's resetPasswordForEmail never reveals whether the address is registered -- it resolves
 // without an error either way -- so surfacing error.message here stays neutral by construction; it
 // only ever fires for genuine problems (bad email format, rate limiting), never account existence.
-export async function requestPasswordReset(email: string): Promise<AuthResult> {
+export async function requestPasswordReset(email: string, redirectTo?: string): Promise<AuthResult> {
   const supabase = createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
   return error ? { error: error.message } : {};
 }
 

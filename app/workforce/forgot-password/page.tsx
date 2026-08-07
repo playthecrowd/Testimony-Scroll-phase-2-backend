@@ -25,7 +25,7 @@ export default function WorkforceForgotPasswordPage() {
     setError("");
     setSubmitting(true);
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(email, `${window.location.origin}/workforce`);
       setSent(true);
     } catch {
       setError("Something went wrong. Please try again.");
