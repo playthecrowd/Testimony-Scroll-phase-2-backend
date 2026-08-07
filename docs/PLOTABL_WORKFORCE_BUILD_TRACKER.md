@@ -152,9 +152,77 @@ phase. Visual treatment follows the UI content guide's copy/terminology exactly 
 "3D land tiles, glowing roots" visual direction (§1 of the UI guide) — that's a design pass, not
 Phase 2 plumbing.
 
-## Phases 3–8
+## Phase 3 — Decision Workspace tracking + Department Breakout: **Ready for Review**
 
-Tracked as tasks #78–#83 in the session task list; unstarted. Each depends on the prior phase's
+Built 2026-08-07:
+
+- `supabase/migrations/0046_workforce_workspace.sql` (new, additive): `wf_decision_stages` (7
+  pathway stages per decision, same status vocabulary as `wf_decisions.status` -- see the
+  migration's file header), `wf_decision_stage_transitions` (append-only history),
+  `wf_decision_feedback` (immutable, open to anyone who can see the decision),
+  `wf_experience_templates` (the 8 Future Factory experience use cases, seeded platform-wide),
+  `wf_experience_assignments` + `wf_experience_assignment_managers` (Department Leadership's
+  "Select & Assign" + manager assignment). `wf_approve_decision_stage()` RPC keeps Leadership
+  Approval authority with org managers only, via a column-level `revoke`/`grant` on
+  `approved_by`/`approved_at` (see the security note below for why the revoke matters).
+- `services/supabase/workforceStages.ts`, `services/supabase/workforceExperiences.ts`.
+- UI: `/workforce/decisions/[decisionId]/workspace` -- Pathway (stage tracker, Advance/Approve
+  actions, transition history, feedback thread) + Department Breakout (role track, experience
+  catalog, Select & Assign, manager assignment) on one page. Linked from the Decision Preview via
+  a new "Open Decision Workspace" button.
+- Verified: `tsc`/`lint`/`test` (566/566)/`build` all clean. Migration applied and verified (policy
+  counts match exactly: 2/2/2/1/2/2 across the six new tables).
+
+**Deferred**: Session proposals (WF-03's "Propose Session"/"Review Proposal"/"Approve Proposal")
+are Phase 4 scope -- nothing here creates a session. Spec stages 9-10 (Intern/Apprentice Transfer,
+Community/STEM Pathway) are "when approved" branches off the main pathway, not modeled yet.
+"Customize with Plotabl" is folded into Select & Assign's optional notes field rather than a
+separate record type.
+
+### Security finding made while verifying this phase (unrelated to Workforce itself)
+
+While confirming the column-level grant restriction on `wf_decision_stages.approved_at`/
+`approved_by` actually worked, discovered it silently didn't -- and that the same gap was live on
+two pre-existing Q4K tables. Root cause: this Supabase project carries a default privilege
+(`ALTER DEFAULT PRIVILEGES`, set outside any migration file) that grants `authenticated` full
+`arwdDxtm` on every new table automatically; a plain `grant update (cols)` only ever *adds*
+privileges, it can't narrow what the default already granted -- an unconditional `revoke` first is
+required, exactly the shape migration 0043 already uses for `lesson_question_choices.is_correct`.
+
+Confirmed live and fixed in `supabase/migrations/0047_restore_column_grant_lockdowns.sql`:
+
+- **`public.profiles`** -- `authenticated` had UPDATE on every column, including
+  `is_platform_admin`, `email`, `account_type`. Practical risk was fully mitigated by an
+  independent trigger (`protect_profile_columns`, 0003) that already blocked those specific
+  columns for every role but `postgres`/`service_role` -- so this was defense-in-depth restoration,
+  not an open exploit. Restored to the originally-intended `full_name, avatar_url` only.
+- **`public.churches`** -- `authenticated` had UPDATE on every column, including `slug`,
+  `member_count`, `status`, `is_demo`, `created_by`, `entity_type`, `timezone`. No comprehensive
+  trigger covers these (only `entity_type` has one, `protect_church_entity_type`, 0041) --
+  **this one was a real, live, exploitable gap**: any church/org manager could directly update
+  their own church's slug, status, member count, or demo flag via a plain client call, bypassing
+  every app-level control. Restored to the originally-intended 13-column list from
+  `0004_rls.sql`/`0010_church_profile_fields.sql`.
+- Verified with a genuine `SET LOCAL ROLE authenticated` + `request.jwt.claims` impersonation test
+  (wrapped in a rolled-back transaction, no data touched): legitimate columns
+  (`profiles.full_name`, `churches.description`) still update successfully; the previously-exposed
+  columns (`profiles.is_platform_admin`, `churches.slug`) now correctly return
+  "permission denied."
+- **Explicitly not touched**: `public.lessons` and `public.testimonies` were also flagged by the
+  same audit pattern but turned out to be false positives -- both carry an *unrestricted*
+  `grant insert, update on ... to authenticated` from their very first migration (0004, 0018),
+  meaning full column access there was always deliberate, with RLS as the only intended gate. Their
+  later `grant update (featured)`-style statements are redundant, not narrowing attempts.
+- **Separately observed, deliberately not fixed here** (different bug class): `churches.verified`
+  is correctly in the restored grant list by original design, but `churches_update_managed` RLS
+  doesn't distinguish a platform admin from an ordinary host/manager of their own church -- so any
+  host can currently self-verify their own church directly, bypassing the admin-only
+  `updateChurchVerified()` action path. This is an RLS/app-authorization-scope question, not a
+  default-privilege grant bug, and needs its own decision before touching it.
+
+## Phases 4–8
+
+Tracked as tasks #79–#83 in the session task list; unstarted. Each depends on the prior phase's
 approval. Full detail for each is in `PLOTABL_WORKFORCE_MODULE_BUILD_SPEC.md` §21 and won't be
 duplicated here until that phase is actually being scoped, to avoid this tracker drifting out of
 sync with a plan written before its own schema exists.

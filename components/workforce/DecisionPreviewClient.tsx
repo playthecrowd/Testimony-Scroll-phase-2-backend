@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { WorkforceDecisionStatusBadge } from "./WorkforceDecisionStatusBadge";
@@ -137,12 +138,17 @@ export function DecisionPreviewClient({
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">{decision.title}</h1>
         </div>
-        <Button onClick={handleTrack} disabled={tracking || tracked}>
-          {tracked ? "Tracking" : tracking ? "Saving..." : "Track This Decision"}
-        </Button>
+        <div className="flex gap-2">
+          <Link href={`/workforce/decisions/${decision.id}/workspace`}>
+            <Button variant="outline">Open Decision Workspace</Button>
+          </Link>
+          <Button onClick={handleTrack} disabled={tracking || tracked}>
+            {tracked ? "Tracking" : tracking ? "Saving..." : "Track This Decision"}
+          </Button>
+        </div>
       </div>
       {message && <p className="text-sm text-accent-blue-light">{message}</p>}
-      {tracked && <p className="text-xs text-muted">The full Decision Workspace ships in a later phase -- this decision is now on your list.</p>}
+      {tracked && <p className="text-xs text-muted">This decision is now on your list.</p>}
 
       <div className={SECTION_CLASS}>
         <h2 className="text-sm font-semibold text-foreground">Executive Intent</h2>

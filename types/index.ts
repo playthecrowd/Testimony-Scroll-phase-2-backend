@@ -1070,3 +1070,81 @@ export interface WorkforceDecisionInvitationRequest {
   reviewedAt: string | null;
   createdAt: string;
 }
+
+// --- Plotabl Workforce Phase 3: Decision Workspace tracking + Department Breakout ---
+
+// Same 7 values as 7 of WorkforceDecisionStatus's 11 -- see migration 0046's file header.
+export type WorkforceStageKey =
+  | "stakeholder_review"
+  | "awaiting_leadership_approval"
+  | "department_translation"
+  | "management_planning"
+  | "employee_activation"
+  | "in_implementation"
+  | "measuring_outcomes";
+
+export type WorkforceStageStatus = "not_started" | "in_progress" | "complete";
+
+export interface WorkforceDecisionStage {
+  id: string;
+  decisionId: string;
+  stageKey: WorkforceStageKey;
+  sortOrder: number;
+  status: WorkforceStageStatus;
+  ownerProfileId: string | null;
+  ownerName: string | null;
+  objective: string | null;
+  deliverables: string | null;
+  dueDate: string | null;
+  requiresApproval: boolean;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+export interface WorkforceDecisionStageTransition {
+  id: string;
+  decisionId: string;
+  fromStageKey: WorkforceStageKey | null;
+  toStageKey: WorkforceStageKey;
+  changedBy: string | null;
+  changedByName: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface WorkforceDecisionFeedback {
+  id: string;
+  decisionId: string;
+  stageKey: WorkforceStageKey | null;
+  authorProfileId: string | null;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+}
+
+export interface WorkforceExperienceTemplate {
+  id: string;
+  capabilityKey: string;
+  title: string;
+  communicationFocus: string;
+  description: string;
+  sortOrder: number;
+}
+
+export interface WorkforceExperienceAssignmentManager {
+  profileId: string;
+  profileName: string | null;
+}
+
+export interface WorkforceExperienceAssignment {
+  id: string;
+  decisionId: string;
+  experienceTemplateId: string;
+  template: WorkforceExperienceTemplate | null;
+  customizationNotes: string | null;
+  assignedBy: string | null;
+  createdAt: string;
+  managers: WorkforceExperienceAssignmentManager[];
+}
