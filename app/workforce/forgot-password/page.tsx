@@ -25,7 +25,13 @@ export default function WorkforceForgotPasswordPage() {
     setError("");
     setSubmitting(true);
     try {
-      await requestPasswordReset(email, `${window.location.origin}/workforce`);
+      // No redirectTo here: the Reset Password email template is a fixed
+      // {{ .SiteURL }}/auth/confirm?token_hash=...&type=recovery string (docs/SUPABASE_SETUP.md
+      // #6) that never references {{ .RedirectTo }}, and /auth/confirm's recovery branch always
+      // lands on the one shared /reset-password page regardless of which app requested it -- a
+      // redirectTo argument here would be silently ignored, not silently wrong, but still
+      // pointless to pass.
+      await requestPasswordReset(email);
       setSent(true);
     } catch {
       setError("Something went wrong. Please try again.");

@@ -30,7 +30,7 @@ export default function WorkforceSignupPage() {
     setError("");
     setSubmitting(true);
     try {
-      const result = await signUp(fullName, email, password, "organization", `${window.location.origin}/workforce`);
+      const result = await signUp(fullName, email, password, "organization", `${window.location.origin}/auth/confirm?next=/workforce`);
       if (result.error && result.status !== "check-email") {
         setError(result.error);
         return;
