@@ -295,9 +295,49 @@ together would violate this module's own isolation boundary for no benefit). Fou
 host-covered pool, its ledger commit), `wf_submit_session_proposal`, `wf_confirm_session_invitation`
 (idempotent participant creation + admission charge), `wf_decline_session_invitation`.
 
-UI (proposal creation from an assigned experience, proposal list/detail with approve/reject,
-invitation management, employee-facing confirm/waiting-room screen) not yet built -- picking up
-next.
+UI for proposal creation/review/invitations/employee confirm-and-wait not yet built -- still
+picking up next. `Create Session Proposal` currently only labels the Phase 3 "Select & Assign"
+button (a leftover mislabel, not yet corrected) -- there is no real session-proposal UI yet.
+
+### Real bug found and fixed via manual browser smoke test (not caught by any SQL-level check)
+
+At the user's request, did a full manual smoke test of the already-built Decision Pool/Preview/
+Workspace pages in a real browser as a real organization-manager account, specifically to confirm
+the 0050 circular-RLS fix actually works end to end -- not just via impersonation queries.
+
+**Confirmed 0050 fixed the Decision Pool**: creating, viewing, and listing decisions all render
+without the earlier recursion error.
+
+**Found a second, different, also-real bug**: creating a decision through the actual UI still
+failed every time with the same-looking 403 ("new row violates row-level security policy for table
+wf_decisions"), even for a legitimate org manager. Root cause, isolated by direct testing:
+`createDecision` does `.insert({...}).select("*").single()` -- PostgREST's `INSERT ... RETURNING *`
+-- and a `RETURNING` clause must also satisfy the table's SELECT policy per row. That policy calls
+`private.can_view_wf_decision()`, whose own body re-queries `wf_decisions` -- and empirically, that
+self-referential SECURITY DEFINER re-query does not reliably see the INSERT's own not-yet-returned
+row, even though it does see it as of the very next, separate statement in the same transaction.
+Confirmed this doesn't recur on any other table in this build: every other place using
+`can_view_wf_decision`/`can_view_wf_session` checks a table other than the one being written to.
+
+Fixed in `supabase/migrations/0051_fix_wf_decisions_returning_visibility.sql`: added a
+function-free fast path (`created_by = auth.uid()`) ahead of the function call in
+`wf_decisions_select_visible` -- a plain column comparison against the row being returned has
+nothing to re-query, and "a decision's own creator can always see it" is independently correct
+regardless of the Postgres quirk it happens to route around.
+
+**Re-verified live in the browser** after the fix: created a real decision end to end, tracked it,
+opened the Workspace, advanced Stakeholder Intent → Leadership Approval, confirmed the approval
+gate correctly blocked advancing further until "Approve Proposal" was clicked (and correctly
+unblocked immediately after), posted feedback, assigned a Future Factory experience via Select &
+Assign, and confirmed the decision reappears correctly in the Decision Pool listing with the right
+status badge and participant count. Full round trip works.
+
+**Lesson reinforced**: SQL-level impersonation tests (this whole checkpoint's primary verification
+method) do not exercise PostgREST's own request shape -- specifically, a `RETURNING`/
+`select=*`-after-write round trip. A plain `insert ... values (...)` with no return clause is not
+equivalent to what the actual client sends. Any future policy relying on a SECURITY DEFINER helper
+that re-queries its own table should be verified with an actual insert-then-select-back call, not
+just a bare insert.
 
 ## Phases 5–8
 
