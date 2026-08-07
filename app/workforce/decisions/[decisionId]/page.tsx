@@ -3,9 +3,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
-import { getWorkforceAccess, listDepartments } from "@/services/supabase/workforce";
+import { getWorkforceAccess, listDepartments, getMyProfileName, getRoleBadgeLabel, getMyWorkforceOrganizations } from "@/services/supabase/workforce";
 import { getDecision, listDecisions, getDecisionParticipants, listInvitationRequests } from "@/services/supabase/workforceDecisions";
 import { DecisionPreviewClient } from "@/components/workforce/DecisionPreviewClient";
+import { WorkforceAppShell } from "@/components/workforce/WorkforceAppShell";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function WorkforceDecisionPreviewPage({ params }: { params:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/workforce/login");
 
   const { decisionId } = await params;
   const decision = await getDecision(supabase, decisionId);
@@ -33,36 +34,47 @@ export default async function WorkforceDecisionPreviewPage({ params }: { params:
   // decision to someone outside its visibility set).
   if (!decision) notFound();
 
-  const [access, participants, invitationRequests, departments, otherDecisions] = await Promise.all([
+  const [access, participants, invitationRequests, departments, otherDecisions, userName, organizations] = await Promise.all([
     getWorkforceAccess(supabase, decision.churchId),
     getDecisionParticipants(supabase, decision.id),
     listInvitationRequests(supabase, decision.id),
     listDepartments(supabase, decision.churchId),
     listDecisions(supabase, decision.churchId),
+    getMyProfileName(supabase),
+    getMyWorkforceOrganizations(supabase),
   ]);
+  const orgName = organizations.find((o) => o.churchId === decision.churchId)?.name ?? "";
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-      <DecisionPreviewClient
-        decision={decision}
-        participants={participants}
-        invitationRequests={invitationRequests}
-        departments={departments}
-        isManager={access.isManager}
-        canReview={access.isManager}
-      />
-      <aside className="space-y-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">Other Decisions</h2>
-        {otherDecisions
-          .filter((d) => d.id !== decision.id)
-          .slice(0, 12)
-          .map((d) => (
-            <Link key={d.id} href={`/workforce/decisions/${d.id}`} className="qk-card p-3 block hover:border-accent-blue-light/50 transition-colors">
-              <div className="text-[11px] font-mono text-muted">{d.decisionNumber}</div>
-              <div className="text-sm font-medium text-foreground line-clamp-1">{d.title}</div>
-            </Link>
-          ))}
-      </aside>
-    </div>
+    <WorkforceAppShell
+      churchId={decision.churchId}
+      orgName={orgName}
+      userName={userName ?? "You"}
+      roleLabel={getRoleBadgeLabel(access)}
+      isManager={access.isManager}
+    >
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        <DecisionPreviewClient
+          decision={decision}
+          participants={participants}
+          invitationRequests={invitationRequests}
+          departments={departments}
+          isManager={access.isManager}
+          canReview={access.isManager}
+        />
+        <aside className="space-y-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">Other Decisions</h2>
+          {otherDecisions
+            .filter((d) => d.id !== decision.id)
+            .slice(0, 12)
+            .map((d) => (
+              <Link key={d.id} href={`/workforce/decisions/${d.id}`} className="qk-card p-3 block hover:border-accent-blue/50 transition-colors">
+                <div className="text-[11px] font-mono text-muted">{d.decisionNumber}</div>
+                <div className="text-sm font-medium text-foreground line-clamp-1">{d.title}</div>
+              </Link>
+            ))}
+        </aside>
+      </div>
+    </WorkforceAppShell>
   );
 }

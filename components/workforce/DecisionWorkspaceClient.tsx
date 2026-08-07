@@ -332,7 +332,7 @@ export function DecisionWorkspaceClient({
             <p className="text-[11px] text-muted">Plotabl and approved delivery partners will scope and produce the custom experience after approval.</p>
             {assignError && <p className="text-xs text-red-300">{assignError}</p>}
             <Button size="sm" onClick={handleAssign} disabled={assignBusy}>
-              {assignBusy ? "Assigning..." : "Create Session Proposal"}
+              {assignBusy ? "Assigning..." : "Select & Assign"}
             </Button>
           </div>
         )}

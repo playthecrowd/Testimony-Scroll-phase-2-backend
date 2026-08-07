@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
 import { ErrorState } from "@/components/ui/AsyncState";
-import { getWorkforceAccess, listDepartments } from "@/services/supabase/workforce";
+import { getWorkforceAccess, listDepartments, getMyProfileName, getRoleBadgeLabel, getMyWorkforceOrganizations } from "@/services/supabase/workforce";
 import { getDecision } from "@/services/supabase/workforceDecisions";
 import {
   ensureDecisionStages,
@@ -13,6 +13,7 @@ import {
 } from "@/services/supabase/workforceStages";
 import { listExperienceTemplates, listExperienceAssignments, listDepartmentManagers } from "@/services/supabase/workforceExperiences";
 import { DecisionWorkspaceClient } from "@/components/workforce/DecisionWorkspaceClient";
+import { WorkforceAppShell } from "@/components/workforce/WorkforceAppShell";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function WorkforceDecisionWorkspacePage({ params }: { param
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/workforce/login");
 
   const { decisionId } = await params;
   const decision = await getDecision(supabase, decisionId);
@@ -42,7 +43,7 @@ export default async function WorkforceDecisionWorkspacePage({ params }: { param
 
   await ensureDecisionStages(supabase, decision);
 
-  const [access, stages, transitions, feedback, templates, assignments, departments] = await Promise.all([
+  const [access, stages, transitions, feedback, templates, assignments, departments, userName, organizations] = await Promise.all([
     getWorkforceAccess(supabase, decision.churchId),
     listDecisionStages(supabase, decision.id),
     listStageTransitions(supabase, decision.id),
@@ -50,7 +51,10 @@ export default async function WorkforceDecisionWorkspacePage({ params }: { param
     listExperienceTemplates(supabase),
     listExperienceAssignments(supabase, decision.id),
     listDepartments(supabase, decision.churchId),
+    getMyProfileName(supabase),
+    getMyWorkforceOrganizations(supabase),
   ]);
+  const orgName = organizations.find((o) => o.churchId === decision.churchId)?.name ?? "";
 
   const department = departments.find((d) => d.id === decision.departmentId) ?? null;
   const departmentManagers = decision.departmentId ? await listDepartmentManagers(supabase, decision.churchId, decision.departmentId) : [];
@@ -58,28 +62,36 @@ export default async function WorkforceDecisionWorkspacePage({ params }: { param
   const canManageExperiences = access.isManager || decision.createdBy === user.id || isDepartmentLeadership;
 
   return (
-    <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <Link href={`/workforce/decisions/${decision.id}`} className="text-xs text-accent-blue-light hover:underline">
-          ← Back to Decision Preview
-        </Link>
-        <Link href={`/workforce/decisions?org=${decision.churchId}`} className="text-xs text-muted hover:underline">
-          Back to Decision Pool
-        </Link>
+    <WorkforceAppShell
+      churchId={decision.churchId}
+      orgName={orgName}
+      userName={userName ?? "You"}
+      roleLabel={getRoleBadgeLabel(access)}
+      isManager={access.isManager}
+    >
+      <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-6 md:py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <Link href={`/workforce/decisions/${decision.id}`} className="text-xs text-accent-blue hover:underline">
+            ← Back to Decision Preview
+          </Link>
+          <Link href={`/workforce/decisions?org=${decision.churchId}`} className="text-xs text-muted hover:underline">
+            Back to Decision Pool
+          </Link>
+        </div>
+        <DecisionWorkspaceClient
+          decision={decision}
+          stages={stages}
+          transitions={transitions}
+          feedback={feedback}
+          templates={templates}
+          assignments={assignments}
+          department={department}
+          departmentManagers={departmentManagers}
+          canAdvance={access.isManager || decision.createdBy === user.id}
+          isManager={access.isManager}
+          canManageExperiences={canManageExperiences}
+        />
       </div>
-      <DecisionWorkspaceClient
-        decision={decision}
-        stages={stages}
-        transitions={transitions}
-        feedback={feedback}
-        templates={templates}
-        assignments={assignments}
-        department={department}
-        departmentManagers={departmentManagers}
-        canAdvance={access.isManager || decision.createdBy === user.id}
-        isManager={access.isManager}
-        canManageExperiences={canManageExperiences}
-      />
-    </div>
+    </WorkforceAppShell>
   );
 }

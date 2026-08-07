@@ -1,18 +1,20 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SupabaseConfigError } from "@/lib/supabase/env";
-import { ErrorState, EmptyState } from "@/components/ui/AsyncState";
-import { getMyWorkforceOrganizations } from "@/services/supabase/workforce";
+import { ErrorState } from "@/components/ui/AsyncState";
+import { WorkforcePublicHomepage } from "@/components/workforce/WorkforcePublicHomepage";
+import { WorkforceAppShell } from "@/components/workforce/WorkforceAppShell";
+import { getMyWorkforceOrganizations, getWorkforceAccess, getMyProfileName, getRoleBadgeLabel } from "@/services/supabase/workforce";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-// Module shell -- proves the flag/entitlement/RLS plumbing end to end: build-wide flag off -> 404
-// (the route genuinely doesn't exist yet for this deployment, same as any other unreleased route
-// in this codebase); signed out -> /login; signed in but no org entitles them -> a plain
-// "not yet available" state; entitled -> a list of orgs, each linking into the Decision Pool
-// (Phase 2). The rest of the module chrome (nav menu per the UI content guide, org switcher UI)
-// still ships in a later phase.
+// /workforce is three different screens depending on who's asking, matching the required
+// architecture: signed out -> the public Workforce homepage (never Q4K, never an auto-redirect
+// into a login screen); signed in with access to exactly one org -> straight into that org's
+// Decision Pool (no pointless picker step); signed in with access to more than one -> an org
+// picker inside the real authenticated shell; signed in with no access anywhere ->
+// /workforce/access-pending.
 export default async function WorkforcePage() {
   if (process.env.NEXT_PUBLIC_ENABLE_WORKFORCE_MODULE !== "true") notFound();
 
@@ -27,32 +29,36 @@ export default async function WorkforcePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) return <WorkforcePublicHomepage />;
 
   const organizations = await getMyWorkforceOrganizations(supabase);
+  if (organizations.length === 0) redirect("/workforce/access-pending");
+  if (organizations.length === 1) redirect(`/workforce/decisions?org=${organizations[0].churchId}`);
 
-  if (organizations.length === 0) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4">
-        <EmptyState message="Plotabl Workforce isn't available on your account yet." />
-      </div>
-    );
-  }
+  const primary = organizations[0];
+  const [access, userName] = await Promise.all([getWorkforceAccess(supabase, primary.churchId), getMyProfileName(supabase)]);
 
   return (
-    <div className="max-w-2xl mx-auto py-16 px-4 space-y-4">
-      <h1 className="text-2xl font-semibold">Plotabl Workforce</h1>
-      <p className="text-muted text-sm">Move every decision from intent to understanding, action, and measurable outcomes.</p>
-      <ul className="qk-card divide-y divide-white/10">
-        {organizations.map((org) => (
-          <li key={org.churchId} className="p-4 flex items-center justify-between">
-            <Link href={`/workforce/decisions?org=${org.churchId}`} className="hover:underline">
-              {org.name}
-            </Link>
-            <span className="text-xs text-muted">{org.isManager ? "Manager" : "Member"}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <WorkforceAppShell
+      churchId={primary.churchId}
+      orgName={primary.name}
+      userName={userName ?? "You"}
+      roleLabel={getRoleBadgeLabel(access)}
+      isManager={access.isManager}
+    >
+      <div className="max-w-2xl mx-auto py-16 px-4 space-y-4">
+        <h1 className="text-2xl font-semibold text-foreground">Choose an organization</h1>
+        <ul className="qk-card rounded-2xl divide-y divide-border-subtle">
+          {organizations.map((org) => (
+            <li key={org.churchId} className="p-4 flex items-center justify-between">
+              <Link href={`/workforce/decisions?org=${org.churchId}`} className="hover:text-accent-blue text-foreground font-medium">
+                {org.name}
+              </Link>
+              <span className="text-xs text-muted">{org.isManager ? "Manager" : "Member"}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </WorkforceAppShell>
   );
 }

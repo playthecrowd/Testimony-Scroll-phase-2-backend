@@ -279,6 +279,94 @@ now column-restrict INSERT the same way UPDATE already does. Verified with a tar
 test confirming each forged insert is rejected and a legitimate insert (allowed columns only)
 is not.
 
+## Course correction: Workforce needed its own application shell, not Q4K's
+
+After the Phase 4 schema checkpoint, the user reviewed a live screenshot of the (already-built)
+Decision Pool page and flagged that it was rendering inside Q4K's own TopBar/Sidebar/dark theme --
+Q4K logo, Q4K nav items (Churches, Lessons, Events, Kingdom Scroll, Characters, Episodes), Q4K's
+"Create Experience" button. This was accurate: every Workforce page up to this point rendered
+inside the shared root layout's default chrome (`app/layout.tsx` -> `PageShell`), which had no
+opt-out for `/workforce/*`. The user then specified the required architecture in detail: Workforce
+is a sibling module of Q4K under a shared "Plotabl Central" identity layer (reusing auth,
+organizations, module entitlements underneath), with its **own** visible shell, public homepage,
+auth pages, navigation, and theme -- explicitly not Q4K's dark blue/purple identity or any Q4K-only
+nav items (Churches/Lessons/Events/Kingdom Scroll/Characters/Episodes/Create Experience).
+
+Built in this checkpoint (still one Next.js app/repo/deployment -- the architecture spec's "may
+reuse shared services underneath" language, and the real cost/risk of a genuinely separate
+deployment, both point away from splitting into two apps):
+
+- **Theme**: `app/globals.css`'s `.wf-theme` class overrides the *same* CSS custom properties
+  Tailwind's `@theme inline` block already maps to utility classes (`bg-surface-2`, `text-muted`,
+  `text-accent-blue-light`, etc.) -- bright warm-white background, charcoal foreground, neon-lime
+  primary (reusing the `accent-blue` token slot), metallic gold (`accent-gold`), restrained
+  aerospace navy (reusing the `accent-purple` slot). Every already-built Workforce component
+  re-themed automatically with zero className changes, since they were already built against these
+  same utility classes.
+- **Shell separation**: `components/layout/PageShell.tsx`'s existing `BARE_ROUTES`/
+  `BARE_ROUTE_PREFIXES` mechanism (already used to let `/login`, `/signup`, and the Kingdom Scrolls
+  full-viewport HUD routes own their own chrome) now also excludes all of `/workforce/*` --
+  Workforce provides `components/workforce/WorkforceAppShell.tsx` (header: wordmark, search,
+  notifications, identity + role badge; `components/workforce/WorkforceNav.tsx`: the approved
+  module-level menu -- Home, Decision Pool, My Work, Sessions, Attractions, Experiences, People &
+  Teams, Evidence & Outcomes, Vendors/Administration permission-gated to managers) instead.
+  Sections with no built destination yet route to `/workforce/coming-soon?feature=X` rather than a
+  dead link or 404, matching this codebase's own established rule for unfinished routes.
+- **Public homepage**: `components/workforce/WorkforcePublicHomepage.tsx` -- exact hero copy from
+  the spec, the Stakeholder -> Department Leadership -> Manager -> Employee pathway, and the seven
+  named feature areas (Decision Tracking, Experience Opportunities, Session Delivery, Collaborative
+  POV, Analytics & Evidence, Vendor Fulfillment, Enterprise Partnerships). `app/workforce/page.tsx`
+  now serves this to a signed-out visitor -- previously it redirected straight to Q4K's own
+  `/login`, exactly the "immediate redirect into a Q4K dashboard" the spec says never to do.
+- **Auth pages** (`/workforce/login`, `/workforce/signup`, `/workforce/forgot-password`,
+  `/workforce/onboarding`): branded Workforce UI calling the *exact same* shared Supabase auth
+  functions Q4K uses (`services/authService.ts`'s `signIn`/`signUp`/`requestPasswordReset`) --
+  one identity system, no duplicate accounts, confirmed Q4K's own `SessionContext` still picks up
+  the resulting auth state via its global `onAuthStateChange` listener regardless of which page
+  initiated sign-in. Post-login routing uses a new `resolveWorkforcePostAuthDestination`
+  (`services/supabase/workforce.ts`) keyed on Workforce org entitlement, not Q4K's account-type
+  logic. A signup creates the same `organization` `account_type` Q4K already has; a
+  not-yet-onboarded profile is routed through `/workforce/onboarding`, which hands off to Q4K's
+  existing `/onboarding/organization` to actually create the org entity (reusing that flow rather
+  than duplicating it).
+- **`/workforce/access-pending`**: reached when a signed-in user has no Workforce-entitled
+  organization at all -- re-checks on load in case access showed up since the last visit, never
+  strands someone who was just granted access.
+- Retrofitted all four already-built Phase 2/3 pages (`/workforce/decisions`,
+  `/workforce/decisions/new`, `/workforce/decisions/[id]`, `/workforce/decisions/[id]/workspace`)
+  to render inside `WorkforceAppShell` and to redirect unauthenticated visitors to
+  `/workforce/login` instead of Q4K's `/login`.
+- Fixed the "Select & Assign" button, mislabeled "Create Session Proposal" since Phase 3 (noted at
+  the time, not yet corrected) -- those are two different actions per the spec's own terminology
+  discipline (Select & Assign chooses an experience; a real session-proposal action is still Phase
+  4 UI, not yet built).
+
+**Verified live in the browser** after rebuilding: the Decision Pool, decision creation, and
+`/workforce/login` all render with the full Workforce identity -- own wordmark, own nav exactly
+matching the approved list, lime/gold/navy palette, zero Q4K chrome. `/workforce/coming-soon` also
+themed correctly for the not-yet-built nav sections.
+
+**Explicitly not done in this checkpoint, and not silently assumed to work**:
+
+- `/workforce/reset-password` and `/workforce/accept-invite` were not built. Password-reset email
+  links currently always resolve to the shared `/reset-password` page (Q4K-styled) regardless of
+  which app's forgot-password form triggered them -- giving that link a Workforce-specific
+  destination needs the middleware's `?code=` handling (`proxy.ts`) or the email template to know
+  which app originated the request, which this checkpoint didn't build. `accept-invite` implies a
+  real invitation-token system that doesn't exist as a feature yet (Phase 1-4 assume the invitee is
+  already a member of the org's `church_memberships`, not a cold invite to someone with no account
+  at all).
+- `/workforce/onboarding` hands off to Q4K's own `/onboarding/organization` flow, which still
+  renders in Q4K's own theme/chrome -- a known, disclosed inconsistency for a brand-new signup's
+  org-creation step, not a full re-theme of that flow.
+- The org switcher that existed in the old (pre-shell) `/workforce/decisions` page (inline pills
+  for a profile with multiple orgs) was dropped when the page was rewired into `WorkforceAppShell`,
+  which doesn't yet have an org switcher in its header. A multi-org profile can still get back to
+  `/workforce` (Home) to re-pick, just not from within the shell itself.
+- No credits balance is shown in the header (the WF-05 mockup shows one) -- there's no real
+  aggregate-balance query built yet (`wf_session_credit_ledger` is session-scoped), and showing a
+  placeholder number would be fabricated data.
+
 ## Phase 4 — Session proposal, approval, scheduling, and onboarding: in progress
 
 Schema built and verified 2026-08-07 (`supabase/migrations/0048_workforce_sessions.sql`):

@@ -7,7 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { Footer } from "./Footer";
 import { useSession } from "@/context/SessionContext";
 
-const BARE_ROUTES = ["/login", "/signup"];
+const BARE_ROUTES = ["/login", "/signup", "/workforce"];
 // Prefix match with a trailing slash, not exact and not a bare "/kingdom-scrolls" -- the
 // full-screen-HUD routes under this prefix (Inventory Land, the world-map mockup/render-poc
 // pages) own their own chrome (top bar, side panels, layer navigator) and must never be boxed in
@@ -15,7 +15,13 @@ const BARE_ROUTES = ["/login", "/signup"];
 // EXCLUDED from this prefix: it is the Trailer/Introduction Gateway, an ordinary content page
 // (lesson list, progress card, sidebars) meant to sit inside normal site chrome exactly like any
 // other page, not a full-viewport HUD.
-const BARE_ROUTE_PREFIXES = ["/kingdom-scrolls/"];
+//
+// "/workforce/" (unlike kingdom-scrolls) is unconditionally bare, including its own root
+// "/workforce" (added to BARE_ROUTES above) -- Plotabl Workforce is a distinct sibling module with
+// its own visible application shell (wordmark, nav, bright warm-white theme), never Q4K's
+// TopBar/Sidebar/dark theme. See app/workforce/layout.tsx for the shell Workforce provides
+// instead.
+const BARE_ROUTE_PREFIXES = ["/kingdom-scrolls/", "/workforce/"];
 
 export function PageShell({ children }: { children: React.ReactNode }) {
   const { session, ready } = useSession();

@@ -106,3 +106,50 @@ export async function listDepartments(supabase: SupabaseClient, churchId: string
   if (error) throw error;
   return (data ?? []).map(mapDepartment);
 }
+
+// The signed-in profile's own display name, for the Workforce app shell's header -- separate from
+// getWorkforceAccess since it's org-independent (a profile's name doesn't change per org).
+export async function getMyProfileName(supabase: SupabaseClient): Promise<string | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  if (error) throw error;
+  return data?.full_name ?? null;
+}
+
+// Best single role label for the header's role badge: platform_owner/enterprise_owner reuse
+// existing Q4K concepts (private.is_church_manager -- see migration 0044's file header), so
+// isManager takes priority display-wise over any explicit wf_role_assignments row. Otherwise the
+// most senior held role wins, in spec section 5's own hierarchy order.
+const ROLE_PRIORITY: WorkforceRole[] = ["stakeholder", "department_leadership", "manager", "employee", "intern", "vendor"];
+const ROLE_BADGE_LABELS: Record<WorkforceRole, string> = {
+  stakeholder: "Stakeholder",
+  department_leadership: "Department Leadership",
+  manager: "Manager",
+  employee: "Employee",
+  intern: "Intern / Apprentice",
+  vendor: "Vendor",
+};
+
+export function getRoleBadgeLabel(access: WorkforceAccess): string {
+  if (access.isManager) return "Enterprise Owner";
+  for (const role of ROLE_PRIORITY) {
+    if (access.roles.some((r) => r.role === role)) return ROLE_BADGE_LABELS[role];
+  }
+  return "Member";
+}
+
+// Where /workforce/login sends a signed-in user next -- mirrors authService.ts's
+// resolvePostAuthDestination, but keyed on Workforce entitlement (getMyWorkforceOrganizations)
+// instead of Q4K account_type, since Workforce access is org-membership-based, not a signup-tab
+// choice. No org -> access-pending; exactly one -> straight into its Decision Pool; more than one
+// -> the org picker at /workforce itself.
+export async function resolveWorkforcePostAuthDestination(supabase: SupabaseClient): Promise<string> {
+  const organizations = await getMyWorkforceOrganizations(supabase);
+  if (organizations.length === 0) return "/workforce/access-pending";
+  if (organizations.length === 1) return `/workforce/decisions?org=${organizations[0].churchId}`;
+  return "/workforce";
+}
