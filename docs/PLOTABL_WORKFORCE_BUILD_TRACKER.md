@@ -220,9 +220,88 @@ Confirmed live and fixed in `supabase/migrations/0047_restore_column_grant_lockd
   `updateChurchVerified()` action path. This is an RLS/app-authorization-scope question, not a
   default-privilege grant bug, and needs its own decision before touching it.
 
-## Phases 4–8
+### Critical fix found while building Phase 4: Phase 2's Decision Pool was live-broken
 
-Tracked as tasks #79–#83 in the session task list; unstarted. Each depends on the prior phase's
+While testing Phase 4 with a **genuine impersonated-role query** (not just the policy-count check
+every earlier phase's verification relied on -- that only confirms policies exist, not that they
+execute without error), discovered that `wf_decisions_select_visible` and
+`wf_decision_participants_select_via_decision` (both `0045_workforce_decisions.sql`, applied since
+Phase 2) reference each other directly via raw subqueries. Postgres detects the cycle and refuses
+with `infinite recursion detected in policy for relation "wf_decision_participants"` (SQLSTATE
+42P17) on a **plain, unfiltered `select * from wf_decisions`** as any ordinary authenticated user.
+This has been live and broken since Phase 2 was applied -- the Decision Pool, Decision Preview, and
+everything Phase 3/4 build on top of them were never actually functional for a real signed-in user,
+only for the service-role-backed verification queries used to check schema/policy shape.
+
+Fixed in `supabase/migrations/0050_fix_circular_rls_recursion.sql`: both policies now route through
+`private.can_view_wf_decision()` (the SECURITY DEFINER helper introduced in 0048) instead of a raw
+cross-table subquery -- a SECURITY DEFINER function's internal queries bypass RLS entirely (it runs
+as the function owner, exempt from RLS the same way any table owner is), which is exactly why
+`private.is_church_manager` (0003) never had this problem despite doing conceptually the same kind
+of cross-table check. Verified with a real impersonation smoke test hitting a plain `select` against
+all 18 Workforce tables -- confirmed the fix resolves it and confirmed no other table has the same
+latent cycle.
+
+**Lesson for every migration from here on**: a policy that needs to check another RLS-enabled
+table's condition must go through a SECURITY DEFINER helper, never a raw subquery on that table --
+the two-way case is exactly what breaks, and it will not surface in a policy-count check, only in
+an actual query.
+
+### Other fixes bundled into this checkpoint (0049)
+
+Auditing every `for all` policy across the Workforce migrations for the same default-privilege
+class of gap 0047 already found (see Phase 3's own section above) turned up three more real issues
+in already-applied `0046_workforce_workspace.sql`, all fixed in
+`supabase/migrations/0049_fix_wf_decision_stages_write_policy.sql`:
+
+- `wf_decision_stages` allowed DELETE (never intended -- the pathway model assumes exactly 7 rows
+  always exist per decision) purely because its `for all` policy inherited the un-revoked default
+  DELETE grant.
+- `wf_decision_stages`' INSERT authorization only allowed managers/creator/the row's own owner --
+  but `ensureDecisionStages()` seeds all 7 rows for **any** decision-visible viewer, including a
+  plain department employee opening the Workspace before anyone else had. Widened INSERT to
+  decision-visibility (seeding a default-derived row isn't sensitive).
+- `wf_experience_assignments`/`wf_experience_assignment_managers` allowed UPDATE (e.g. reassigning
+  an existing assignment's `decision_id` in place) despite the app only ever inserting/deleting --
+  no `grant update` was ever issued, but the un-revoked default privilege supplied it anyway via
+  the same `for all` shape.
+
+A fourth, more serious variant of the same pattern was caught and fixed **before** ever being
+applied (both `0048` and the `wf_decision_stages` fix in `0049` were still uncommitted at the
+time): none of `wf_decision_stages`, `wf_session_proposals`, or `wf_session_invitations` had their
+**INSERT** grant column-restricted, only UPDATE -- meaning a client could INSERT a brand-new row
+with a sensitive column already forged (`approved_at`/`approved_by` on a stage, `status: 'approved'`
+on a proposal), bypassing the SECURITY DEFINER function meant to be the only path to those values.
+For `wf_decision_stages` specifically this was a real, not just theoretical, bypass of the
+Leadership Approval gate: `ensureDecisionStages()` only seeds a stage key that doesn't already
+exist, so a pre-forged row would silently stand in as "already approved" forever after. All three
+now column-restrict INSERT the same way UPDATE already does. Verified with a targeted impersonation
+test confirming each forged insert is rejected and a legitimate insert (allowed columns only)
+is not.
+
+## Phase 4 — Session proposal, approval, scheduling, and onboarding: in progress
+
+Schema built and verified 2026-08-07 (`supabase/migrations/0048_workforce_sessions.sql`):
+`wf_session_proposals` (WF-03's proposal fields -- audience, capacity, admission model, credits,
+recording flags, content classification), `wf_session_proposal_approvals` (append-only review
+history), `wf_sessions` (created only on approval, carries a `join_token` for a future single-click
+email link -- not used as a bare public entry point this phase, since every participant is an
+authenticated Plotabl Workforce user per the spec's own role hierarchy), `wf_session_invitations`,
+`wf_session_participants` (status vocabulary already includes the later live-session values Phase 5
+will set), and `wf_session_credit_ledger` -- a **separate, namespaced** append-only ledger, not
+Q4K's own `credit_ledger`/wallet tables (different currency, different product -- folding them
+together would violate this module's own isolation boundary for no benefit). Four RPCs:
+`wf_approve_session_proposal` (review outcome + atomically creates the session and, for a
+host-covered pool, its ledger commit), `wf_submit_session_proposal`, `wf_confirm_session_invitation`
+(idempotent participant creation + admission charge), `wf_decline_session_invitation`.
+
+UI (proposal creation from an assigned experience, proposal list/detail with approve/reject,
+invitation management, employee-facing confirm/waiting-room screen) not yet built -- picking up
+next.
+
+## Phases 5–8
+
+Tracked as tasks #80–#83 in the session task list; unstarted. Each depends on the prior phase's
 approval. Full detail for each is in `PLOTABL_WORKFORCE_MODULE_BUILD_SPEC.md` §21 and won't be
 duplicated here until that phase is actually being scoped, to avoid this tracker drifting out of
 sync with a plan written before its own schema exists.
