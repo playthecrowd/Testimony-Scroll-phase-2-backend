@@ -9,7 +9,16 @@ import { NextResponse, type NextRequest } from "next/server";
 // permission itself, and RLS is the last line of defense -- this is a network boundary,
 // not the authorization system.
 
-const PROTECTED_PATHS = ["/experience-builder", "/capture", "/onboarding", "/admin", "/workforce"];
+const PROTECTED_PATHS = ["/experience-builder", "/capture", "/onboarding", "/admin"];
+// "/workforce" was here from Phase 1 (module shell, before /workforce itself had to be a public
+// homepage per the required Workforce architecture) -- it unconditionally redirected every signed-
+// out request anywhere under /workforce/* to Q4K's own /login at the edge, before Next.js ever
+// rendered the public homepage or the branded /workforce/login page. Every page under /workforce
+// that actually needs auth (the Decision Pool and everything past it) already has its own
+// server-side `if (!user) redirect("/workforce/login")` check, matching this file's own stated
+// philosophy ("a network boundary, not the authorization system") -- removing it here doesn't
+// remove protection, it just stops double-enforcing it at the wrong layer with the wrong
+// destination.
 const AUTH_PATHS = ["/login", "/signup"];
 
 export async function proxy(request: NextRequest) {
