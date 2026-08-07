@@ -1,0 +1,68 @@
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { SupabaseConfigError } from "@/lib/supabase/env";
+import { ErrorState } from "@/components/ui/AsyncState";
+import { getWorkforceAccess, listDepartments } from "@/services/supabase/workforce";
+import { getDecision, listDecisions, getDecisionParticipants, listInvitationRequests } from "@/services/supabase/workforceDecisions";
+import { DecisionPreviewClient } from "@/components/workforce/DecisionPreviewClient";
+
+export const dynamic = "force-dynamic";
+
+// WF-02 Stakeholder Decision Preview.
+export default async function WorkforceDecisionPreviewPage({ params }: { params: Promise<{ decisionId: string }> }) {
+  if (process.env.NEXT_PUBLIC_ENABLE_WORKFORCE_MODULE !== "true") notFound();
+
+  let supabase: Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = await createClient();
+  } catch (err) {
+    if (err instanceof SupabaseConfigError) return <ErrorState message="Configuration error. Please try again later." />;
+    throw err;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { decisionId } = await params;
+  const decision = await getDecision(supabase, decisionId);
+  // RLS returns no row at all for a decision this profile can't see -- indistinguishable from
+  // "doesn't exist," which is the correct behavior here (no leaking existence of a restricted
+  // decision to someone outside its visibility set).
+  if (!decision) notFound();
+
+  const [access, participants, invitationRequests, departments, otherDecisions] = await Promise.all([
+    getWorkforceAccess(supabase, decision.churchId),
+    getDecisionParticipants(supabase, decision.id),
+    listInvitationRequests(supabase, decision.id),
+    listDepartments(supabase, decision.churchId),
+    listDecisions(supabase, decision.churchId),
+  ]);
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      <DecisionPreviewClient
+        decision={decision}
+        participants={participants}
+        invitationRequests={invitationRequests}
+        departments={departments}
+        isManager={access.isManager}
+        canReview={access.isManager}
+      />
+      <aside className="space-y-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">Other Decisions</h2>
+        {otherDecisions
+          .filter((d) => d.id !== decision.id)
+          .slice(0, 12)
+          .map((d) => (
+            <Link key={d.id} href={`/workforce/decisions/${d.id}`} className="qk-card p-3 block hover:border-accent-blue-light/50 transition-colors">
+              <div className="text-[11px] font-mono text-muted">{d.decisionNumber}</div>
+              <div className="text-sm font-medium text-foreground line-clamp-1">{d.title}</div>
+            </Link>
+          ))}
+      </aside>
+    </div>
+  );
+}

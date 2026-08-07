@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { WorkforceAccess, WorkforceRoleAssignment, WorkforceRole } from "@/types";
+import { WorkforceAccess, WorkforceRoleAssignment, WorkforceRole, WorkforceDepartment } from "@/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapRoleAssignment(row: any): WorkforceRoleAssignment {
@@ -94,4 +94,15 @@ export async function getMyWorkforceOrganizations(
   });
 
   return Array.from(byId.values());
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDepartment(row: any): WorkforceDepartment {
+  return { id: row.id, churchId: row.church_id, name: row.name, createdBy: row.created_by, createdAt: row.created_at };
+}
+
+export async function listDepartments(supabase: SupabaseClient, churchId: string): Promise<WorkforceDepartment[]> {
+  const { data, error } = await supabase.from("wf_departments").select("*").eq("church_id", churchId).order("name");
+  if (error) throw error;
+  return (data ?? []).map(mapDepartment);
 }

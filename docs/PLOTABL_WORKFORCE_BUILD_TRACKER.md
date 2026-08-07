@@ -97,23 +97,67 @@ Built 2026-08-07, not yet applied to any database and not yet committed:
   elsewhere, nothing from new files), `npm test` 566/566 passing, `npm run build` succeeds with
   `/workforce` listed as a dynamic (`ƒ`) route alongside every other guarded route.
 
-**Not yet done, deliberately**: the migration has not been applied to the shared Supabase project
-(this repo has no separate isolated QA project — `scripts/qaSeed.ts`'s own header confirms
-Production/main/QA all share one database pre-launch — so applying it is a real, if additive,
-change to a live shared system and gets the same one-time-confirm-before-applying treatment every
-migration in this codebase's history has gotten). QA identity seeding is deferred to Phase 2:
-seeding Workforce roles/departments has no test value until there's an actual decision/org to seed
-them against, and the spec's suggested alias format (`maya.chen@qa.quest4thekingdom.com`) doesn't
-match this repo's actual established convention (`qa.<label>@qa.quest4thekingdom.com`, confirmed
-in `scripts/qaSeed.ts`) — worth reconciling when the seed script is actually extended, not now.
-Nothing has been committed yet.
+Migration applied to the linked Supabase project 2026-08-07 (verified: all 3 tables exist, policy
+counts match the file exactly — 4/3/4). Committed as `d4c64dd`.
 
-## Phases 2–8
+QA identity seeding remains deferred to a later phase (once there's an actual
+decision/org worth seeding QA data against), and the spec's suggested alias format
+(`maya.chen@qa.quest4thekingdom.com`) still doesn't match this repo's actual established
+convention (`qa.<label>@qa.quest4thekingdom.com`, confirmed in `scripts/qaSeed.ts`) — worth
+reconciling when the seed script is actually extended, not now.
 
-Tracked as tasks #77–#83 in the session task list; unstarted. Each depends on the prior phase's
+## Phase 2 — Decision Pool + expanded preview: **Ready for Review**
+
+Built 2026-08-07:
+
+- `supabase/migrations/0045_workforce_decisions.sql` (new, additive): `wf_decisions` (11-value
+  flat `status`, distinct from the future stage-engine's own state -- see the migration's file
+  header), `wf_decision_participants` (decision-scoped team membership, separate from Phase 1's
+  org/department-scoped `wf_role_assignments`), `wf_decision_invitation_requests` (backs the three
+  WF-02 invite actions). `wf_allocate_decision_number()` (SECURITY DEFINER) issues human-readable
+  `D-XXXX` numbers from a new `wf_module_settings.next_decision_seq` counter and doubles as the
+  creation-time authorization check (manager or org-wide `stakeholder` role).
+  A real gap found and fixed in the same migration: `public.profiles` only ships
+  `profiles_select_own` and `profiles_select_managed_church_members` (managers only) — neither let
+  an ordinary Workforce participant resolve another participant's or a decision owner's display
+  name. Added `profiles_select_workforce_org_peers` (any `wf_role_assignments` holder in org X can
+  read profiles of org X's members), the minimum fix, same bounded-by-org shape as the existing
+  manager policy.
+- `services/supabase/workforceDecisions.ts`: `listDecisions`/`getDecision`/`createDecision`,
+  `getDecisionParticipants`/`trackDecision`, `listInvitationRequests`/`createInvitationRequest`/
+  `reviewInvitationRequest`, `findOrgMemberByEmail` (org-scoped, backs "Request a Specific
+  Person").
+- `services/supabase/workforce.ts`: added `listDepartments`.
+- UI: `/workforce/decisions` (WF-01 catalog — search/status/department/scope filters, "New
+  Decision"), `/workforce/decisions/new` (create form), `/workforce/decisions/[decisionId]` (WF-02
+  preview — intent/outcome/owner/stakeholder/priority/target date/security, "Track This Decision",
+  the three invite actions, participant list, manager approve/decline for pending requests, other-
+  decisions rail). `components/workforce/`: `DecisionCard`, `WorkforceDecisionStatusBadge` (labels
+  match the UI content guide's approved status vocabulary exactly), `DecisionPoolClient`,
+  `NewDecisionForm`, `DecisionPreviewClient`.
+- Verified: `tsc` clean, `lint` clean (one real `react-hooks/set-state-in-effect` error caught and
+  fixed by switching to this codebase's own established cancelled-flag/async-IIFE effect pattern
+  from `app/lessons/page.tsx`, rather than a `useCallback`-wrapped loader), `test` 566/566, `build`
+  succeeds with all four new routes listed as guarded dynamic routes. Migration applied to the
+  linked Supabase project, verified (policy counts match: profiles 4, wf_decisions 3,
+  wf_decision_participants 3, wf_decision_invitation_requests 3). Committed.
+
+**Deliberately deferred, not oversights** (see migration 0045's file header for the full
+reasoning): the Pathway/stage-engine (7-stage tracking UI, transition history) is Phase 3's job —
+`wf_decisions.status` is the flat card-facing status, not that state machine. Files and a real
+audit trail are static empty states for now. Full chain-of-command invitation approval (a request
+routing to the target's *own* manager, not an org manager) is deferred the same way Phase 1
+deferred delegated role-assignment writes — org managers approve every invitation request in this
+phase. Visual treatment follows the UI content guide's copy/terminology exactly but not yet its
+"3D land tiles, glowing roots" visual direction (§1 of the UI guide) — that's a design pass, not
+Phase 2 plumbing.
+
+## Phases 3–8
+
+Tracked as tasks #78–#83 in the session task list; unstarted. Each depends on the prior phase's
 approval. Full detail for each is in `PLOTABL_WORKFORCE_MODULE_BUILD_SPEC.md` §21 and won't be
 duplicated here until that phase is actually being scoped, to avoid this tracker drifting out of
-sync with a plan written before Phase 1's actual schema exists.
+sync with a plan written before its own schema exists.
 
 ## Source files
 

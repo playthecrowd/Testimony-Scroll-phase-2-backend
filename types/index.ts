@@ -1003,3 +1003,70 @@ export interface WorkforceAccess {
   isManager: boolean;
   roles: WorkforceRoleAssignment[];
 }
+
+// --- Plotabl Workforce Phase 2: Decision Pool + expanded preview ---
+
+export type WorkforceDecisionStatus =
+  | "draft"
+  | "stakeholder_review"
+  | "awaiting_leadership_approval"
+  | "department_translation"
+  | "management_planning"
+  | "employee_activation"
+  | "in_implementation"
+  | "measuring_outcomes"
+  | "completed"
+  | "on_hold"
+  | "archived";
+
+export type WorkforceDecisionPriority = "standard" | "elevated" | "strategic" | "critical";
+export type WorkforceDecisionSecurity = "public" | "internal" | "restricted" | "confidential";
+
+export interface WorkforceDecision {
+  id: string;
+  churchId: string;
+  decisionNumber: string;
+  title: string;
+  status: WorkforceDecisionStatus;
+  priority: WorkforceDecisionPriority;
+  security: WorkforceDecisionSecurity;
+  departmentId: string | null;
+  controllingStakeholderGroup: string | null;
+  decisionOwner: string | null;
+  decisionOwnerName: string | null;
+  executiveIntent: string | null;
+  desiredOutcome: string | null;
+  targetDate: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  participantCount: number;
+}
+
+export interface WorkforceDecisionParticipant {
+  id: string;
+  decisionId: string;
+  profileId: string;
+  profileName: string | null;
+  profileAvatarUrl: string | null;
+  role: WorkforceRole;
+  addedBy: string | null;
+  createdAt: string;
+}
+
+export type WorkforceInvitationTargetScope = "department" | "department_leadership" | "specific_person";
+export type WorkforceInvitationStatus = "pending" | "approved" | "declined";
+
+export interface WorkforceDecisionInvitationRequest {
+  id: string;
+  decisionId: string;
+  churchId: string;
+  targetScope: WorkforceInvitationTargetScope;
+  departmentId: string | null;
+  targetProfileId: string | null;
+  status: WorkforceInvitationStatus;
+  requestedBy: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
