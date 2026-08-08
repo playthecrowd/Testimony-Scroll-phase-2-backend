@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutGrid, ListChecks, UserCheck, Calendar as CalendarIcon, Compass, Users, LayoutList, ClipboardCheck } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { LayoutList } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { DECISION, OTHER_DECISIONS, findPerson } from "@/lib/workforceDemo";
 
@@ -15,21 +15,7 @@ export default function WorkforceDemoPoolPage() {
   const owner = findPerson(DECISION.createdById);
 
   return (
-    <DemoShell
-      pageType="decision-pool"
-      searchPlaceholder="Search decisions, owners, or stakeholders…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo" label="Decision Pool" active icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo" label="My Decisions" icon={ListChecks} />
-          <DemoNavItem href="/workforce/demo" label="Assigned to Me" icon={UserCheck} />
-          <DemoNavItem href="/workforce/demo" label="Sessions" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo" label="Attractions" icon={Compass} />
-          <DemoNavItem href="/workforce/demo" label="People & Teams" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
-    >
+    <DemoShell pageType="decision-pool" searchPlaceholder="Search decisions, owners, or stakeholders…">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>

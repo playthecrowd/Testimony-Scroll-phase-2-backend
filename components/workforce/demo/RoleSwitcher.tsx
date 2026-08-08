@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronDown } from "lucide-react";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { useWorkforcePreviewRole } from "./RoleContext";
-import { PREVIEW_ROLES, PREVIEW_ROLE_LABEL, PREVIEW_ROLE_PERSON, WorkforcePageType, resolveRoleDestination } from "@/lib/workforcePreviewRole";
+import { PREVIEW_ROLES, PREVIEW_ROLE_LABEL, PREVIEW_ROLE_PERSON, WorkforcePageType, WorkforceNavContext, DEFAULT_NAV_CONTEXT, resolveRoleDestination } from "@/lib/workforcePreviewRole";
 import { findPerson } from "@/lib/workforceDemo";
 
 // The mandatory top-right role switcher (controlling spec section 2). Shows the active preview
 // person/role and, on selection of a different role, navigates to that role's canonical page for
 // the current shared decision/session context via resolveRoleDestination -- never a generic
 // dashboard, per the spec's explicit fallback rule.
-export function RoleSwitcher({ pageType }: { pageType: WorkforcePageType }) {
+export function RoleSwitcher({ pageType, navContext = DEFAULT_NAV_CONTEXT }: { pageType: WorkforcePageType; navContext?: WorkforceNavContext }) {
   const { role, setRole } = useWorkforcePreviewRole();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -22,7 +22,7 @@ export function RoleSwitcher({ pageType }: { pageType: WorkforcePageType }) {
     setOpen(false);
     if (next === role) return;
     setRole(next);
-    router.push(resolveRoleDestination(pageType, next));
+    router.push(resolveRoleDestination(pageType, next, navContext));
   }
 
   return (

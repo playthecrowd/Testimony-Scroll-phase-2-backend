@@ -1,28 +1,38 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Search, Bell, Coins } from "lucide-react";
 import { WorkforceLogo } from "@/components/workforce/WorkforceLogo";
 import { RoleSwitcher } from "./RoleSwitcher";
-import { WorkforcePageType } from "@/lib/workforcePreviewRole";
+import { WorkforcePageType, WorkforceNavContext, DEFAULT_NAV_CONTEXT } from "@/lib/workforcePreviewRole";
+import { ROLE_NAV } from "@/lib/workforceNav";
+import { useWorkforcePreviewRole } from "./RoleContext";
 
 // Shell for the offline, mock-data-driven Plotabl Workforce pipeline demo (/workforce/demo/**).
 // Deliberately separate from WorkforceAppShell (which requires real Supabase auth/org props) --
-// this demo has zero database dependency by design. `pageType` drives the top-right role switcher
-// (components/workforce/demo/RoleSwitcher.tsx): it both shows the person representing whichever
-// preview role is currently active (persisted across navigation via RoleContext) and computes
-// where switching roles should land, per the controlling spec's context-preservation rules.
+// this demo has zero database dependency by design. Nav is computed here from the active preview
+// role (lib/workforceNav.ts's ROLE_NAV), not passed in by each page -- that's the fix for tabs
+// drifting into pointing at unrelated pages: there is now exactly one place a role's tab list can
+// be defined. `pageType` still drives the top-right role switcher's context-preserving
+// destination logic (lib/workforcePreviewRole.ts).
 export function DemoShell({
   pageType,
+  navContext = DEFAULT_NAV_CONTEXT,
   searchPlaceholder = "Search Plotabl Workforce…",
-  nav,
   navFooter,
   children,
 }: {
   pageType: WorkforcePageType;
+  navContext?: WorkforceNavContext;
   searchPlaceholder?: string;
-  nav: React.ReactNode;
   navFooter?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { role } = useWorkforcePreviewRole();
+  const pathname = usePathname();
+  const items = ROLE_NAV[role];
+
   return (
     <div className="wf-theme min-h-screen flex flex-col bg-background">
       <header className="flex items-center gap-4 px-4 md:px-6 h-16 border-b border-border-subtle bg-surface/80 shrink-0">
@@ -44,12 +54,29 @@ export function DemoShell({
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-accent-gold bg-accent-gold/10 border border-accent-gold/30 rounded-full px-3 py-1.5">
             <Coins size={13} /> 1,250 credits
           </div>
-          <RoleSwitcher pageType={pageType} />
+          <RoleSwitcher pageType={pageType} navContext={navContext} />
         </div>
       </header>
       <div className="flex flex-1 min-h-0">
         <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-border-subtle bg-surface/60 p-3">
-          <nav className="flex-1 space-y-0.5">{nav}</nav>
+          <nav className="flex-1 space-y-0.5">
+            {items.map((item) => {
+              const href = item.href(navContext);
+              const active = pathname === href;
+              return (
+                <Link
+                  key={item.key}
+                  href={href}
+                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    active ? "bg-accent-blue/15 text-foreground border-l-2 border-accent-blue -ml-0.5 pl-[10px]" : "text-muted hover:text-foreground hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <item.icon size={16} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
           {navFooter}
         </aside>
         <main className="flex-1 min-w-0">{children}</main>
@@ -59,19 +86,5 @@ export function DemoShell({
         <span>Unclassified Training Demo</span>
       </footer>
     </div>
-  );
-}
-
-export function DemoNavItem({ href, label, active, icon: Icon }: { href: string; label: string; active?: boolean; icon: React.ComponentType<{ size?: number }> }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-        active ? "bg-accent-blue/15 text-foreground border-l-2 border-accent-blue -ml-0.5 pl-[10px]" : "text-muted hover:text-foreground hover:bg-black/[0.03]"
-      }`}
-    >
-      <Icon size={16} />
-      {label}
-    </Link>
   );
 }

@@ -40,67 +40,161 @@ export const PREVIEW_ROLE_PERSON: Record<WorkforcePreviewRole, string> = {
   approver: "david-chen",
 };
 
+// Shared context (which decision/department/session is "current") threaded through both the nav
+// config (lib/workforceNav.ts) and the role-switch resolver below. This dataset has exactly one
+// decision, one department, and one session, so "preserve context" collapses to "send this role
+// to its canonical page for that decision/department/session" -- a documented simplification, not
+// an oversight, matching the same simplification already used throughout lib/workforceDemo.ts.
+export interface WorkforceNavContext {
+  decisionId: string;
+  departmentId: string;
+  sessionId: string;
+}
+
+export const DEFAULT_NAV_CONTEXT: WorkforceNavContext = {
+  decisionId: "D-2048",
+  departmentId: "dept_advanced_manufacturing",
+  sessionId: "FF-042",
+};
+
 // Every page in the demo declares which of these "page types" it is; the switcher uses this plus
 // the target role to resolve a destination, matching the controlling spec's context-preservation
-// table (section 2). This dataset has exactly one decision (D-2048) and one session (FF-042), so
-// "preserve context" collapses to "send this role to its canonical page for that decision/session"
-// rather than needing full dynamic ID threading -- documented simplification, not an oversight.
+// table (section 9) and the more detailed per-page requirements doc's explicit role-switch pairs
+// (Manager Onboarding <-> Employee My Session, Manager Participants <-> Employee Participants &
+// POV, Employee 3D World -> Department Leader read-only Session Overview/Analytics, Department
+// Proposals -> Approver same-proposal approval view).
 export type WorkforcePageType =
   | "decision-pool"
   | "decision-detail"
   | "decision-workspace"
-  | "department-workspace"
+  | "decision-pathway"
+  | "decision-feedback"
+  | "decision-mine"
+  | "department-breakout"
+  | "department-experiences"
+  | "department-managers"
+  | "department-proposals"
   | "proposal-create"
   | "proposal-detail"
   | "booking-confirmation"
-  | "session-control"
-  | "session-onboarding"
-  | "session-participants"
-  | "session-pov"
-  | "session-analytics"
-  | "session-archive"
-  | "decision-evidence"
+  | "assigned-to-me"
+  | "org-sessions"
+  | "attractions"
+  | "people"
+  | "evidence"
+  | "manager-all-sessions"
+  | "manager-assignments"
+  | "manager-session-overview"
+  | "manager-onboarding"
+  | "manager-participants"
+  | "manager-assessments"
+  | "manager-pov-breakouts"
+  | "manager-leadership-content"
+  | "manager-analytics"
+  | "manager-archive"
+  | "my-session"
+  | "my-session-world"
+  | "my-session-participants-pov"
+  | "my-session-pov"
+  | "my-session-leadership-content"
+  | "my-session-saved-moments"
+  | "my-session-help"
   | "vendor-fulfillment";
 
-const DECISION_POOL = "/workforce/demo";
-const DECISION_DETAIL = "/workforce/demo/decisions/D-2048";
-const DECISION_WORKSPACE = "/workforce/demo/decisions/D-2048/workspace";
-const DEPARTMENT_WORKSPACE = "/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing";
-const SESSION_CONTROL = "/workforce/demo/sessions/FF-042/control";
-const SESSION_ONBOARDING = "/workforce/demo/sessions/FF-042/onboarding";
-const SESSION_PARTICIPANTS = "/workforce/demo/sessions/FF-042/participants";
-const SESSION_ANALYTICS = "/workforce/demo/sessions/FF-042/analytics";
+type PathFn = (ctx: WorkforceNavContext) => string;
 
-// Default "home" destination per role, used from most page types -- matches the spec's routing
-// table: Enterprise Owner/Decision Owner stay at decision level, Department Leader at department
-// level, Manager/Employee/Approver at session level.
-const DEFAULT_DESTINATION: Record<WorkforcePreviewRole, string> = {
-  enterprise_owner: DECISION_WORKSPACE,
-  decision_owner: DECISION_DETAIL,
-  department_leader: DEPARTMENT_WORKSPACE,
-  manager: SESSION_CONTROL,
-  employee: SESSION_ONBOARDING,
-  approver: SESSION_ANALYTICS,
+const decisionPoolPath: PathFn = () => "/workforce/demo";
+const decisionWorkspacePath: PathFn = (ctx) => `/workforce/demo/decisions/${ctx.decisionId}/workspace`;
+const decisionDetailPath: PathFn = (ctx) => `/workforce/demo/decisions/${ctx.decisionId}`;
+const departmentBreakoutPath: PathFn = (ctx) => `/workforce/demo/decisions/${ctx.decisionId}/departments/${ctx.departmentId}`;
+const decisionMinePath: PathFn = () => "/workforce/demo/decisions/mine";
+const assignedToMePath: PathFn = () => "/workforce/demo/assigned";
+const orgSessionsPath: PathFn = () => "/workforce/demo/sessions";
+const attractionsPath: PathFn = () => "/workforce/demo/attractions";
+const peoplePath: PathFn = () => "/workforce/demo/people";
+const evidencePath: PathFn = () => "/workforce/demo/evidence";
+const proposalDetailPath: PathFn = () => "/workforce/demo/proposals/SP-017";
+const managerSessionOverviewPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}`;
+const managerOnboardingPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/onboarding`;
+const managerParticipantsPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/participants`;
+const managerPovBreakoutsPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/pov-breakouts`;
+const managerLeadershipPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/leadership-content`;
+const managerAnalyticsPath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/analytics`;
+const managerArchivePath: PathFn = (ctx) => `/workforce/demo/manager/sessions/${ctx.sessionId}/archive`;
+const mySessionPath: PathFn = (ctx) => `/workforce/demo/my-session/${ctx.sessionId}`;
+const myWorldPath: PathFn = (ctx) => `/workforce/demo/my-session/${ctx.sessionId}/world`;
+const myParticipantsPovPath: PathFn = (ctx) => `/workforce/demo/my-session/${ctx.sessionId}/participants-pov`;
+const myLeadershipPath: PathFn = (ctx) => `/workforce/demo/my-session/${ctx.sessionId}/leadership-content`;
+const mySavedMomentsPath: PathFn = (ctx) => `/workforce/demo/my-session/${ctx.sessionId}/saved-moments`;
+
+// Default "home" destination per role -- the generic fallback used whenever a page type has no
+// more specific role-view entry below.
+const ROLE_HOME: Record<WorkforcePreviewRole, PathFn> = {
+  enterprise_owner: decisionWorkspacePath,
+  decision_owner: decisionDetailPath,
+  department_leader: departmentBreakoutPath,
+  manager: managerSessionOverviewPath,
+  employee: mySessionPath,
+  approver: managerAnalyticsPath,
 };
 
-export function resolveRoleDestination(pageType: WorkforcePageType, role: WorkforcePreviewRole): string {
-  // Special cases where the default doesn't match the spec's explicit table.
-  if (pageType === "decision-pool" && (role === "enterprise_owner" || role === "decision_owner")) {
-    return DECISION_POOL;
-  }
-  if (pageType === "session-pov" && role === "manager") {
-    // Manager stays on the POV they're already watching -- there's no separate "manager POV list"
-    // page in this build, so re-resolving to Session Control would lose their place.
-    return SESSION_CONTROL;
-  }
-  if (pageType === "session-participants") {
-    if (role === "manager") return SESSION_CONTROL;
-    if (role === "employee") return SESSION_PARTICIPANTS;
-  }
-  if (pageType === "proposal-detail" && (role === "department_leader" || role === "approver" || role === "manager")) {
-    // These three roles are exactly the ones with a reason to be reviewing this proposal --
-    // switching between them should keep the reviewer on the same proposal, not bounce them away.
-    return "/workforce/demo/proposals/SP-017";
-  }
-  return DEFAULT_DESTINATION[role];
+type RoleViewMap = Partial<Record<WorkforcePreviewRole, PathFn>>;
+
+// Leadership roles (Enterprise Owner, Decision Owner, Department Leader) land on the Manager's
+// Session Overview page in read-only mode when leaving a session-scoped page -- these pages
+// themselves gate their interactive controls off `role === "manager"` (see the read-only pattern
+// already proven on SP-017's canDecide). Approver specifically lands on Analytics per the spec's
+// own example pairing.
+const leadershipReadOnlySessionOverview: RoleViewMap = {
+  enterprise_owner: managerSessionOverviewPath,
+  decision_owner: managerSessionOverviewPath,
+  department_leader: managerSessionOverviewPath,
+  approver: managerAnalyticsPath,
+};
+
+const leadershipReadOnlyAnalytics: RoleViewMap = {
+  enterprise_owner: managerAnalyticsPath,
+  decision_owner: managerAnalyticsPath,
+  department_leader: managerAnalyticsPath,
+  approver: managerAnalyticsPath,
+};
+
+const PAGE_ROLE_VIEWS: Partial<Record<WorkforcePageType, RoleViewMap>> = {
+  "decision-pool": { enterprise_owner: decisionPoolPath, decision_owner: decisionPoolPath },
+  "decision-mine": { enterprise_owner: decisionMinePath, decision_owner: decisionMinePath },
+  "assigned-to-me": { enterprise_owner: assignedToMePath, decision_owner: assignedToMePath, department_leader: assignedToMePath, manager: assignedToMePath, approver: assignedToMePath },
+  "org-sessions": { enterprise_owner: orgSessionsPath, decision_owner: orgSessionsPath, department_leader: orgSessionsPath, approver: orgSessionsPath },
+  attractions: { enterprise_owner: attractionsPath, decision_owner: attractionsPath, department_leader: attractionsPath, manager: attractionsPath },
+  people: { enterprise_owner: peoplePath, decision_owner: peoplePath, department_leader: peoplePath, manager: peoplePath },
+  evidence: { enterprise_owner: evidencePath, decision_owner: evidencePath, department_leader: evidencePath, approver: evidencePath },
+  "manager-all-sessions": { enterprise_owner: orgSessionsPath, decision_owner: orgSessionsPath, department_leader: orgSessionsPath, approver: orgSessionsPath, employee: mySessionPath },
+  "manager-assignments": { enterprise_owner: assignedToMePath, decision_owner: assignedToMePath, department_leader: assignedToMePath, approver: assignedToMePath, employee: mySessionPath },
+  "department-proposals": { approver: proposalDetailPath, department_leader: proposalDetailPath, manager: proposalDetailPath },
+  "proposal-detail": { department_leader: proposalDetailPath, approver: proposalDetailPath, manager: proposalDetailPath },
+
+  // Manager session-admin pages -> Employee's nearest equivalent (exact pairs from the spec),
+  // leadership roles -> read-only Session Overview/Analytics.
+  "manager-session-overview": { ...leadershipReadOnlySessionOverview, employee: mySessionPath },
+  "manager-onboarding": { ...leadershipReadOnlySessionOverview, employee: mySessionPath },
+  "manager-participants": { ...leadershipReadOnlySessionOverview, employee: myParticipantsPovPath },
+  "manager-assessments": { ...leadershipReadOnlyAnalytics, employee: myWorldPath },
+  "manager-pov-breakouts": { ...leadershipReadOnlyAnalytics, employee: myParticipantsPovPath },
+  "manager-leadership-content": { ...leadershipReadOnlySessionOverview, employee: myLeadershipPath },
+  "manager-analytics": { ...leadershipReadOnlyAnalytics, employee: mySessionPath },
+  "manager-archive": { ...leadershipReadOnlyAnalytics, employee: mySavedMomentsPath },
+
+  // Employee session pages -> Manager's nearest equivalent (exact reverse pairs), leadership -> read-only.
+  "my-session": { manager: managerOnboardingPath, ...leadershipReadOnlySessionOverview },
+  "my-session-world": { manager: managerSessionOverviewPath, ...leadershipReadOnlyAnalytics },
+  "my-session-participants-pov": { manager: managerParticipantsPath, ...leadershipReadOnlySessionOverview },
+  "my-session-pov": { manager: managerPovBreakoutsPath, ...leadershipReadOnlyAnalytics },
+  "my-session-leadership-content": { manager: managerLeadershipPath, ...leadershipReadOnlySessionOverview },
+  "my-session-saved-moments": { manager: managerArchivePath, ...leadershipReadOnlyAnalytics },
+  "my-session-help": { manager: managerSessionOverviewPath, ...leadershipReadOnlySessionOverview },
+};
+
+export function resolveRoleDestination(pageType: WorkforcePageType, role: WorkforcePreviewRole, ctx: WorkforceNavContext = DEFAULT_NAV_CONTEXT): string {
+  const view = PAGE_ROLE_VIEWS[pageType]?.[role];
+  if (view) return view(ctx);
+  return ROLE_HOME[role](ctx);
 }

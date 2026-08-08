@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Check, Copy, LayoutGrid, ListChecks, UserCheck, Calendar as CalendarIcon, Compass, Users, ClipboardCheck } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Check, Copy } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { SESSION, SESSION_PROPOSAL } from "@/lib/workforceDemo";
 
 export const metadata = { title: "Booking Confirmed — Plotabl Workforce (Demo)" };
@@ -11,21 +11,7 @@ export default function BookingConfirmationPage() {
   const joinUrl = `plotabl.workforce/join/${SESSION.id}`;
 
   return (
-    <DemoShell
-      pageType="booking-confirmation"
-      searchPlaceholder="Search decisions, people, experiences…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo" label="Decision Pool" icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo" label="My Decisions" icon={ListChecks} />
-          <DemoNavItem href="/workforce/demo" label="Assigned to Me" icon={UserCheck} />
-          <DemoNavItem href="/workforce/demo" label="Sessions" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo" label="Attractions" icon={Compass} />
-          <DemoNavItem href="/workforce/demo" label="People & Teams" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
-    >
+    <DemoShell pageType="booking-confirmation" searchPlaceholder="Search decisions, people, experiences…">
       <div className="max-w-[600px] mx-auto px-4 md:px-8 py-16 text-center space-y-6">
         <div className="w-14 h-14 rounded-full bg-accent-blue/15 border border-accent-blue/40 flex items-center justify-center mx-auto">
           <Check size={26} className="text-accent-blue" />

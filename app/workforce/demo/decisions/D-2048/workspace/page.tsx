@@ -1,33 +1,39 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Sparkles, LayoutGrid, GitBranch, Users, MessageSquare, ClipboardCheck, ChevronRight } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Check, Sparkles, ChevronRight } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
-import { DECISION, PATHWAY_STAGES, SELECTED_EXPERIENCE_TITLE, EXPERIENCE_USE_CASES, DECISION_FEEDBACK, SAMPLE_GROUP_IDS, findPerson, findDepartment } from "@/lib/workforceDemo";
+import { useWorkforceDemoStore } from "@/components/workforce/demo/StoreContext";
+import { DECISION, PATHWAY_STAGES, PATHWAY_STAGE_DETAILS, SELECTED_EXPERIENCE_TITLE, EXPERIENCE_USE_CASES, DECISION_FEEDBACK, SAMPLE_GROUP_IDS, findPerson, findDepartment } from "@/lib/workforceDemo";
 
-export const metadata = { title: "Decision Workspace — Plotabl Workforce (Demo)" };
+const PROPOSAL_LABEL: Record<string, string> = {
+  draft: "Draft",
+  pending_approval: "Awaiting Leadership Approval",
+  changes_requested: "Changes Requested",
+  resubmitted: "Resubmitted",
+  approved: "Approved",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+};
 
 // WF-03: Decision Workspace Tracking. Mock-data-driven -- see lib/workforceDemo.ts. Current stage
-// (Department Translation, index 2) and 38% progress come directly from the mock decision record,
-// not computed independently, so this stays consistent with the Decision Preview page.
+// and the SP-017 status badge read live from the shared store (not the static DECISION record),
+// so this stays in sync with the standalone Pathway page and Proposal Detail after "Advance
+// Stage" or an approval decision -- the exact consistency the acceptance tests require.
 export default function WorkforceDemoWorkspacePage() {
+  const { state } = useWorkforceDemoStore();
   const department = findDepartment(DECISION.departmentId);
   const recommended = EXPERIENCE_USE_CASES.find((e) => e.title === SELECTED_EXPERIENCE_TITLE)!;
+  const stageIndex = state.decisionStageIndex;
+  const stageDetail = PATHWAY_STAGE_DETAILS[stageIndex];
+  const proposalLabel = PROPOSAL_LABEL[state.proposalStatus];
 
   return (
     <DemoShell
       pageType="decision-workspace"
       searchPlaceholder="Search this decision, people, sessions, or evidence…"
-      nav={
-        <>
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Decision Workspace</div>
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/workspace" label="Decision Overview" active icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/workspace" label="Pathway" icon={GitBranch} />
-          <DemoNavItem href={`/workforce/demo/decisions/D-2048/departments/${department.id}`} label="Department Breakouts" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/workspace" label="Feedback" icon={MessageSquare} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
       navFooter={
         <Link href="/workforce/demo" className="text-xs text-accent-blue hover:underline px-3 py-2 block">← Back to Decision Pool</Link>
       }
@@ -39,36 +45,36 @@ export default function WorkforceDemoWorkspacePage() {
               <Link href="/workforce/demo" className="hover:text-accent-blue">Decision Pool</Link> / {DECISION.id}
             </div>
             <h1 className="text-2xl font-bold text-foreground">{DECISION.title}</h1>
-            <span className="inline-block mt-2 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent-blue/15 text-accent-blue">● {DECISION.statusLabel}</span>
+            <span className="inline-block mt-2 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-accent-blue/15 text-accent-blue">● {PATHWAY_STAGES[stageIndex]}</span>
           </div>
-          <button className="text-sm font-semibold px-4 py-2.5 rounded-lg bg-accent-blue text-[#16210a] hover:bg-accent-blue-light transition-colors">
+          <Link href="/workforce/demo/proposals/new" className="text-sm font-semibold px-4 py-2.5 rounded-lg bg-accent-blue text-[#16210a] hover:bg-accent-blue-light transition-colors">
             Propose Session
-          </button>
+          </Link>
         </div>
 
         <div className="qk-card rounded-2xl p-5">
           <div className="flex items-center justify-between gap-4 overflow-x-auto pb-2">
             {PATHWAY_STAGES.map((stage, i) => {
-              const state = i < DECISION.currentStageIndex ? "done" : i === DECISION.currentStageIndex ? "active" : "upcoming";
+              const state2 = i < stageIndex ? "done" : i === stageIndex ? "active" : "upcoming";
               return (
                 <div key={stage} className="flex items-center gap-2 shrink-0">
                   <div className="flex flex-col items-center gap-1 min-w-[92px] text-center">
                     <span
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold ${
-                        state === "done" ? "bg-accent-blue text-[#16210a]" : state === "active" ? "bg-accent-blue text-[#16210a] ring-4 ring-accent-blue/20" : "bg-surface-2 text-muted"
+                        state2 === "done" ? "bg-accent-blue text-[#16210a]" : state2 === "active" ? "bg-accent-blue text-[#16210a] ring-4 ring-accent-blue/20" : "bg-surface-2 text-muted"
                       }`}
                     >
-                      {state === "done" ? <Check size={14} /> : i + 1}
+                      {state2 === "done" ? <Check size={14} /> : i + 1}
                     </span>
-                    <span className={`text-[11px] leading-tight ${state === "active" ? "text-accent-blue font-semibold" : "text-muted"}`}>{stage}</span>
-                    {state === "active" && <span className="text-[10px] text-accent-blue">Decision currently here</span>}
+                    <span className={`text-[11px] leading-tight ${state2 === "active" ? "text-accent-blue font-semibold" : "text-muted"}`}>{stage}</span>
+                    {state2 === "active" && <span className="text-[10px] text-accent-blue">Decision currently here</span>}
                   </div>
                   {i < PATHWAY_STAGES.length - 1 && <ChevronRight size={14} className="text-border-subtle shrink-0" />}
                 </div>
               );
             })}
             <div className="ml-auto text-right shrink-0 pl-4">
-              <div className="text-2xl font-bold text-foreground">{DECISION.progressPercent}%</div>
+              <div className="text-2xl font-bold text-foreground">{Math.round(((stageIndex + stageDetail.completionPercent / 100) / PATHWAY_STAGES.length) * 100)}%</div>
               <div className="text-[11px] text-muted">Progress</div>
             </div>
           </div>
@@ -76,8 +82,8 @@ export default function WorkforceDemoWorkspacePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="qk-card rounded-2xl p-4">
-            <h2 className="text-sm font-semibold text-foreground mb-3">Current Stage: Department Translation</h2>
-            <div className="text-xs text-muted mb-3">Convert executive intent into operational actions</div>
+            <h2 className="text-sm font-semibold text-foreground mb-3">Current Stage: {PATHWAY_STAGES[stageIndex]}</h2>
+            <div className="text-xs text-muted mb-3">{stageDetail.completionPercent}% complete</div>
             <div className="text-[11px] text-muted mb-1">Assigned Group</div>
             <div className="flex items-center gap-2 mb-4">
               <div className="flex -space-x-1.5">
@@ -90,9 +96,9 @@ export default function WorkforceDemoWorkspacePage() {
             </div>
             <div className="text-[11px] text-muted mb-1.5">Deliverables</div>
             <ul className="text-xs text-foreground space-y-1.5 mb-4">
-              <li className="flex items-center gap-1.5"><Check size={13} className="text-accent-blue" /> Operating impact brief</li>
-              <li className="flex items-center gap-1.5"><Check size={13} className="text-accent-blue" /> Workforce audience map</li>
-              <li className="flex items-center gap-1.5 text-muted"><span className="w-[13px] h-[13px] rounded-full border border-border-subtle inline-block" /> Success measures</li>
+              {stageDetail.deliverables.map((d) => (
+                <li key={d} className="flex items-center gap-1.5"><Check size={13} className="text-accent-blue" /> {d}</li>
+              ))}
             </ul>
             <Link
               href={`/workforce/demo/decisions/D-2048/departments/${department.id}`}
@@ -127,7 +133,7 @@ export default function WorkforceDemoWorkspacePage() {
           <div className="qk-card rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm font-semibold text-foreground">Session Proposal SP-017</h2>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Awaiting Leadership Approval</span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{proposalLabel}</span>
             </div>
             <dl className="text-xs space-y-1.5 mb-4">
               <Row label="Experience" value="Future Factory Readiness Simulator" />
@@ -165,9 +171,12 @@ export default function WorkforceDemoWorkspacePage() {
             </div>
           </div>
           <div className="qk-card rounded-2xl p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Live Feedback</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Live Feedback</h3>
+              <Link href="/workforce/demo/decisions/D-2048/feedback" className="text-xs text-accent-blue hover:underline">View All →</Link>
+            </div>
             <div className="space-y-2.5">
-              {DECISION_FEEDBACK.map((f, i) => {
+              {DECISION_FEEDBACK.slice(0, 2).map((f, i) => {
                 const p = findPerson(f.personId);
                 return (
                   <div key={i} className="flex items-start gap-2 text-xs">

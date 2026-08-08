@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Check, Circle, LayoutGrid, Hammer, MessageSquare, FileText } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Check, Circle } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { FULFILLMENT_REQUEST, FULFILLMENT_STAGES, DECISION, findPerson } from "@/lib/workforceDemo";
 
@@ -19,14 +19,6 @@ export default function WorkforceDemoVendorRequestPage() {
     <DemoShell
       pageType="vendor-fulfillment"
       searchPlaceholder="Search fulfillment requests…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo/vendor/requests/VR-104" label="Fulfillment Requests" active icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo/vendor/requests/VR-104" label="Build Queue" icon={Hammer} />
-          <DemoNavItem href="/workforce/demo/vendor/requests/VR-104" label="Notes & Comments" icon={MessageSquare} />
-          <DemoNavItem href="/workforce/demo/vendor/requests/VR-104" label="Contract & Scope" icon={FileText} />
-        </>
-      }
       navFooter={
         <Link href="/workforce/demo/decisions/D-2048/workspace" className="text-xs text-accent-blue hover:underline px-3 py-2 block">← Back to Decision Track</Link>
       }

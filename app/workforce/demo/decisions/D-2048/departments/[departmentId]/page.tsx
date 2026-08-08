@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LayoutGrid, Users, LayoutList, UsersRound, Calendar as CalendarIcon, MessageSquare, Sparkles, X } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Sparkles, X, Users, UsersRound } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { DECISION, EXPERIENCE_USE_CASES, SELECTED_EXPERIENCE_TITLE, findPerson, findDepartment } from "@/lib/workforceDemo";
 
@@ -9,7 +9,10 @@ export const metadata = { title: "Department Breakout — Plotabl Workforce (Dem
 
 // WF-04: Department Experience Catalog. Mock-data-driven -- see lib/workforceDemo.ts. The 4-step
 // role track (Stakeholder -> Department Leadership -> Managers -> Employees) uses real portrait
-// photos at the completed/current steps per the reference screenshot, not icon placeholders.
+// photos at the completed/current steps per the reference screenshot, not icon placeholders. The
+// experience grid here is a summary (top 4) linking out to the standalone Experience Catalog page
+// -- Assigned Managers and Proposals are now their own distinct department-management pages, not
+// links reused from the session-scoped Manager tree.
 export default async function WorkforceDemoDepartmentBreakoutPage({ params }: { params: Promise<{ departmentId: string }> }) {
   const { departmentId } = await params;
   let department;
@@ -20,22 +23,13 @@ export default async function WorkforceDemoDepartmentBreakoutPage({ params }: { 
   }
   const stakeholder = findPerson(DECISION.decisionOwnerId);
   const deptLead = findPerson(DECISION.departmentLeaderId);
+  const navContext = { decisionId: DECISION.id, departmentId: department.id, sessionId: "FF-042" };
 
   return (
     <DemoShell
-      pageType="department-workspace"
+      pageType="department-breakout"
+      navContext={navContext}
       searchPlaceholder="Search decisions, people, experiences…"
-      nav={
-        <>
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Decision Workspace</div>
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/workspace" label="Decision Overview" icon={LayoutGrid} />
-          <DemoNavItem href={`/workforce/demo/decisions/D-2048/departments/${department.id}`} label="Department Breakout" active icon={Users} />
-          <DemoNavItem href={`/workforce/demo/decisions/D-2048/departments/${department.id}`} label="Experience Catalog" icon={LayoutList} />
-          <DemoNavItem href="/workforce/demo/sessions/FF-042/participants" label="Assigned Managers" icon={UsersRound} />
-          <DemoNavItem href="/workforce/demo/sessions/FF-042/control" label="Session Proposals" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/workspace" label="Feedback" icon={MessageSquare} />
-        </>
-      }
       navFooter={
         <Link href="/workforce/demo/decisions/D-2048" className="text-xs text-accent-blue hover:underline px-3 py-2 block">← Back to Decision Preview</Link>
       }
@@ -56,7 +50,9 @@ export default async function WorkforceDemoDepartmentBreakoutPage({ params }: { 
               <div className="flex-1 h-px bg-border-subtle" />
               <RoleStep name={deptLead.name} portrait={deptLead.portraitUrl} label="Department Leadership" sub="You are here" state="active" />
               <div className="flex-1 h-px bg-border-subtle" />
-              <RoleStep label="Managers" sub={`${DECISION.audience.managers} awaiting assignment`} state="upcoming" icon={Users} />
+              <Link href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/managers`} className="contents">
+                <RoleStep label="Managers" sub={`${DECISION.audience.managers} awaiting assignment`} state="upcoming" icon={Users} />
+              </Link>
               <div className="flex-1 h-px bg-border-subtle" />
               <RoleStep label="Employees" sub={`${DECISION.audience.employees} pending activation`} state="upcoming" icon={UsersRound} />
             </div>
@@ -66,13 +62,26 @@ export default async function WorkforceDemoDepartmentBreakoutPage({ params }: { 
               <div><div className="text-muted mb-0.5">Required Outcomes</div><div className="text-foreground font-medium">Role readiness, safe adoption</div></div>
               <div><div className="text-muted mb-0.5">Leadership Actions</div><div className="text-foreground font-medium">Select experience → Assign managers</div></div>
             </div>
+            <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-border-subtle">
+              <Link href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/managers`} className="text-xs font-semibold px-3 py-2 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">
+                Assigned Managers
+              </Link>
+              <Link href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/proposals`} className="text-xs font-semibold px-3 py-2 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">
+                Proposals
+              </Link>
+            </div>
           </div>
 
           <div>
-            <h2 className="text-lg font-bold text-foreground">Future Factory Experience Catalog</h2>
-            <p className="text-sm text-muted mt-1">Select a purpose-built experience to help your managers communicate, demonstrate, train, or validate this decision.</p>
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">Future Factory Experience Catalog</h2>
+                <p className="text-sm text-muted mt-1">Select a purpose-built experience to help your managers communicate, demonstrate, train, or validate this decision.</p>
+              </div>
+              <Link href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/experiences`} className="text-xs font-semibold text-accent-blue hover:underline shrink-0">View Full Catalog →</Link>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {EXPERIENCE_USE_CASES.map((exp) => {
+              {EXPERIENCE_USE_CASES.slice(0, 4).map((exp) => {
                 const selected = exp.title === SELECTED_EXPERIENCE_TITLE;
                 return (
                   <div key={exp.title} className={`qk-card rounded-xl p-3.5 ${selected ? "ring-2 ring-accent-blue" : ""}`}>
@@ -85,10 +94,13 @@ export default async function WorkforceDemoDepartmentBreakoutPage({ params }: { 
                     <p className="text-xs text-muted mb-3">{exp.description}</p>
                     <div className="text-[11px] text-muted mb-2.5">{exp.durationMin} min · Ready</div>
                     <div className="flex gap-2">
-                      <button className="flex-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">Preview</button>
-                      <button className={`flex-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${selected ? "bg-accent-blue text-[#16210a]" : "border border-accent-blue text-accent-blue hover:bg-accent-blue/10"}`}>
+                      <Link href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/experiences`} className="flex-1 text-center text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">Preview</Link>
+                      <Link
+                        href={`/workforce/demo/decisions/${DECISION.id}/departments/${department.id}/experiences`}
+                        className={`flex-1 text-center text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${selected ? "bg-accent-blue text-[#16210a]" : "border border-accent-blue text-accent-blue hover:bg-accent-blue/10"}`}
+                      >
                         {selected ? "Selected" : "Select & Assign"}
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 );
@@ -156,7 +168,7 @@ function RoleStep({
         <WorkforceAvatar name={name} imageUrl={portrait} size="lg" className={state === "active" ? "ring-4 ring-accent-blue/30" : ""} />
       ) : (
         <span className={`w-14 h-14 rounded-full flex items-center justify-center ${state === "active" ? "bg-accent-blue/15 ring-4 ring-accent-blue/20" : "bg-surface-2"}`}>
-          {Icon && <Icon size={20} className={state === "active" ? "text-accent-blue" : "text-muted"} />}
+          {Icon && <Icon size={20} className="text-muted" />}
         </span>
       )}
       <div className={`text-xs font-semibold ${state === "active" ? "text-accent-blue" : "text-foreground"}`}>{name ?? label}</div>

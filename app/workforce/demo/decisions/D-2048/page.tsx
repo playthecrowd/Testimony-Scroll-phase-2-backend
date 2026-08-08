@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Target, Trophy, BarChart3, FileText, Activity, LayoutGrid, ListChecks, UserCheck, Calendar as CalendarIcon, Compass, Users, ClipboardCheck, MapPin, Pencil, MoreHorizontal, X, Shield, User, Flag, Calendar, Lock, Clock } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Target, Trophy, BarChart3, FileText, Activity, MapPin, Pencil, MoreHorizontal, X, Shield, User, Flag, Calendar, Lock, Clock } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { DecisionAccordion } from "@/components/workforce/DecisionAccordion";
 import { ApprovalRoute } from "@/components/workforce/ApprovalRoute";
@@ -24,21 +24,7 @@ export default function WorkforceDemoDecisionPreviewPage() {
   const decisionOwner = findPerson(DECISION.decisionOwnerId);
 
   return (
-    <DemoShell
-      pageType="decision-detail"
-      searchPlaceholder="Search decisions, owners, or stakeholders…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo" label="Decision Pool" icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo" label="My Decisions" icon={ListChecks} />
-          <DemoNavItem href="/workforce/demo" label="Assigned to Me" icon={UserCheck} />
-          <DemoNavItem href="/workforce/demo" label="Sessions" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo" label="Attractions" icon={Compass} />
-          <DemoNavItem href="/workforce/demo" label="People & Teams" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
-    >
+    <DemoShell pageType="decision-detail" searchPlaceholder="Search decisions, owners, or stakeholders…">
       <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-6 md:py-8">
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_380px_300px] gap-6 items-start">
           <div className="space-y-5 min-w-0">

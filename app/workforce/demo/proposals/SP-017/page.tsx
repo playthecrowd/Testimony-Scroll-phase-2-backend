@@ -2,26 +2,30 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Check, X, MessageSquareWarning, LayoutGrid, ListChecks, UserCheck, Calendar as CalendarIcon, Compass, Users, ClipboardCheck } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Check, X, MessageSquareWarning } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { useWorkforcePreviewRole } from "@/components/workforce/demo/RoleContext";
+import { useWorkforceDemoStore } from "@/components/workforce/demo/StoreContext";
+import { withProposalDecided, WorkforceDemoProposalStatus } from "@/lib/workforceDemoStore";
 import { DECISION, SESSION_PROPOSAL, findPerson } from "@/lib/workforceDemo";
 
-// SP-02: Session Proposal Detail / Approval. Client component (not server-fetched metadata) since
-// it needs the active preview role to decide which actions to show -- Approve/Request Changes/
-// Reject only make sense for Department Leader or Approver; Manager sees a read-only submitted
-// view instead, matching the spec's "only authorized leadership may see approval controls" rule.
+// SP-02: Session Proposal Detail / Approval. Client component -- needs the active preview role to
+// decide which actions to show (Approve/Request Changes/Reject only make sense for Department
+// Leader or Approver; Manager sees a read-only submitted view instead), and reads/writes
+// `proposalStatus` from the shared demo store (not local state) so an approval made as one role
+// is still visible after switching to another role or refreshing -- the store is the single
+// source of truth Decision Workspace, Manager All Sessions, and Department Proposals all read too.
 export default function ProposalDetailPage() {
   const { role } = useWorkforcePreviewRole();
+  const { state, update } = useWorkforceDemoStore();
   const router = useRouter();
-  const [status, setStatus] = useState(SESSION_PROPOSAL.status);
+  const status = state.proposalStatus;
   const requestedBy = findPerson(SESSION_PROPOSAL.requestedById);
   const canDecide = role === "department_leader" || role === "approver";
 
-  function decide(next: "approved" | "changes_requested" | "rejected") {
-    setStatus(next);
+  function decide(next: WorkforceDemoProposalStatus) {
+    update((s) => withProposalDecided(s, next));
     if (next === "approved") {
       router.push("/workforce/demo/proposals/SP-017/confirmed");
     }
@@ -31,17 +35,6 @@ export default function ProposalDetailPage() {
     <DemoShell
       pageType="proposal-detail"
       searchPlaceholder="Search decisions, people, experiences…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo" label="Decision Pool" icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo" label="My Decisions" icon={ListChecks} />
-          <DemoNavItem href="/workforce/demo" label="Assigned to Me" icon={UserCheck} />
-          <DemoNavItem href="/workforce/demo" label="Sessions" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo" label="Attractions" icon={Compass} />
-          <DemoNavItem href="/workforce/demo" label="People & Teams" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
       navFooter={
         <Link href="/workforce/demo/decisions/D-2048/workspace" className="text-xs text-accent-blue hover:underline px-3 py-2 block">← Back to Decision Track</Link>
       }
@@ -141,11 +134,20 @@ export default function ProposalDetailPage() {
           </div>
         )}
 
+        {status === "approved" && (
+          <div className="qk-card rounded-2xl p-5 border-accent-blue/30 bg-accent-blue/5">
+            <p className="text-sm text-foreground">This proposal has been approved.</p>
+            <Link href="/workforce/demo/proposals/SP-017/confirmed" className="inline-block mt-3 text-xs font-semibold px-3 py-2 rounded-lg bg-accent-blue text-[#16210a] hover:bg-accent-blue-light transition-colors">
+              View Booking Confirmation
+            </Link>
+          </div>
+        )}
+
         {status === "rejected" && (
           <div className="qk-card rounded-2xl p-5 border-red-200 bg-red-50/50">
             <p className="text-sm text-red-700">This proposal was rejected.</p>
-            <Link href="/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing" className="inline-block mt-3 text-xs font-semibold px-3 py-2 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">
-              Back to Session Proposals
+            <Link href="/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing/proposals" className="inline-block mt-3 text-xs font-semibold px-3 py-2 rounded-lg border border-border-subtle text-foreground hover:border-accent-blue transition-colors">
+              Back to Department Proposals
             </Link>
           </div>
         )}
@@ -163,8 +165,8 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function StatusPill({ status }: { status: typeof SESSION_PROPOSAL.status }) {
-  const style: Record<typeof status, string> = {
+function StatusPill({ status }: { status: WorkforceDemoProposalStatus }) {
+  const style: Record<WorkforceDemoProposalStatus, string> = {
     draft: "bg-surface-2 text-muted",
     pending_approval: "bg-amber-100 text-amber-700",
     changes_requested: "bg-amber-100 text-amber-700",
@@ -173,7 +175,7 @@ function StatusPill({ status }: { status: typeof SESSION_PROPOSAL.status }) {
     rejected: "bg-red-100 text-red-700",
     cancelled: "bg-surface-2 text-muted",
   };
-  const label: Record<typeof status, string> = {
+  const label: Record<WorkforceDemoProposalStatus, string> = {
     draft: "Draft",
     pending_approval: "Pending Approval",
     changes_requested: "Changes Requested",

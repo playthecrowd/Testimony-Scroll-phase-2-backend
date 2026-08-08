@@ -6,6 +6,8 @@
 // deliberately separate from the real, Supabase-backed /workforce/decisions/** pages built earlier
 // (which are untouched) -- D-2048 is not a UUID and was never meant to collide with those routes.
 
+import type { WorkforcePreviewRole } from "./workforcePreviewRole";
+
 export type WorkforceDemoRole =
   | "platform_owner"
   | "module_owner"
@@ -92,6 +94,29 @@ export const PATHWAY_STAGES = [
   "Outcomes & Lessons",
 ] as const;
 
+export interface WorkforceDemoStageDetail {
+  stage: string;
+  ownerId: string;
+  startDate: string;
+  targetDate: string;
+  completionPercent: number;
+  deliverables: string[];
+  blockers: string[];
+}
+
+// One entry per PATHWAY_STAGES index -- richer per-stage detail for the standalone Pathway page
+// (B1). Stage 2 (Department Translation, the decision's current stage) matches the deliverables
+// already shown on Decision Workspace and Department Breakout so nothing disagrees across pages.
+export const PATHWAY_STAGE_DETAILS: WorkforceDemoStageDetail[] = [
+  { stage: "Stakeholder Intent", ownerId: "maya-chen", startDate: "2026-08-06", targetDate: "2026-08-10", completionPercent: 100, deliverables: ["Executive intent brief", "Success measures defined"], blockers: [] },
+  { stage: "Leadership Approval", ownerId: "maya-chen", startDate: "2026-08-10", targetDate: "2026-08-14", completionPercent: 100, deliverables: ["Leadership sign-off", "Budget allocation"], blockers: [] },
+  { stage: "Department Translation", ownerId: "maya-patel", startDate: "2026-08-14", targetDate: "2026-09-20", completionPercent: 38, deliverables: ["Operating impact brief", "Workforce audience map", "Success measures"], blockers: ["Awaiting SP-017 leadership approval"] },
+  { stage: "Management Planning", ownerId: "jordan-brooks", startDate: "2026-09-08", targetDate: "2026-09-18", completionPercent: 15, deliverables: ["Session proposal", "Manager assignments"], blockers: ["Blocked on Department Translation completion"] },
+  { stage: "Employee Activation", ownerId: "jordan-brooks", startDate: "2026-09-18", targetDate: "2026-09-25", completionPercent: 0, deliverables: ["Employee onboarding", "Session delivery"], blockers: ["Not started"] },
+  { stage: "Implementation", ownerId: "jordan-brooks", startDate: "2026-09-25", targetDate: "2026-10-10", completionPercent: 0, deliverables: ["Workflow rollout", "Floor activation"], blockers: ["Not started"] },
+  { stage: "Outcomes & Lessons", ownerId: "maya-chen", startDate: "2026-10-10", targetDate: "2026-10-24", completionPercent: 0, deliverables: ["Outcomes report", "Lessons captured"], blockers: ["Not started"] },
+];
+
 export const DECISION = {
   id: "D-2048",
   title: "Future Factory Workforce Readiness",
@@ -134,14 +159,14 @@ export const OTHER_DECISIONS = [
 ] as const;
 
 export const EXPERIENCE_USE_CASES = [
-  { capability: "Real-Time Motion to 3D", title: "Workforce Skills Mirror", focus: "Demonstration", description: "Capture expert motions and turn them into repeatable role training.", durationMin: 60, recommended: false },
-  { capability: "Volumetric Environments", title: "Future Factory Leadership Stage", focus: "Vision & Conversation", description: "Deliver the transformation vision inside an interactive spatial briefing.", durationMin: 45, recommended: false },
-  { capability: "Interactive Gaming Consoles", title: "Mission Skills Challenge", focus: "Morale & Rewards", description: "Build proficiency through scored, team-based operational scenarios.", durationMin: 75, recommended: false },
-  { capability: "360° Immersive Viewer", title: "Factory Process Walkthrough", focus: "Visual Orientation", description: "Explore new workflows, stations, and safety zones before deployment.", durationMin: 45, recommended: false },
-  { capability: "Live Capture & Distribution", title: "Expert Knowledge Network", focus: "Knowledge Transfer", description: "Preserve demonstrations, key frames, and expert guidance for every shift.", durationMin: 60, recommended: false },
-  { capability: "Content-to-Gameplay", title: "Real Event Decision Lab", focus: "Decision Practice", description: "Turn lessons learned into role-specific judgment and response practice.", durationMin: 60, recommended: false },
-  { capability: "Screen Ride & Simulator", title: "Future Factory Readiness Simulator", focus: "Skills Training", description: "Practice new equipment, sequencing, and responses before floor activation.", durationMin: 90, recommended: true },
-  { capability: "Multiplayer VR & Shared POV", title: "Mentor Shadow Network", focus: "Collaborative Coaching", description: "Let managers observe, guide, and compare multiple participant viewpoints.", durationMin: 75, recommended: false },
+  { capability: "Real-Time Motion to 3D", title: "Workforce Skills Mirror", focus: "Demonstration", description: "Capture expert motions and turn them into repeatable role training.", durationMin: 60, recommended: false, capacity: 12, creditCost: 80, locations: ["Mobile Avatar World"], techRequirements: "Motion-capture rig or tablet camera; no VR headset required." },
+  { capability: "Volumetric Environments", title: "Future Factory Leadership Stage", focus: "Vision & Conversation", description: "Deliver the transformation vision inside an interactive spatial briefing.", durationMin: 45, recommended: false, capacity: 30, creditCost: 60, locations: ["Leadership Stream"], techRequirements: "Browser or mobile app; VR optional for spatial mode." },
+  { capability: "Interactive Gaming Consoles", title: "Mission Skills Challenge", focus: "Morale & Rewards", description: "Build proficiency through scored, team-based operational scenarios.", durationMin: 75, recommended: false, capacity: 16, creditCost: 90, locations: ["Mobile Avatar World"], techRequirements: "Console or tablet; team voice channel recommended." },
+  { capability: "360° Immersive Viewer", title: "Factory Process Walkthrough", focus: "Visual Orientation", description: "Explore new workflows, stations, and safety zones before deployment.", durationMin: 45, recommended: false, capacity: 40, creditCost: 50, locations: ["Mobile Avatar World"], techRequirements: "Browser or mobile app; 360° viewer works without VR hardware." },
+  { capability: "Live Capture & Distribution", title: "Expert Knowledge Network", focus: "Knowledge Transfer", description: "Preserve demonstrations, key frames, and expert guidance for every shift.", durationMin: 60, recommended: false, capacity: 24, creditCost: 70, locations: ["Leadership Stream", "Mobile Avatar World"], techRequirements: "Camera-enabled device for capture; playback on any browser." },
+  { capability: "Content-to-Gameplay", title: "Real Event Decision Lab", focus: "Decision Practice", description: "Turn lessons learned into role-specific judgment and response practice.", durationMin: 60, recommended: false, capacity: 20, creditCost: 85, locations: ["Mobile Avatar World"], techRequirements: "Browser or tablet; branching-scenario engine, no VR required." },
+  { capability: "Screen Ride & Simulator", title: "Future Factory Readiness Simulator", focus: "Skills Training", description: "Practice new equipment, sequencing, and responses before floor activation.", durationMin: 90, recommended: true, capacity: 24, creditCost: 120, locations: ["Mobile Avatar World", "VR Breakout"], techRequirements: "VR headset for full-fidelity mode; mobile avatar fallback supported." },
+  { capability: "Multiplayer VR & Shared POV", title: "Mentor Shadow Network", focus: "Collaborative Coaching", description: "Let managers observe, guide, and compare multiple participant viewpoints.", durationMin: 75, recommended: false, capacity: 8, creditCost: 100, locations: ["VR Breakout"], techRequirements: "VR headset required for all shadowing participants." },
 ] as const;
 
 // Selected experience for this vertical slice -- combines the final two capabilities per the build
@@ -225,6 +250,31 @@ export const SESSION_OUTCOMES = [
   { personId: "marcus-allen", role: "Engineer", attendance: "Attended", completion: 100, assessmentScore: 78, readiness: 70, outcome: "Follow-up Assigned" as const },
 ];
 
+// A2: Assigned to Me. Mock-data-driven, role-scoped action queue -- every item links to a real
+// object (SP-017, FF-042, D-2048, the Advanced Manufacturing department), never a placeholder.
+export interface WorkforceDemoAssignmentItem {
+  id: string;
+  type: "decision" | "department" | "proposal" | "session" | "evidence_review";
+  title: string;
+  roles: WorkforcePreviewRole[];
+  relatedLabel: string;
+  dueDate: string;
+  status: "needs_action" | "upcoming" | "waiting_on_others" | "completed";
+  assignedById: string;
+  expectedAction: string;
+  href: string;
+}
+
+export const WORKFORCE_ASSIGNMENTS: WorkforceDemoAssignmentItem[] = [
+  { id: "asg-1", type: "proposal", title: "Approve Session Proposal SP-017", roles: ["department_leader", "approver"], relatedLabel: "D-2048 · Advanced Manufacturing", dueDate: "2026-09-12", status: "needs_action", assignedById: "jordan-brooks", expectedAction: "Approve, request changes, or reject", href: "/workforce/demo/proposals/SP-017" },
+  { id: "asg-2", type: "session", title: "Prepare FF-042 Employee Onboarding", roles: ["manager"], relatedLabel: "FF-042 · Future Factory Collaborative POV Simulator", dueDate: "2026-09-16", status: "needs_action", assignedById: "maya-patel", expectedAction: "Invite employees and open admission", href: "/workforce/demo/manager/sessions/FF-042/onboarding" },
+  { id: "asg-3", type: "proposal", title: "SP-017 Awaiting Leadership Decision", roles: ["manager"], relatedLabel: "D-2048 · Advanced Manufacturing", dueDate: "2026-09-12", status: "waiting_on_others", assignedById: "maya-patel", expectedAction: "Wait for Department Leadership approval", href: "/workforce/demo/proposals/SP-017" },
+  { id: "asg-4", type: "decision", title: "Review Future Factory Workforce Readiness", roles: ["enterprise_owner", "decision_owner"], relatedLabel: "D-2048", dueDate: "2026-10-24", status: "upcoming", assignedById: "maya-chen", expectedAction: "Review decision progress and pathway", href: "/workforce/demo/decisions/D-2048/workspace" },
+  { id: "asg-5", type: "department", title: "Assign Managers — Advanced Manufacturing", roles: ["department_leader"], relatedLabel: "D-2048 · Advanced Manufacturing", dueDate: "2026-09-08", status: "completed", assignedById: "maya-chen", expectedAction: "Confirm manager assignments", href: "/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing/managers" },
+  { id: "asg-6", type: "evidence_review", title: "Review FF-042 Session Analytics", roles: ["approver", "department_leader"], relatedLabel: "FF-042", dueDate: "2026-09-19", status: "upcoming", assignedById: "jordan-brooks", expectedAction: "Review outcomes and accept evidence", href: "/workforce/demo/manager/sessions/FF-042/analytics" },
+  { id: "asg-7", type: "decision", title: "Complete Department Translation Deliverables", roles: ["department_leader"], relatedLabel: "D-2048 · Advanced Manufacturing", dueDate: "2026-09-20", status: "needs_action", assignedById: "maya-chen", expectedAction: "Finish remaining stage deliverables", href: "/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing" },
+];
+
 export const SESSION_ANALYTICS = {
   invited: 24,
   attended: 22,
@@ -244,6 +294,69 @@ export interface WorkforceDemoRecording {
 }
 
 // One recording per SESSION.recording channel, all true for FF-042 in this checkpoint.
+export interface WorkforceDemoManagerAssignment {
+  personId: string;
+  status: "Awaiting Assignment" | "Assigned" | "Proposal Submitted" | "Session Approved" | "Delivered" | "Complete";
+  proposalId: string | null;
+  sessionId: string | null;
+  dueDate: string;
+}
+
+// Shared by B4 (Assigned Managers, department-scoped) and Manager's own "My Assignments" page --
+// one source so an assignment made in one place shows in the other (B4's acceptance test).
+export const MANAGER_ASSIGNMENTS: WorkforceDemoManagerAssignment[] = [
+  { personId: "jordan-brooks", status: "Session Approved", proposalId: "SP-017", sessionId: "FF-042", dueDate: "2026-09-18" },
+  { personId: "priya-shah", status: "Assigned", proposalId: null, sessionId: null, dueDate: "2026-09-22" },
+  { personId: "daniel-ruiz", status: "Awaiting Assignment", proposalId: null, sessionId: null, dueDate: "2026-09-25" },
+];
+
+export interface WorkforceDemoAssessment {
+  id: string;
+  title: string;
+  purpose: string;
+  questionCount: number;
+  status: "draft" | "scheduled" | "live" | "closed" | "scored" | "published";
+  participantScope: string;
+  responseCount: number;
+  completionPercent: number;
+  avgScore: number | null;
+}
+
+export const SESSION_ASSESSMENTS: WorkforceDemoAssessment[] = [
+  { id: "asmt-1", title: "Inspection Readiness Check", purpose: "Validate understanding of the 6-checkpoint inspection sequence", questionCount: 6, status: "scored", participantScope: "All participants (3)", responseCount: 3, completionPercent: 100, avgScore: 85 },
+  { id: "asmt-2", title: "Safety Lockout Confirmation", purpose: "Confirm safety-lockout procedure comprehension before floor activation", questionCount: 4, status: "draft", participantScope: "All participants (3)", responseCount: 0, completionPercent: 0, avgScore: null },
+];
+
+export interface WorkforceDemoPovGroup {
+  id: string;
+  name: string;
+  objective: string;
+  memberIds: string[];
+  live: boolean;
+  checkpoint: string;
+}
+
+export const POV_BREAKOUT_GROUPS: WorkforceDemoPovGroup[] = [
+  { id: "pov-assembly", name: "Assembly & Inspection", objective: "Verify workflow sequence and identify readiness gaps.", memberIds: ["ava-patel"], live: true, checkpoint: "Checkpoint 4 of 6" },
+  { id: "pov-training", name: "Training & Documentation", objective: "Confirm documentation sign-off and training handoff.", memberIds: ["leah-morgan"], live: true, checkpoint: "Checkpoint 3 of 6" },
+];
+
+export interface WorkforceDemoLeadershipContentItem {
+  id: string;
+  title: string;
+  summary: string;
+  ownerId: string;
+  format: "Video" | "Live Briefing";
+  viewedCount: number;
+}
+
+export const LEADERSHIP_CONTENT_ITEMS: WorkforceDemoLeadershipContentItem[] = [
+  { id: "why-future-factory-matters", title: "Why the Future Factory Workflow Matters", summary: "Executive framing for the transition and what it means for each shift.", ownerId: "jordan-brooks", format: "Video", viewedCount: 14 },
+  { id: "how-well-work-together", title: "How We'll Work — Together", summary: "Cross-team coordination expectations during the readiness rollout.", ownerId: "leah-morgan", format: "Video", viewedCount: 9 },
+];
+
+export const CHECKED_IN_IDS = ["ava-patel", "leah-morgan", "marcus-allen", "daniel-ruiz", "priya-shah"];
+
 export const SESSION_RECORDINGS: WorkforceDemoRecording[] = [
   { id: "rec-master", label: "Full Session Recording", channel: "master", durationMinutes: 62, sizeLabel: "1.8 GB", capturedAt: "2026-09-18T14:00:00-04:00" },
   { id: "rec-mobile", label: "Mobile Avatar World Capture", channel: "mobileWorld", durationMinutes: 58, sizeLabel: "640 MB", capturedAt: "2026-09-18T14:02:00-04:00" },

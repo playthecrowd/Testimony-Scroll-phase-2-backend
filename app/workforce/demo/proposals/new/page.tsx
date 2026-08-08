@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LayoutGrid, ListChecks, UserCheck, Calendar as CalendarIcon, Compass, Users, ClipboardCheck, Coins } from "lucide-react";
-import { DemoShell, DemoNavItem } from "@/components/workforce/demo/DemoShell";
+import { Coins } from "lucide-react";
+import { DemoShell } from "@/components/workforce/demo/DemoShell";
 import { WorkforceAvatar } from "@/components/workforce/WorkforceAvatar";
 import { SELECTED_EXPERIENCE_TITLE, SESSION_PROPOSAL, PEOPLE } from "@/lib/workforceDemo";
 
@@ -31,17 +31,6 @@ export default function CreateProposalPage() {
     <DemoShell
       pageType="proposal-create"
       searchPlaceholder="Search decisions, people, experiences…"
-      nav={
-        <>
-          <DemoNavItem href="/workforce/demo" label="Decision Pool" icon={LayoutGrid} />
-          <DemoNavItem href="/workforce/demo" label="My Decisions" icon={ListChecks} />
-          <DemoNavItem href="/workforce/demo" label="Assigned to Me" icon={UserCheck} />
-          <DemoNavItem href="/workforce/demo" label="Sessions" icon={CalendarIcon} />
-          <DemoNavItem href="/workforce/demo" label="Attractions" icon={Compass} />
-          <DemoNavItem href="/workforce/demo" label="People & Teams" icon={Users} />
-          <DemoNavItem href="/workforce/demo/decisions/D-2048/evidence" label="Evidence & Outcomes" icon={ClipboardCheck} />
-        </>
-      }
       navFooter={
         <Link href="/workforce/demo/decisions/D-2048/departments/dept_advanced_manufacturing" className="text-xs text-accent-blue hover:underline px-3 py-2 block">← Back to Department Workspace</Link>
       }
