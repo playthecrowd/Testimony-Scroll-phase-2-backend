@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="960" height="520" role="img" aria-label="Placeholder illustration of a future factory campus, standing in for the decision's hero visual">
+  <defs>
+    <linearGradient id="ffRootFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ad8a3e" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#ad8a3e" stop-opacity="0" />
+    </linearGradient>
+    <radialGradient id="ffGlow" cx="50%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#f4f1e6" />
+      <stop offset="100%" stop-color="#f8f6ef" />
+    </radialGradient>
+  </defs>
+
+  <rect width="960" height="520" fill="url(#ffGlow)" />
+
+  <!-- abstract factory-block cluster -->
+  <g opacity="0.9">
+    <rect x="330" y="200" width="150" height="110" rx="6" fill="#e7e2d3" />
+    <rect x="330" y="200" width="150" height="18" rx="4" fill="#d8d2bd" />
+    <rect x="500" y="230" width="120" height="80" rx="6" fill="#ece7d9" />
+    <rect x="640" y="190" width="90" height="120" rx="6" fill="#e2ddcd" />
+    <rect x="640" y="190" width="90" height="16" rx="4" fill="#d3cdb6" />
+    <rect x="420" y="140" width="70" height="60" rx="6" fill="#ede8db" />
+    <circle cx="590" cy="150" r="26" fill="#e7e2d3" />
+  </g>
+
+  <!-- neon-lime pathway lines connecting the blocks -->
+  <g fill="none" stroke="#84cc16" stroke-width="5" stroke-linecap="round" opacity="0.85">
+    <path d="M 300 330 C 380 300, 420 300, 460 260" />
+    <path d="M 460 260 C 520 220, 560 250, 610 230" />
+    <path d="M 610 230 C 660 210, 690 240, 720 300" />
+    <path d="M 400 320 C 450 340, 520 340, 580 320" />
+  </g>
+  <g fill="#a3e635">
+    <circle cx="300" cy="330" r="5" />
+    <circle cx="460" cy="260" r="5" />
+    <circle cx="610" cy="230" r="5" />
+    <circle cx="720" cy="300" r="5" />
+    <circle cx="580" cy="320" r="5" />
+  </g>
+
+  <!-- metallic-gold roots draping below the platform -->
+  <g fill="none" stroke="url(#ffRootFade)" stroke-width="3" stroke-linecap="round">
+    <path d="M 420 360 C 400 410, 380 440, 350 490" />
+    <path d="M 460 365 C 465 420, 440 450, 430 500" />
+    <path d="M 520 365 C 540 415, 560 445, 555 495" />
+    <path d="M 570 360 C 600 405, 630 430, 660 480" />
+    <path d="M 490 368 C 490 425, 500 455, 495 500" />
+  </g>
+
+  <!-- development-only label rendered by the React wrapper, not baked in here -->
+</svg>

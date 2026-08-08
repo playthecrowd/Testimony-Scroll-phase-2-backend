@@ -10,7 +10,7 @@ import {
 } from "@/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapDecision(row: any, ownerNamesById: Map<string, string>, participantCountById: Map<string, number>): WorkforceDecision {
+function mapDecision(row: any, namesById: Map<string, string>, participantCountById: Map<string, number>): WorkforceDecision {
   return {
     id: row.id,
     churchId: row.church_id,
@@ -22,41 +22,44 @@ function mapDecision(row: any, ownerNamesById: Map<string, string>, participantC
     departmentId: row.department_id,
     controllingStakeholderGroup: row.controlling_stakeholder_group,
     decisionOwner: row.decision_owner,
-    decisionOwnerName: row.decision_owner ? (ownerNamesById.get(row.decision_owner) ?? null) : null,
+    decisionOwnerName: row.decision_owner ? (namesById.get(row.decision_owner) ?? null) : null,
     executiveIntent: row.executive_intent,
     desiredOutcome: row.desired_outcome,
     targetDate: row.target_date,
     createdBy: row.created_by,
+    createdByName: row.created_by ? (namesById.get(row.created_by) ?? null) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     participantCount: participantCountById.get(row.id) ?? 0,
   };
 }
 
-// Batches the two supporting lookups (owner display names, participant counts) that would
+// Batches the two supporting lookups (owner/creator display names, participant counts) that would
 // otherwise require a PostgREST embed per row -- wf_decisions has two separate FKs into profiles
 // (decision_owner, created_by), which makes an ambiguous embed without an explicit constraint-name
 // hint; two flat queries plus in-memory maps are simpler and avoid depending on a constraint name.
-async function hydrateDecisions(supabase: SupabaseClient, rows: { id: string; decision_owner: string | null }[]) {
-  const ownerIds = Array.from(new Set(rows.map((r) => r.decision_owner).filter((id): id is string => !!id)));
+// One shared id->name map covers both columns, since a profile's name doesn't depend on which role
+// it's being looked up for.
+async function hydrateDecisions(supabase: SupabaseClient, rows: { id: string; decision_owner: string | null; created_by: string | null }[]) {
+  const nameIds = Array.from(new Set([...rows.map((r) => r.decision_owner), ...rows.map((r) => r.created_by)].filter((id): id is string => !!id)));
   const decisionIds = rows.map((r) => r.id);
 
-  const [{ data: owners, error: ownersError }, { data: participants, error: participantsError }] = await Promise.all([
-    ownerIds.length > 0
-      ? supabase.from("profiles").select("id, full_name").in("id", ownerIds)
+  const [{ data: profiles, error: profilesError }, { data: participants, error: participantsError }] = await Promise.all([
+    nameIds.length > 0
+      ? supabase.from("profiles").select("id, full_name").in("id", nameIds)
       : Promise.resolve({ data: [] as { id: string; full_name: string | null }[], error: null }),
     decisionIds.length > 0
       ? supabase.from("wf_decision_participants").select("decision_id").in("decision_id", decisionIds)
       : Promise.resolve({ data: [] as { decision_id: string }[], error: null }),
   ]);
-  if (ownersError) throw ownersError;
+  if (profilesError) throw profilesError;
   if (participantsError) throw participantsError;
 
-  const ownerNamesById = new Map((owners ?? []).map((o) => [o.id, o.full_name ?? "Unnamed"]));
+  const namesById = new Map((profiles ?? []).map((o) => [o.id, o.full_name ?? "Unnamed"]));
   const participantCountById = new Map<string, number>();
   (participants ?? []).forEach((p) => participantCountById.set(p.decision_id, (participantCountById.get(p.decision_id) ?? 0) + 1));
 
-  return { ownerNamesById, participantCountById };
+  return { ownerNamesById: namesById, participantCountById };
 }
 
 export interface DecisionFilters {

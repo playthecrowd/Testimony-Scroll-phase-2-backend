@@ -1038,6 +1038,7 @@ export interface WorkforceDecision {
   desiredOutcome: string | null;
   targetDate: string | null;
   createdBy: string | null;
+  createdByName: string | null;
   createdAt: string;
   updatedAt: string;
   participantCount: number;
